@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 
 const Login = () => {
@@ -7,24 +8,28 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      // Adjusted the payload to use username since Django CustomUser uses username by default for login
-      // If we configured it to use email, we would send email. But let's assume it's username for now.
-      // Wait, let's use the input as username for the Django default setup.
       const response = await axios.post('http://localhost:8000/api/token/', {
-        username: email, // Sending email input as username
+        username: email,
         password: password,
       });
-      console.log('Login successful:', response.data);
-      // Store token (e.g., in localStorage)
-      localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
-      alert('Login successful!');
+      
+      const { access, refresh } = response.data;
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      
+      // Parse JWT token to get role
+      const payloadBase64 = access.split('.')[1];
+      const payload = JSON.parse(atob(payloadBase64));
+      localStorage.setItem('user_role', payload.role);
+      
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       setError('Invalid credentials. Please try again.');
