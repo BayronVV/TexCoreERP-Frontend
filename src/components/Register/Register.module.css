@@ -1,0 +1,225 @@
+.loginContainer {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  font-family: var(--font-family);
+}
+
+.leftBanner {
+  flex: 1;
+  background: linear-gradient(135deg, #3246a8 0%, #1e2d78 100%);
+  color: white;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background concentric circles/lines effect */
+.leftBanner::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background-image: 
+    radial-gradient(circle at top left, transparent 20%, rgba(255, 255, 255, 0.05) 20.5%, transparent 21%),
+    radial-gradient(circle at top left, transparent 40%, rgba(255, 255, 255, 0.05) 40.5%, transparent 41%),
+    radial-gradient(circle at top left, transparent 60%, rgba(255, 255, 255, 0.05) 60.5%, transparent 61%);
+  pointer-events: none;
+}
+
+.bannerContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.logoIcon {
+  font-size: 4rem;
+  margin-bottom: 3rem;
+  color: white;
+}
+
+.bannerTitle {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+}
+
+.bannerText {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  max-width: 80%;
+}
+
+.footerText {
+  margin-top: auto;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.rightForm {
+  flex: 1;
+  background: var(--bg-white);
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.formContent {
+  max-width: 480px;
+  width: 100%;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  margin-bottom: 4rem;
+}
+
+.brandName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.formWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.welcomeTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-dark);
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-gray);
+  margin-bottom: 2.5rem;
+  line-height: 1.5;
+}
+
+.link {
+  color: var(--text-dark);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  padding: 1rem 0;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 1rem;
+  outline: none;
+  background: transparent;
+  transition: border-color 0.2s;
+  color: var(--text-dark);
+}
+
+.input:focus {
+  border-bottom-color: var(--primary-color);
+}
+
+.loginBtn {
+  background-color: var(--text-dark);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-top: 1rem;
+}
+
+.loginBtn:hover {
+  background-color: #333;
+}
+
+.loginBtn:active {
+  transform: scale(0.98);
+}
+
+.googleBtn {
+  background-color: white;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.googleBtn:hover {
+  background-color: #fafafa;
+}
+
+.googleIcon {
+  font-weight: bold;
+  color: #ea4335; /* Google red for the icon placeholder */
+  font-size: 1.2rem;
+}
+
+.forgotPassword {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-gray);
+  margin-top: 1rem;
+}
+
+.errorMessage {
+  color: #d93025;
+  background-color: #fce8e6;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .loginContainer {
+    flex-direction: column;
+  }
+  
+  .leftBanner {
+    padding: 2rem;
+    flex: 0 0 auto;
+  }
+  
+  .rightForm {
+    padding: 2rem;
+  }
+}

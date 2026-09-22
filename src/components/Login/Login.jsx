@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styles from './Login.module.css';
 
 const Login = () => {
@@ -64,7 +64,7 @@ const Login = () => {
           <div className={styles.formWrapper}>
             <h3 className={styles.welcomeTitle}>¡Bienvenido de nuevo!</h3>
             <p className={styles.subtitle}>
-              ¿No tienes una cuenta? <a href="#" className={styles.link}>Crea una cuenta nueva ahora</a>, ¡es GRATIS! Toma menos de un minuto.
+              ¿No tienes una cuenta? <Link to="/register" className={styles.link}>Crea una cuenta nueva ahora</Link>, ¡es GRATIS! Toma menos de un minuto.
             </p>
             
             <form onSubmit={handleSubmit} className={styles.form}>
