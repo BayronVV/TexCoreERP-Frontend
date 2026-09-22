@@ -1,28 +1,66 @@
+/* Estilos base mínimos. El sistema de diseño se define a partir del Sprint 1. */
 :root {
-  --primary-color: #273b9e; /* Dark blue from the image */
-  --primary-hover: #1e2d78;
-  --bg-white: #ffffff;
-  --text-dark: #1a1a1a;
-  --text-gray: #666666;
-  --border-color: #e5e5e5;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+  --fg: #1f2328;
+  --muted: #656d76;
+  --bg: #ffffff;
+  --border: #d0d7de;
+  --ok: #1a7f37;
+  --error: #cf222e;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e6edf3;
+    --muted: #8d96a0;
+    --bg: #0d1117;
+    --border: #30363d;
+    --ok: #3fb950;
+    --error: #f85149;
+  }
 }
+
+* { box-sizing: border-box; }
 
 body {
-  font-family: var(--font-family);
-  background-color: #f5f5f5; /* Light gray background for contrast if needed */
-  color: var(--text-dark);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
 }
 
-/* Utilities */
-.text-center { text-align: center; }
-.mt-4 { margin-top: 1rem; }
-.mb-4 { margin-bottom: 1rem; }
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+h1 { margin: 0; }
+
+.muted { color: var(--muted); margin-top: 4px; }
+
+.status-list { list-style: none; padding: 0; margin: 24px 0; }
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.status__value { text-align: right; overflow-wrap: anywhere; }
+.status--ok .status__value { color: var(--ok); }
+.status--error .status__value { color: var(--error); }
+.status--loading .status__value { color: var(--muted); }
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.details dd { margin: 0; overflow-wrap: anywhere; }

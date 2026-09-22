@@ -1,16 +1,62 @@
-# React + Vite
+# TexCore — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interfaz web del ERP TexCore.
 
-Currently, two official plugins are available:
+**Stack:** Node 20.19+ · React 19 · Vite 8
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Estructura
 
-## React Compiler
+```
+frontend/
+├── public/          # Archivos estáticos servidos tal cual
+├── src/
+│   ├── api/         # Cliente HTTP: toda llamada al backend pasa por aquí
+│   ├── App.jsx      # Vista temporal de Sprint 0 (estado de conexión)
+│   ├── main.jsx     # Punto de entrada
+│   └── index.css    # Estilos base
+├── index.html
+├── vite.config.js
+└── .env.example     # Plantilla de variables de entorno
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Hoy solo existe una vista de verificación: muestra si el backend
+(`/api/health/`) y la base de datos (`/api/health/db/`) responden. Las
+pantallas reales llegan a partir del Sprint 1.
 
-## Expanding the Oxlint configuration
+## Levantar en local
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Requiere el backend corriendo en http://localhost:8000 (ver `../backend/README.md`).
+
+```powershell
+cd frontend
+npm install
+copy .env.example .env.local     # Linux/macOS: cp .env.example .env.local
+npm run dev
+```
+
+Abre http://localhost:5173.
+
+## Scripts
+
+| Comando           | Qué hace |
+|-------------------|----------|
+| `npm run dev`     | Servidor de desarrollo con recarga en caliente. |
+| `npm run build`   | Genera la versión de producción en `dist/`. |
+| `npm run preview` | Sirve `dist/` para probar el build. |
+| `npm run lint`    | Revisa el código con oxlint. |
+
+## Variables de entorno
+
+| Variable       | Por defecto             | Descripción |
+|----------------|-------------------------|-------------|
+| `VITE_API_URL` | `http://localhost:8000` | URL base del backend. |
+
+Todo lo que empieza por `VITE_` queda visible en el navegador: nunca pongas
+secretos aquí. El acceso a la base de datos lo hace **solo** el backend.
+
+## Despliegue
+
+`npm run build` genera archivos estáticos en `dist/` que se pueden servir
+desde cualquier hosting estático (Vercel, Netlify, Nginx, ...). Define
+`VITE_API_URL` con la URL pública del backend **antes** de compilar, y agrega
+el dominio del frontend a `CORS_ALLOWED_ORIGINS` en el backend.
