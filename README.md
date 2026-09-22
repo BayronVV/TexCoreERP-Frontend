@@ -11,17 +11,14 @@ frontend/
 ├── public/          # Archivos estáticos servidos tal cual
 ├── src/
 │   ├── api/         # Cliente HTTP: toda llamada al backend pasa por aquí
-│   ├── App.jsx      # Vista temporal de Sprint 0 (estado de conexión)
-│   ├── main.jsx     # Punto de entrada
-│   └── index.css    # Estilos base
+│   ├── components/  # Pantallas por funcionalidad (Login, Register, Dashboard, ...)
+│   ├── App.jsx       # Enrutamiento principal
+│   ├── main.jsx      # Punto de entrada
+│   └── index.css     # Estilos base
 ├── index.html
 ├── vite.config.js
 └── .env.example     # Plantilla de variables de entorno
 ```
-
-Hoy solo existe una vista de verificación: muestra si el backend
-(`/api/health/`) y la base de datos (`/api/health/db/`) responden. Las
-pantallas reales llegan a partir del Sprint 1.
 
 ## Levantar en local
 
@@ -48,7 +45,7 @@ Abre http://localhost:5173.
 ## Variables de entorno
 
 | Variable       | Por defecto             | Descripción |
-|----------------|-------------------------|-------------|
+|----------------|--------------------------|-------------|
 | `VITE_API_URL` | `http://localhost:8000` | URL base del backend. |
 
 Todo lo que empieza por `VITE_` queda visible en el navegador: nunca pongas
