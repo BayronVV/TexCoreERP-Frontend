@@ -5,7 +5,7 @@
 
 export const MODULES = [
   { id: 'seguridad', label: 'Seguridad y Usuarios', path: '/dashboard', ready: true },
-  { id: 'inventario', label: 'Inventario de Materias Primas', path: null, ready: false },
+  { id: 'inventario', label: 'Inventario de Materias Primas', path: '/inventario', ready: true },
   { id: 'fichas_tecnicas', label: 'Fichas Técnicas', path: null, ready: false },
   { id: 'produccion', label: 'Producción y Trazabilidad', path: null, ready: false },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)', path: null, ready: false },
