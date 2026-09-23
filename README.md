@@ -11,7 +11,8 @@ frontend/
 ├── public/          # Archivos estáticos servidos tal cual
 ├── src/
 │   ├── api/         # Cliente HTTP: toda llamada al backend pasa por aquí
-│   ├── components/  # Pantallas por funcionalidad (Login, Register, Dashboard, ...)
+│   ├── components/  # Pantallas por funcionalidad (Login, Register, Dashboard, Sidebar, ...)
+│   ├── config/       # roleModules.js: mapa rol → módulo (bloqueo del menú, HU 1.4)
 │   ├── App.jsx       # Enrutamiento principal
 │   ├── main.jsx      # Punto de entrada
 │   └── index.css     # Estilos base
@@ -41,6 +42,19 @@ Abre http://localhost:5173.
 | `npm run build`   | Genera la versión de producción en `dist/`. |
 | `npm run preview` | Sirve `dist/` para probar el build. |
 | `npm run lint`    | Revisa el código con oxlint. |
+
+## Menú lateral por rol (HU 1.4)
+
+`src/components/Sidebar/Sidebar.jsx` muestra los 9 módulos del sistema
+(según el diagrama de casos de uso) y los bloquea visualmente si el rol
+activo no tiene acceso — candado 🔒 y sin navegación. Un módulo al que
+el rol sí tiene acceso pero que aún no está construido se marca
+"Próximamente" en vez de enlazarlo.
+
+El mapa rol → módulo vive en `src/config/roleModules.js` y debe
+coincidir con `apps/core/constants.ROLE_MODULES` del backend (que es
+quien de verdad aplica la restricción en la API — el bloqueo del menú
+es solo visual, no reemplaza la validación del servidor).
 
 ## Variables de entorno
 

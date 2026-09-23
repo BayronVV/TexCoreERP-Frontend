@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from './AdminPanel';
+import Sidebar from '../Sidebar/Sidebar';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -37,23 +38,27 @@ const Dashboard = () => {
         </div>
       </header>
       
-      <main className={styles.mainContent}>
-        {role === 'ADMIN' && <AdminPanel />}
-        
-        {role === 'PENDING' && (
-          <div className={styles.messageCard}>
-            <h3>Account Pending</h3>
-            <p>Your account is currently pending approval. Please wait until an Administrator assigns you a role.</p>
-          </div>
-        )}
+      <div className={styles.body}>
+        {role !== 'PENDING' && <Sidebar role={role} />}
 
-        {role !== 'ADMIN' && role !== 'PENDING' && (
-          <div className={styles.messageCard}>
-            <h3>Bienvenido, {role}</h3>
-            <p>Este es tu panel personalizado según tu rol asignado en el sistema.</p>
-          </div>
-        )}
-      </main>
+        <main className={styles.mainContent}>
+          {role === 'ADMIN' && <AdminPanel />}
+
+          {role === 'PENDING' && (
+            <div className={styles.messageCard}>
+              <h3>Account Pending</h3>
+              <p>Your account is currently pending approval. Please wait until an Administrator assigns you a role.</p>
+            </div>
+          )}
+
+          {role !== 'ADMIN' && role !== 'PENDING' && (
+            <div className={styles.messageCard}>
+              <h3>Bienvenido, {role}</h3>
+              <p>Este es tu panel personalizado según tu rol asignado en el sistema.</p>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
