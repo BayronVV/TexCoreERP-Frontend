@@ -1,0 +1,50 @@
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--bg-white);
+  border-right: 1px solid var(--border-color);
+  padding: 1.5rem 0;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  color: var(--text-dark);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+a.item:hover {
+  background-color: #f1f3f5;
+}
+
+.itemActive {
+  border-left-color: var(--primary-color);
+  background-color: #eef0fb;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.itemBlocked {
+  color: var(--text-gray);
+  cursor: not-allowed;
+}
+
+.badge {
+  font-size: 0.72rem;
+  color: var(--text-gray);
+  white-space: nowrap;
+}
