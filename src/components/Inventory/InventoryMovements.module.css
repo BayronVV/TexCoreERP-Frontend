@@ -56,6 +56,60 @@
   color: #0f172a;
 }
 
+.summaryCardAlert {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  border-color: #fecdd3;
+}
+
+.summaryCardAlert strong {
+  color: #b91c1c;
+}
+
+.alertBanner {
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.alertBannerActive {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  border-color: #fecdd3;
+}
+
+.alertContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.alertDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-top: 0.35rem;
+  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.14);
+}
+
+.alertBannerActive .alertDot {
+  background: #ef4444;
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12);
+}
+
+.alertContent strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.alertContent p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
 .panel {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -153,6 +207,89 @@
   border: 1px solid #fecaca;
   color: #b91c1c;
   font-weight: 600;
+}
+
+.tablePanel {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  padding: 1.25rem 1.5rem;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tableHeader h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.tableBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.inventoryTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inventoryTable th,
+.inventoryTable td {
+  padding: 0.9rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.inventoryTable th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rowCritical {
+  background: rgba(254, 226, 226, 0.55);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.statusBadgeDanger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.statusBadgeOk {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .primaryButton,

@@ -33,6 +33,13 @@ const getDefaultFormData = (mode) => {
   }, {});
 };
 
+const inventoryRows = [
+  { item: 'Tela algodón 180 gr', stock: 28, threshold: 40, unit: 'm' },
+  { item: 'Hilo poliéster', stock: 64, threshold: 50, unit: 'kg' },
+  { item: 'Botón de camisa', stock: 110, threshold: 80, unit: 'cajas' },
+  { item: 'Cierre industrial', stock: 18, threshold: 30, unit: 'rollos' },
+];
+
 const InventoryMovements = () => {
   const [mode, setMode] = useState('entry');
   const [stockActual, setStockActual] = useState(120);
@@ -41,6 +48,8 @@ const InventoryMovements = () => {
   const [error, setError] = useState('');
 
   const currentFields = mode === 'entry' ? entryFields : exitFields;
+  const criticalItems = inventoryRows.filter((row) => row.stock <= row.threshold).length;
+  const lowStockWarning = stockActual <= 40;
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -154,9 +163,23 @@ const InventoryMovements = () => {
           <span>Salidas hoy</span>
           <strong>12</strong>
         </div>
-        <div className={styles.summaryCard}>
+        <div className={`${styles.summaryCard} ${lowStockWarning ? styles.summaryCardAlert : ''}`}>
           <span>Stock actual</span>
           <strong>{stockActual}</strong>
+        </div>
+      </div>
+
+      <div className={`${styles.alertBanner} ${lowStockWarning ? styles.alertBannerActive : ''}`}>
+        <div className={styles.alertContent}>
+          <span className={styles.alertDot} aria-hidden="true" />
+          <div>
+            <strong>{lowStockWarning ? 'Alerta de stock crítico' : 'Todo en orden'}</strong>
+            <p>
+              {lowStockWarning
+                ? `El stock disponible está por debajo del mínimo recomendado. Hay ${criticalItems} insumos con nivel bajo.`
+                : 'No hay indicadores de riesgo en el inventario actual.'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -244,6 +267,46 @@ const InventoryMovements = () => {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className={styles.tablePanel}>
+        <div className={styles.tableHeader}>
+          <h2>Inventario por materia prima</h2>
+          <span className={styles.tableBadge}>Indicadores</span>
+        </div>
+
+        <div className={styles.tableWrap}>
+          <table className={styles.inventoryTable}>
+            <thead>
+              <tr>
+                <th>Insumo</th>
+                <th>Stock</th>
+                <th>Umbral</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventoryRows.map((row) => {
+                const isCritical = row.stock <= row.threshold;
+
+                return (
+                  <tr key={row.item} className={isCritical ? styles.rowCritical : ''}>
+                    <td>{row.item}</td>
+                    <td>
+                      {row.stock} {row.unit}
+                    </td>
+                    <td>{row.threshold} {row.unit}</td>
+                    <td>
+                      <span className={`${styles.statusBadge} ${isCritical ? styles.statusBadgeDanger : styles.statusBadgeOk}`}>
+                        {isCritical ? 'Crítico' : 'Normal'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
