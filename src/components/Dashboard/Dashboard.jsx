@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../api/client';
 import AdminPanel from './AdminPanel';
 import Sidebar from '../Sidebar/Sidebar';
 import styles from './Dashboard.module.css';
+
+const demoAlerts = [
+  { id: 1, name: 'Tela algodón 180 gr', stock: '18', unit: 'm', severity: 'warning', message: 'Stock por debajo del mínimo recomendado.' },
+  { id: 2, name: 'Hilo poliéster', stock: '0', unit: 'kg', severity: 'critical', message: 'Sin stock disponible.' },
+];
 
 const InventoryMovementForms = ({ role }) => {
   const [formType, setFormType] = useState('entry');
@@ -162,17 +168,38 @@ const InventoryMovementForms = ({ role }) => {
 
 const Dashboard = ({ forceInventoryView = false }) => {
   const [role, setRole] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [alertsError, setAlertsError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const userRole = localStorage.getItem('user_role');
     const token = localStorage.getItem('access_token');
-    
+
     if (!token) {
       navigate('/login');
       return;
     }
+
     setRole(userRole);
+
+    fetch(`${API_URL}/api/inventory/alerts/`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('No se pudo cargar la información de alertas.');
+        }
+        const payload = await response.json();
+        setAlerts(payload.alerts || []);
+      })
+      .catch(() => {
+        setAlerts(demoAlerts);
+        setAlertsError('Mostrando alertas de ejemplo mientras no hay respuesta del backend.');
+      });
   }, [navigate]);
 
   const handleLogout = () => {
@@ -202,6 +229,38 @@ const Dashboard = ({ forceInventoryView = false }) => {
             <InventoryMovementForms role={role || 'ALMACENISTA'} />
           ) : (
             <>
+              {alerts.length > 0 && (
+                <section className={styles.alertPanel}>
+                  <div className={styles.alertHeader}>
+                    <div>
+                      <p className={styles.sectionEyebrow}>Alertas</p>
+                      <h3>Indicadores de inventario</h3>
+                    </div>
+                    <span className={styles.alertCounter}>{alerts.length}</span>
+                  </div>
+
+                  {alertsError && <p className={styles.alertWarning}>{alertsError}</p>}
+
+                  <div className={styles.alertList}>
+                    {alerts.map((alert) => (
+                      <div
+                        key={alert.id ?? `${alert.name}-${alert.stock}`}
+                        className={`${styles.alertItem} ${alert.severity === 'critical' ? styles.alertItemCritical : styles.alertItemWarning}`}
+                      >
+                        <div className={styles.alertIcon} aria-hidden="true">!</div>
+                        <div className={styles.alertText}>
+                          <strong>{alert.name}</strong>
+                          <p>{alert.message}</p>
+                          <span>
+                            Stock: {alert.stock} {alert.unit || ''}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {role === 'ADMIN' && <AdminPanel />}
 
               {(role === 'ALMACENISTA' || role === 'PRODUCCION') && (

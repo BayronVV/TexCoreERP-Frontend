@@ -7,6 +7,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import InventoryItem, InventoryMovement
+from .services import get_critical_inventory_items
+
+
+class InventoryAlertListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        alerts = get_critical_inventory_items()
+
+        return Response({
+            'count': len(alerts),
+            'alerts': alerts,
+        }, status=status.HTTP_200_OK)
 
 
 class InventoryMovementCreateView(APIView):

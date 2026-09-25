@@ -4,6 +4,98 @@
   font-family: var(--font-family);
 }
 
+.alertPanel {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(127, 29, 29, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.alertHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.alertCounter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.alertWarning {
+  margin: 0 0 1rem;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.alertList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.alertItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid transparent;
+}
+
+.alertItemWarning {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.alertItemCritical {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.alertIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-weight: 800;
+  color: white;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+
+.alertText {
+  flex: 1;
+}
+
+.alertText strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #111827;
+}
+
+.alertText p,
+.alertText span {
+  margin: 0;
+  display: block;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
 .inventoryPanel {
   background: #ffffff;
   border: 1px solid #e9ecef;
