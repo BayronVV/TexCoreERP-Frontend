@@ -11,8 +11,14 @@ frontend/
 ├── public/          # Archivos estáticos servidos tal cual
 ├── src/
 │   ├── api/         # Cliente HTTP: toda llamada al backend pasa por aquí
-│   ├── components/  # Pantallas por funcionalidad (Login, Register, Dashboard, Sidebar, ...)
-│   ├── config/       # roleModules.js: mapa rol → módulo (bloqueo del menú, HU 1.4)
+│   ├── auth/        # Sesión: AuthProvider (carga /api/auth/me/) y useAuth()
+│   ├── components/
+│   │   ├── Auth/      # Login, recuperar y restablecer contraseña (HU 1.3)
+│   │   ├── Layout/    # Encabezado + menú lateral de las pantallas internas
+│   │   ├── Security/  # Usuarios y Roles y permisos (HU 1.4)
+│   │   ├── ui/        # Modal, avisos (toasts), RequirePermission
+│   │   └── ...        # Dashboard, Inventario, Register, Sidebar
+│   ├── config/       # modules.js: módulos del menú (etiquetas y rutas)
 │   ├── App.jsx       # Enrutamiento principal
 │   ├── main.jsx      # Punto de entrada
 │   └── index.css     # Estilos base
@@ -43,18 +49,37 @@ Abre http://localhost:5173.
 | `npm run preview` | Sirve `dist/` para probar el build. |
 | `npm run lint`    | Revisa el código con oxlint. |
 
-## Menú lateral por rol (HU 1.4)
+## Permisos en el frontend (HU 1.4)
 
-`src/components/Sidebar/Sidebar.jsx` muestra los 9 módulos del sistema
-(según el diagrama de casos de uso) y los bloquea visualmente si el rol
-activo no tiene acceso — candado 🔒 y sin navegación. Un módulo al que
-el rol sí tiene acceso pero que aún no está construido se marca
-"Próximamente" en vez de enlazarlo.
+Al entrar a cualquier pantalla interna, `AuthProvider` pide
+`/api/auth/me/` y guarda los permisos del usuario. Con ellos:
 
-El mapa rol → módulo vive en `src/config/roleModules.js` y debe
-coincidir con `apps/core/constants.ROLE_MODULES` del backend (que es
-quien de verdad aplica la restricción en la API — el bloqueo del menú
-es solo visual, no reemplaza la validación del servidor).
+- `Sidebar` habilita un módulo si el usuario tiene `<módulo>.ver`; si no,
+  lo muestra con candado. Si tiene permiso pero la pantalla no existe
+  todavía, dice "Próximamente".
+- `RequirePermission` protege cada ruta interna (por ejemplo
+  `/seguridad/usuarios` exige `seguridad.ver`).
+- Botones como "Nuevo usuario" o "Guardar cambios" solo aparecen con el
+  permiso de gestión correspondiente.
+
+El backend valida el permiso en cada petición; el frontend solo decide qué
+mostrar.
+
+**Sesión:** `src/api/client.js` renueva el access token con el refresh
+cuando vence (15 min). Si el refresh también venció (30 min sin uso) o la
+contraseña cambió, se cierra la sesión y vuelve al login.
+
+## Rutas
+
+| Ruta | Pantalla |
+|------|----------|
+| `/login`, `/register` | Acceso y solicitud de cuenta |
+| `/recuperar-contrasena` | Pedir el enlace de recuperación (HU 1.3) |
+| `/restablecer-contrasena?token=` | Definir la nueva contraseña o activar una cuenta invitada |
+| `/dashboard` | Inicio |
+| `/seguridad/usuarios` | Usuarios: aprobar solicitudes, roles, activar/desactivar, invitar |
+| `/seguridad/roles` | Roles y matriz de permisos por módulo |
+| `/inventario` | Movimientos de inventario |
 
 ## Variables de entorno
 
