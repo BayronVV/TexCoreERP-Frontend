@@ -409,6 +409,69 @@
   text-align: center;
 }
 
+/* ---------- Recuperación de contraseña (HU 1.3) ---------- */
+
+/* Botón secundario de las pantallas de recuperación (mismo aspecto que el de Google). */
+.secondaryBtn {
+  composes: googleBtn;
+}
+
+a.loginBtn,
+a.secondaryBtn {
+  text-decoration: none;
+}
+
+.successMessage {
+  color: #0f5f55;
+  background-color: #e6fbf8;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.revealBtn {
+  position: absolute;
+  right: 1rem;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+
+.inputGroup:has(.revealBtn) .input {
+  padding-right: 5rem;
+}
+
+.inputError {
+  border-color: #d93025;
+}
+
+.fieldHint {
+  margin-top: -0.6rem;
+  font-size: 0.8rem;
+  color: #b3261e;
+}
+
+.checklist {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 1rem;
+  margin: -0.3rem 0 0 1.1rem;
+  font-size: 0.8rem;
+  color: var(--text-gray);
+}
+
+.ruleOk {
+  color: var(--teal-dark);
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .loginContainer {
     flex-direction: column;

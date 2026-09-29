@@ -1,0 +1,90 @@
+/* Piezas de interfaz compartidas por las pantallas internas (navy + teal). */
+
+.toastStack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 360px;
+}
+
+.toast {
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: white;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
+}
+
+.success {
+  background: #0f766e;
+}
+
+.error {
+  background: #b3261e;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 16, 56, 0.45);
+}
+
+.modal {
+  outline: none;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: white;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 50px rgba(10, 16, 56, 0.25);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.modalHeader h2 {
+  font-size: 1.15rem;
+  color: #0a1038;
+}
+
+.closeBtn {
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--text-gray);
+  cursor: pointer;
+}
+
+.forbidden {
+  max-width: 520px;
+  margin: 4rem auto;
+  padding: 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+}
+
+.forbidden h2 {
+  font-size: 1.2rem;
+  color: #0a1038;
+  margin-bottom: 0.5rem;
+}
+
+.forbidden p {
+  color: var(--text-gray);
+}
