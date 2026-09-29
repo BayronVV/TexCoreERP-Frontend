@@ -1,54 +1,60 @@
 import { NavLink } from 'react-router-dom'
-import { MODULES, hasModuleAccess } from '../../config/roleModules'
+import { useAuth } from '../../auth/session'
+import { MODULES } from '../../config/modules'
 import styles from './Sidebar.module.css'
 
-/**
- * Menú lateral con bloqueo visual por rol (HU 1.4 / TE-75).
- *
- * Cada módulo puede estar en uno de tres estados:
- * - Bloqueado por rol: el rol activo no tiene acceso (candado, sin click).
- * - Próximamente: el rol sí tiene acceso, pero el módulo aún no está
- *   construido (etiqueta "Próximamente", sin click).
- * - Disponible: enlace normal de navegación.
- */
-const Sidebar = ({ role }) => {
+const linkClass = ({ isActive }) => `${styles.item} ${isActive ? styles.itemActive : ''}`
+
+const Sidebar = () => {
+  const { can } = useAuth()
+
   return (
     <nav className={styles.sidebar} aria-label="Menú principal">
+      <NavLink to="/dashboard" className={linkClass} end>
+        Inicio
+      </NavLink>
+
       <ul className={styles.list}>
         {MODULES.map((module) => {
-          const allowed = hasModuleAccess(role, module.id)
-          const available = allowed && module.ready
+          const allowed = can(`${module.id}.ver`)
+          const built = Boolean(module.path || module.children)
 
-          if (available) {
+          if (!allowed || !built) {
             return (
               <li key={module.id}>
-                <NavLink
-                  to={module.path}
-                  className={({ isActive }) =>
-                    `${styles.item} ${isActive ? styles.itemActive : ''}`
-                  }
-                >
+                <span className={`${styles.item} ${styles.itemBlocked}`} aria-disabled="true">
                   {module.label}
-                </NavLink>
+                  <span className={styles.badge} title={allowed ? undefined : 'Tu rol no tiene acceso a este módulo.'}>
+                    {allowed ? 'Próximamente' : <span aria-hidden="true">🔒</span>}
+                    {!allowed && <span className={styles.srOnly}>Sin acceso</span>}
+                  </span>
+                </span>
+              </li>
+            )
+          }
+
+          if (module.children) {
+            return (
+              <li key={module.id}>
+                <span className={styles.groupLabel}>{module.label}</span>
+                <ul className={styles.subList}>
+                  {module.children.map((child) => (
+                    <li key={child.path}>
+                      <NavLink to={child.path} className={linkClass}>
+                        {child.label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
               </li>
             )
           }
 
           return (
             <li key={module.id}>
-              <span
-                className={`${styles.item} ${styles.itemBlocked}`}
-                title={
-                  allowed
-                    ? 'Este módulo todavía no está disponible.'
-                    : 'Tu rol no tiene acceso a este módulo.'
-                }
-              >
+              <NavLink to={module.path} className={linkClass}>
                 {module.label}
-                <span className={styles.badge}>
-                  {allowed ? 'Próximamente' : '🔒'}
-                </span>
-              </span>
+              </NavLink>
             </li>
           )
         })}

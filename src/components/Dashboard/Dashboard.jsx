@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../../api/client';
-import AdminPanel from './AdminPanel';
-import Sidebar from '../Sidebar/Sidebar';
+import { Link } from 'react-router-dom';
+import { API_URL, apiGet } from '../../api/client';
+import { useAuth } from '../../auth/session';
 import styles from './Dashboard.module.css';
 
 const demoAlerts = [
@@ -167,21 +166,18 @@ const InventoryMovementForms = ({ role }) => {
 };
 
 const Dashboard = ({ forceInventoryView = false }) => {
-  const [role, setRole] = useState(null);
+  const { user, can } = useAuth();
+  const role = user.role;
+  const canReviewUsers = can('seguridad.gestionar');
+  const canSeeInventory = can('inventario.ver');
+  const canMoveInventory = can('inventario.gestionar');
   const [alerts, setAlerts] = useState([]);
   const [alertsError, setAlertsError] = useState('');
-  const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    const userRole = localStorage.getItem('user_role');
+    if (!canSeeInventory) return;
     const token = localStorage.getItem('access_token');
-
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    setRole(userRole);
 
     fetch(`${API_URL}/api/inventory/alerts/`, {
       headers: {
@@ -200,90 +196,73 @@ const Dashboard = ({ forceInventoryView = false }) => {
         setAlerts(demoAlerts);
         setAlertsError('Mostrando alertas de ejemplo mientras no hay respuesta del backend.');
       });
-  }, [navigate]);
+  }, [canSeeInventory]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_role');
-    navigate('/login');
-  };
-
-  if (!role) return <div>Loading...</div>;
+  // Registros que esperan que un administrador les asigne rol.
+  useEffect(() => {
+    if (!canReviewUsers) return;
+    apiGet('/api/users/?role=PENDING')
+      .then((users) => setPendingCount(users.filter((u) => u.is_active).length))
+      .catch(() => setPendingCount(0));
+  }, [canReviewUsers]);
 
   return (
-    <div className={styles.dashboardContainer}>
-      <header className={styles.header}>
-        <h2>TexCoreERP Dashboard</h2>
-        <div className={styles.userInfo}>
-          <span className={styles.roleBadge}>{role}</span>
-          <button onClick={handleLogout} className={styles.logoutBtn}>Logout</button>
-        </div>
-      </header>
-      
-      <div className={styles.body}>
-        {role !== 'PENDING' && <Sidebar role={role} />}
-
-        <main className={styles.mainContent}>
-          {forceInventoryView ? (
-            <InventoryMovementForms role={role || 'ALMACENISTA'} />
-          ) : (
-            <>
-              {alerts.length > 0 && (
-                <section className={styles.alertPanel}>
-                  <div className={styles.alertHeader}>
-                    <div>
-                      <p className={styles.sectionEyebrow}>Alertas</p>
-                      <h3>Indicadores de inventario</h3>
-                    </div>
-                    <span className={styles.alertCounter}>{alerts.length}</span>
-                  </div>
-
-                  {alertsError && <p className={styles.alertWarning}>{alertsError}</p>}
-
-                  <div className={styles.alertList}>
-                    {alerts.map((alert) => (
-                      <div
-                        key={alert.id ?? `${alert.name}-${alert.stock}`}
-                        className={`${styles.alertItem} ${alert.severity === 'critical' ? styles.alertItemCritical : styles.alertItemWarning}`}
-                      >
-                        <div className={styles.alertIcon} aria-hidden="true">!</div>
-                        <div className={styles.alertText}>
-                          <strong>{alert.name}</strong>
-                          <p>{alert.message}</p>
-                          <span>
-                            Stock: {alert.stock} {alert.unit || ''}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {role === 'ADMIN' && <AdminPanel />}
-
-              {(role === 'ALMACENISTA' || role === 'PRODUCCION') && (
-                <InventoryMovementForms role={role} />
-              )}
-
-              {role === 'PENDING' && (
-                <div className={styles.messageCard}>
-                  <h3>Account Pending</h3>
-                  <p>Your account is currently pending approval. Please wait until an Administrator assigns you a role.</p>
-                </div>
-              )}
-
-              {role !== 'ADMIN' && role !== 'PENDING' && role !== 'ALMACENISTA' && role !== 'PRODUCCION' && (
-                <div className={styles.messageCard}>
-                  <h3>Bienvenido, {role}</h3>
-                  <p>Este es tu panel personalizado según tu rol asignado en el sistema.</p>
-                </div>
-              )}
-            </>
-          )}
-        </main>
+    <div className={styles.mainContent}>
+      <div className={styles.welcome}>
+        <h1>Hola, {user.first_name || user.full_name}</h1>
+        <p>{user.role_name}</p>
       </div>
+
+      {pendingCount > 0 && (
+        <Link to="/seguridad/usuarios" className={styles.pendingCard}>
+          <strong>
+            {pendingCount} {pendingCount === 1 ? 'solicitud de acceso pendiente' : 'solicitudes de acceso pendientes'}
+          </strong>
+          <span>Revisar y asignar rol →</span>
+        </Link>
+      )}
+
+      {forceInventoryView ? (
+        <InventoryMovementForms role={role || 'ALMACENISTA'} />
+      ) : (
+        <>
+          {canSeeInventory && alerts.length > 0 && (
+            <section className={styles.alertPanel}>
+              <div className={styles.alertHeader}>
+                <div>
+                  <p className={styles.sectionEyebrow}>Alertas</p>
+                  <h3>Indicadores de inventario</h3>
+                </div>
+                <span className={styles.alertCounter}>{alerts.length}</span>
+              </div>
+
+              {alertsError && <p className={styles.alertWarning}>{alertsError}</p>}
+
+              <div className={styles.alertList}>
+                {alerts.map((alert) => (
+                  <div
+                    key={alert.id ?? `${alert.name}-${alert.stock}`}
+                    className={`${styles.alertItem} ${alert.severity === 'critical' ? styles.alertItemCritical : styles.alertItemWarning}`}
+                  >
+                    <div className={styles.alertIcon} aria-hidden="true">!</div>
+                    <div className={styles.alertText}>
+                      <strong>{alert.name}</strong>
+                      <p>{alert.message}</p>
+                      <span>
+                        Stock: {alert.stock} {alert.unit || ''}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {canMoveInventory && (
+            <InventoryMovementForms role={role} />
+          )}
+        </>
+      )}
     </div>
   );
 };
