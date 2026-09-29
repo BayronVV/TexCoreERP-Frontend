@@ -5,7 +5,7 @@ import ResetPassword from './components/Auth/ResetPassword'
 import Register from './components/Register/Register'
 import AppLayout from './components/Layout/AppLayout'
 import Dashboard from './components/Dashboard/Dashboard'
-import InventoryMovements from './components/Inventory/InventoryMovements'
+import InventoryPage from './components/Inventory/InventoryPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import RequirePermission from './components/ui/RequirePermission'
@@ -25,7 +25,7 @@ function App() {
             path="/inventario"
             element={
               <RequirePermission code="inventario.ver">
-                <InventoryMovements />
+                <InventoryPage />
               </RequirePermission>
             }
           />
