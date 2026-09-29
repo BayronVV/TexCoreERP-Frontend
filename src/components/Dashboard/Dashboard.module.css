@@ -1,98 +1,257 @@
-.dashboardContainer {
-  min-height: 100vh;
-  background-color: #f8f9fa;
-  font-family: var(--font-family);
+.alertPanel {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(127, 29, 29, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.header {
+.alertHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.userInfo {
-  display: flex;
-  align-items: center;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.roleBadge {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.25rem 0.75rem;
+.alertCounter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.alertWarning {
+  margin: 0 0 1rem;
+  color: #b91c1c;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
-.roleBadge.pending {
-  background-color: #f59f00;
+.alertList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
 }
 
-.logoutBtn {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.logoutBtn:hover {
-  background-color: #f1f3f5;
-}
-
-.body {
+.alertItem {
   display: flex;
   align-items: flex-start;
+  gap: 0.75rem;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid transparent;
+}
+
+.alertItemWarning {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.alertItemCritical {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.alertIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-weight: 800;
+  color: white;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+
+.alertText {
+  flex: 1;
+}
+
+.alertText strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #111827;
+}
+
+.alertText p,
+.alertText span {
+  margin: 0;
+  display: block;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.inventoryPanel {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sectionEyebrow {
+  margin: 0 0 0.25rem;
+  color: #0f766e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.panelHeader h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.toggleGroup {
+  display: inline-flex;
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 0.25rem;
+  gap: 0.25rem;
+}
+
+.toggleBtn {
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleBtnActive {
+  background: #0f766e;
+  color: white;
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.2);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.fieldGroup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.fieldGroup input,
+.fieldGroup select,
+.fieldGroup textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.2);
+  border-color: #0f766e;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  background: #0f766e;
+  color: white;
+}
+
+.secondaryBtn {
+  background: #e5e7eb;
+  color: #1f2937;
 }
 
 .mainContent {
-  flex: 1;
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.messageCard {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  text-align: center;
+.welcome {
+  margin-bottom: 1.5rem;
 }
 
-.adminPanel {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+.welcome h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0a1038;
 }
 
-.userTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1.5rem;
-}
-
-.userTable th, .userTable td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.userTable th {
-  font-weight: 600;
+.welcome p {
   color: var(--text-gray);
-  background-color: #f8f9fa;
+  margin-top: 0.2rem;
 }
 
-.roleSelect {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-family: inherit;
+.pendingCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #f3e2b3;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #7a5200;
+  text-decoration: none;
+}
+
+.pendingCard span {
+  font-weight: 600;
+  color: #141d54;
 }

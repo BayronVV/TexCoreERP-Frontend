@@ -29,3 +29,10 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Python (por si alguien crea un entorno o prototipo dentro de este repo)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
