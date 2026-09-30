@@ -95,7 +95,7 @@ secretos aquí. El acceso a la base de datos lo hace **solo** el backend.
 
 Render como Static Site (pasos completos en `backend/docs/despliegue-render.md`):
 
-- Build: `npm ci && npm run build && cp dist/index.html dist/404.html`
+- Build: `npm ci && npm run build`
 - Publish directory: `dist`
 - Variables: `VITE_API_URL` (URL pública del backend, se lee **al compilar**) y `NODE_VERSION=22`.
 - En el panel del sitio, *Redirects/Rewrites*: `/*` → `/index.html` (Rewrite). Sin
