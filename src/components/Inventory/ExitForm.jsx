@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiRequest } from '../../api/client'
 import { useToast } from '../ui/toastContext'
 import EvidencePicker from './EvidencePicker'
-import ProductModal from './ProductModal'
 import { uploadEvidence } from './evidence'
 import {
   ORDER_TYPES, PURCHASED, WHOLE_UNITS, fieldErrors, formatQty, todayISO, typeLabel,
@@ -41,7 +41,6 @@ export default function ExitForm({ products, onChanged }) {
   const [errors, setErrors] = useState({})
   const [shortages, setShortages] = useState([])
   const [saving, setSaving] = useState(false)
-  const [creating, setCreating] = useState(false)
 
   const rules = RULES[tipo]
   const prefix = ORDER_TYPES.find((t) => t.value === tipo).prefix
@@ -180,9 +179,10 @@ export default function ExitForm({ products, onChanged }) {
                   <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
-              <button type="button" className={styles.secondaryBtn} onClick={() => setCreating(true)}>+ Crear</button>
             </div>
-            <span className={styles.hint}>{rules.outputHelp}</span>
+            <span className={styles.hint}>
+              {rules.outputHelp} ¿No está? Créalo en el <Link to="/inventario/catalogo" className={styles.textLink}>Catálogo</Link>.
+            </span>
             {err('producto_resultado')}
           </div>
           {tipo === 'PRODUCCION' && (
@@ -309,19 +309,6 @@ export default function ExitForm({ products, onChanged }) {
           </button>
         </div>
       </form>
-
-      {creating && (
-        <ProductModal
-          allowedTypes={[rules.output]}
-          defaultType={rules.output}
-          onClose={() => setCreating(false)}
-          onSaved={(saved) => {
-            setCreating(false)
-            onChanged()
-            setForm((current) => ({ ...current, producto_resultado: String(saved.id) }))
-          }}
-        />
-      )}
     </>
   )
 }

@@ -186,6 +186,12 @@
   text-decoration: underline;
 }
 
+.textLink {
+  color: #0f766e;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .dangerText {
   color: #b3261e;
 }

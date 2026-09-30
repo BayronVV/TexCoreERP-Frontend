@@ -231,7 +231,7 @@ function Kardex({ products, refreshKey }) {
                   <td className={styles.num}>{row.tipo === 'INGRESO' ? '+' : '−'}{formatQty(row.cantidad, row.unidad)}</td>
                   <td className={styles.num}>{formatQty(row.stock_despues, row.unidad)}</td>
                   <td>
-                    {[row.orden_codigo, row.proveedor, row.orden_compra, row.lote && `Lote ${row.lote}`]
+                    {[row.orden_codigo, row.proveedor_nombre, row.orden_compra, row.lote && `Lote ${row.lote}`]
                       .filter(Boolean).join(' · ') || '—'}
                   </td>
                   <td>{row.registrado_por_nombre || '—'}</td>

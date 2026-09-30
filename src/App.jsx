@@ -6,6 +6,8 @@ import Register from './components/Register/Register'
 import AppLayout from './components/Layout/AppLayout'
 import Dashboard from './components/Dashboard/Dashboard'
 import InventoryPage from './components/Inventory/InventoryPage'
+import CatalogPage from './components/Inventory/CatalogPage'
+import SuppliersPage from './components/Inventory/SuppliersPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import RequirePermission from './components/ui/RequirePermission'
@@ -26,6 +28,22 @@ function App() {
             element={
               <RequirePermission code="inventario.ver">
                 <InventoryPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/inventario/catalogo"
+            element={
+              <RequirePermission code="inventario.ver">
+                <CatalogPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/inventario/proveedores"
+            element={
+              <RequirePermission code="inventario.ver">
+                <SuppliersPage />
               </RequirePermission>
             }
           />
