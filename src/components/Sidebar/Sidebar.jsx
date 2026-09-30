@@ -15,19 +15,15 @@ const Sidebar = () => {
       </NavLink>
 
       <ul className={styles.list}>
-        {MODULES.map((module) => {
-          const allowed = can(`${module.id}.ver`)
-          const built = Boolean(module.path || module.children)
-
-          if (!allowed || !built) {
+        {MODULES.filter((module) => can(`${module.id}.ver`)).map((module) => {
+          // Lo que el rol no puede ver no se muestra: ni el nombre ni un candado.
+          // Un módulo permitido pero sin pantalla todavía sí aparece, como "Próximamente".
+          if (!module.path && !module.children) {
             return (
               <li key={module.id}>
                 <span className={`${styles.item} ${styles.itemBlocked}`} aria-disabled="true">
                   {module.label}
-                  <span className={styles.badge} title={allowed ? undefined : 'Tu rol no tiene acceso a este módulo.'}>
-                    {allowed ? 'Próximamente' : <span aria-hidden="true">🔒</span>}
-                    {!allowed && <span className={styles.srOnly}>Sin acceso</span>}
-                  </span>
+                  <span className={styles.badge}>Próximamente</span>
                 </span>
               </li>
             )

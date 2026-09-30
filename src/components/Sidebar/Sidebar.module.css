@@ -70,15 +70,6 @@ a.item:hover {
   white-space: nowrap;
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 /* En celular el menú va arriba del contenido, a lo ancho y con scroll propio. */
 @media (max-width: 700px) {
   .sidebar {

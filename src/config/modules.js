@@ -1,5 +1,5 @@
 // Módulos del menú lateral: solo etiquetas y rutas. Qué ve cada rol lo decide
-// el backend; un módulo se habilita si el usuario tiene el permiso "<id>.ver".
+// el backend; un módulo se muestra si el usuario tiene el permiso "<id>.ver".
 
 export const MODULES = [
   {
