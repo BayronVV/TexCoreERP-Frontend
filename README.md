@@ -93,7 +93,14 @@ secretos aquí. El acceso a la base de datos lo hace **solo** el backend.
 
 ## Despliegue
 
-`npm run build` genera archivos estáticos en `dist/` que se pueden servir
-desde cualquier hosting estático (Vercel, Netlify, Nginx, ...). Define
-`VITE_API_URL` con la URL pública del backend **antes** de compilar, y agrega
-el dominio del frontend a `CORS_ALLOWED_ORIGINS` en el backend.
+Render como Static Site (pasos completos en `backend/docs/despliegue-render.md`):
+
+- Build: `npm ci && npm run build && cp dist/index.html dist/404.html`
+- Publish directory: `dist`
+- Variables: `VITE_API_URL` (URL pública del backend, se lee **al compilar**) y `NODE_VERSION=22`.
+- En el panel del sitio, *Redirects/Rewrites*: `/*` → `/index.html` (Rewrite). Sin
+  esa regla, recargar una ruta interna o abrir el enlace del correo de
+  recuperación da 404.
+- Agrega el dominio del frontend a `CORS_ALLOWED_ORIGINS` en el backend.
+
+Sirve también en cualquier hosting estático (Vercel, Netlify, Nginx, ...).
