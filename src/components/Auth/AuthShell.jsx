@@ -1,8 +1,8 @@
 import styles from './Auth.module.css'
 
 // Marco visual común de las pantallas públicas (login y recuperación de
-// contraseña): panel de marca a la izquierda y formulario a la derecha.
-export default function AuthShell({ children }) {
+// contraseña y registro): panel de marca a la izquierda y formulario a la derecha.
+export default function AuthShell({ children, wide = false }) {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.leftBanner}>
@@ -70,7 +70,7 @@ export default function AuthShell({ children }) {
             />
           </svg>
         </div>
-        <div className={styles.formContent}>
+        <div className={`${styles.formContent} ${wide ? styles.formContentWide : ''}`}>
           <div className={styles.formWrapper}>{children}</div>
         </div>
       </div>
