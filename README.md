@@ -17,7 +17,8 @@ frontend/
 │   │   ├── Layout/    # Encabezado + menú lateral de las pantallas internas
 │   │   ├── Security/  # Usuarios y Roles y permisos (HU 1.4)
 │   │   ├── ui/        # Modal, avisos (toasts), RequirePermission
-│   │   └── ...        # Dashboard, Inventario, Register, Sidebar
+│   │   ├── Inventory/ # Existencias, ingresos, salidas por orden e historial (HU 2.3, 2.4)
+│   │   └── ...        # Dashboard, Register, Sidebar
 │   ├── config/       # modules.js: módulos del menú (etiquetas y rutas)
 │   ├── App.jsx       # Enrutamiento principal
 │   ├── main.jsx      # Punto de entrada
@@ -79,7 +80,7 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/dashboard` | Inicio |
 | `/seguridad/usuarios` | Usuarios: aprobar solicitudes, roles, activar/desactivar, invitar |
 | `/seguridad/roles` | Roles y matriz de permisos por módulo |
-| `/inventario` | Movimientos de inventario |
+| `/inventario` | Existencias, ingreso, salida por orden (cesta) e historial |
 
 ## Variables de entorno
 
