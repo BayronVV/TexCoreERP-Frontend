@@ -53,7 +53,7 @@ export default function InventoryPage() {
 
       {loadError && <p className={styles.formError}>{loadError}</p>}
 
-      {tab === 'existencias' && <StockTab products={products} canManage={canManage} onChanged={reload} />}
+      {tab === 'existencias' && <StockTab products={products} canManage={canManage} />}
       {tab === 'ingreso' && canManage && <EntryForm products={products} onChanged={reload} />}
       {tab === 'salida' && canManage && <ExitForm products={products} onChanged={reload} />}
       {tab === 'historial' && (

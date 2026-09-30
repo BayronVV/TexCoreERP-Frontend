@@ -1,8 +1,6 @@
-import { useMemo, useState } from 'react'
-import { apiRequest } from '../../api/client'
-import { useToast } from '../ui/toastContext'
-import ProductModal from './ProductModal'
-import { PRODUCT_TYPES, fieldErrors, formatQty, typeLabel } from './labels'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { PRODUCT_TYPES, formatQty } from './labels'
 import styles from './Inventory.module.css'
 
 function stateOf(product) {
@@ -12,31 +10,15 @@ function stateOf(product) {
   return { label: 'Normal', badge: styles.badgeOk, row: '' }
 }
 
-export default function StockTab({ products, canManage, onChanged }) {
-  const notify = useToast()
+export default function StockTab({ products, canManage }) {
   const [kind, setKind] = useState('')
   const [search, setSearch] = useState('')
-  const [editing, setEditing] = useState(null)
-  const [creating, setCreating] = useState(false)
 
   const alerts = products.filter((p) => p.bajo_minimo)
-  const visible = useMemo(() => {
-    const text = search.trim().toLowerCase()
-    return products.filter(
-      (p) => (!kind || p.tipo === kind) && (!text || `${p.codigo} ${p.nombre}`.toLowerCase().includes(text)),
-    )
-  }, [products, kind, search])
-
-  const remove = async (product) => {
-    if (!window.confirm(`¿Eliminar ${product.nombre}? Deja de aparecer, pero su historial se conserva.`)) return
-    try {
-      await apiRequest(`/api/inventario/productos/${product.id}/`, { method: 'DELETE' })
-      notify('Producto eliminado.')
-      onChanged()
-    } catch (error) {
-      notify(fieldErrors(error).detail ?? error.message, 'error')
-    }
-  }
+  const text = search.trim().toLowerCase()
+  const visible = products.filter(
+    (p) => (!kind || p.tipo === kind) && (!text || `${p.codigo} ${p.nombre}`.toLowerCase().includes(text)),
+  )
 
   return (
     <>
@@ -57,9 +39,9 @@ export default function StockTab({ products, canManage, onChanged }) {
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle}>Existencias</h2>
           {canManage && (
-            <button type="button" className={styles.primaryBtn} onClick={() => setCreating(true)}>
-              Nuevo producto
-            </button>
+            <Link to="/inventario/catalogo" className={styles.secondaryBtn}>
+              Gestionar en el catálogo
+            </Link>
           )}
         </div>
 
@@ -75,7 +57,7 @@ export default function StockTab({ products, canManage, onChanged }) {
 
         {visible.length === 0 ? (
           <p className={styles.empty}>
-            {products.length === 0 ? 'Todavía no hay productos. Crea el primero con "Nuevo producto".' : 'Ningún producto coincide con el filtro.'}
+            {products.length === 0 ? 'Todavía no hay productos. Créalos en el catálogo.' : 'Ningún producto coincide con el filtro.'}
           </p>
         ) : (
           <div className={styles.tableWrap}>
@@ -84,11 +66,10 @@ export default function StockTab({ products, canManage, onChanged }) {
                 <tr>
                   <th>Código</th>
                   <th>Producto</th>
-                  <th>Tipo</th>
+                  <th>Categoría</th>
                   <th className={styles.num}>Existencias</th>
                   <th className={styles.num}>Mínimo</th>
                   <th>Estado</th>
-                  {canManage && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -98,20 +79,12 @@ export default function StockTab({ products, canManage, onChanged }) {
                     <tr key={product.id} className={state.row}>
                       <td>{product.codigo}</td>
                       <td>{product.nombre}</td>
-                      <td>{typeLabel(product.tipo)}</td>
+                      <td>{product.categoria_nombre}</td>
                       <td className={styles.num}>{formatQty(product.stock_actual, product.unidad)}</td>
                       <td className={styles.num}>
                         {Number(product.stock_minimo) > 0 ? formatQty(product.stock_minimo, product.unidad) : '—'}
                       </td>
                       <td><span className={`${styles.badge} ${state.badge}`}>{state.label}</span></td>
-                      {canManage && (
-                        <td className={styles.num}>
-                          <button type="button" className={styles.linkBtn} onClick={() => setEditing(product)}>Editar</button>
-                          <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => remove(product)}>
-                            Eliminar
-                          </button>
-                        </td>
-                      )}
                     </tr>
                   )
                 })}
@@ -120,14 +93,6 @@ export default function StockTab({ products, canManage, onChanged }) {
           </div>
         )}
       </section>
-
-      {(creating || editing) && (
-        <ProductModal
-          product={editing}
-          onClose={() => { setCreating(false); setEditing(null) }}
-          onSaved={() => { setCreating(false); setEditing(null); onChanged() }}
-        />
-      )}
     </>
   )
 }

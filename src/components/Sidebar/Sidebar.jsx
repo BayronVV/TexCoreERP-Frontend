@@ -36,7 +36,7 @@ const Sidebar = () => {
                 <ul className={styles.subList}>
                   {module.children.map((child) => (
                     <li key={child.path}>
-                      <NavLink to={child.path} className={linkClass}>
+                      <NavLink to={child.path} end className={linkClass}>
                         {child.label}
                       </NavLink>
                     </li>

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
 import EvidencePicker from './EvidencePicker'
-import ProductModal from './ProductModal'
 import { uploadEvidence } from './evidence'
 import { PRODUCT_TYPES, PURCHASED, fieldErrors, formatDate, formatQty, todayISO } from './labels'
 import styles from './Inventory.module.css'
 
 const EMPTY = { producto: '', cantidad: '', fecha: todayISO(), proveedor: '', orden_compra: '', lote: '', orden: '', observaciones: '' }
+
+const byName = (a, b) => a.razon_social.localeCompare(b.razon_social, 'es')
 
 export default function EntryForm({ products, onChanged }) {
   const notify = useToast()
@@ -17,7 +19,8 @@ export default function EntryForm({ products, onChanged }) {
   const [files, setFiles] = useState([])
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [suppliers, setSuppliers] = useState([])
+  const [suppliersLoaded, setSuppliersLoaded] = useState(false)
   const [orders, setOrders] = useState([])
   const [ordersLoaded, setOrdersLoaded] = useState(false)
 
@@ -27,6 +30,14 @@ export default function EntryForm({ products, onChanged }) {
   const order = orders.find((o) => String(o.id) === String(form.orden))
 
   const set = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
+
+  // Las compras se hacen a un proveedor registrado: se elige de la lista, no se escribe.
+  useEffect(() => {
+    apiGet('/api/inventario/proveedores/')
+      .then((data) => setSuppliers(data))
+      .catch(() => setSuppliers([]))
+      .finally(() => setSuppliersLoaded(true))
+  }, [])
 
   // Un pantalón solo entra cerrando la orden que lo fabricó: se buscan las que siguen abiertas.
   useEffect(() => {
@@ -79,6 +90,9 @@ export default function EntryForm({ products, onChanged }) {
 
   const err = (name) => errors[name] && <span className={styles.fieldError}>{errors[name]}</span>
   const madeLabel = product?.tipo === 'GENERICO' ? 'orden de producción' : 'orden de lavandería'
+  // Primero los proveedores de la categoría del producto; el resto, por si hace falta otro.
+  const sameCategory = suppliers.filter((s) => s.categoria === product?.categoria).sort(byName)
+  const otherSuppliers = suppliers.filter((s) => s.categoria !== product?.categoria).sort(byName)
 
   return (
     <>
@@ -104,21 +118,41 @@ export default function EntryForm({ products, onChanged }) {
                 )
               })}
             </select>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setCreating(true)}>
-              + Crear
-            </button>
           </div>
-          <span className={styles.hint}>¿No está en la lista? Créalo con el botón.</span>
+          <span className={styles.hint}>
+            ¿No está en la lista? Créalo en el <Link to="/inventario/catalogo" className={styles.textLink}>Catálogo</Link>.
+          </span>
           {err('producto')}
         </div>
 
         {purchased && (
           <>
-            <label className={styles.field}>
-              Proveedor
-              <input value={form.proveedor} onChange={set('proveedor')} maxLength={150} required placeholder="Nombre del proveedor" />
+            <div className={styles.field}>
+              <label htmlFor="ing-proveedor">Proveedor</label>
+              <select id="ing-proveedor" value={form.proveedor} onChange={set('proveedor')} required disabled={!suppliersLoaded || suppliers.length === 0}>
+                <option value="">
+                  {!suppliersLoaded ? 'Cargando proveedores…' : suppliers.length ? 'Selecciona el proveedor' : 'No hay proveedores registrados'}
+                </option>
+                {sameCategory.length > 0 && (
+                  <optgroup label="De esta categoría">
+                    {sameCategory.map((s) => (
+                      <option key={s.id} value={s.id}>{s.razon_social} · NIT {s.nit_formateado}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {otherSuppliers.length > 0 && (
+                  <optgroup label={sameCategory.length ? 'Otros proveedores' : 'Proveedores'}>
+                    {otherSuppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.razon_social} · NIT {s.nit_formateado}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              <span className={styles.hint}>
+                ¿No aparece? Regístralo en <Link to="/inventario/proveedores" className={styles.textLink}>Proveedores</Link>.
+              </span>
               {err('proveedor')}
-            </label>
+            </div>
             <label className={styles.field}>
               Orden de compra (opcional)
               <input value={form.orden_compra} onChange={set('orden_compra')} maxLength={40} placeholder="OC-00123" />
@@ -209,16 +243,6 @@ export default function EntryForm({ products, onChanged }) {
       </div>
     </form>
 
-    {creating && (
-      <ProductModal
-        onClose={() => setCreating(false)}
-        onSaved={(saved) => {
-          setCreating(false)
-          onChanged()
-          setForm((current) => ({ ...current, producto: String(saved.id) }))
-        }}
-      />
-    )}
     </>
   )
 }
