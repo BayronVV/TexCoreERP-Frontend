@@ -9,13 +9,17 @@ const Dashboard = () => {
   const canReviewUsers = can('seguridad.gestionar');
   const canSeeInventory = can('inventario.ver');
   const [alerts, setAlerts] = useState([]);
+  const [alertsReady, setAlertsReady] = useState(false);
   const [alertsError, setAlertsError] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (!canSeeInventory) return;
     apiGet('/api/inventario/alertas/')
-      .then((payload) => setAlerts(payload.alerts || []))
+      .then((payload) => {
+        setAlerts(payload.alerts || []);
+        setAlertsReady(true);
+      })
       .catch(() => setAlertsError('No se pudieron cargar las alertas de inventario.'));
   }, [canSeeInventory]);
 
@@ -44,6 +48,12 @@ const Dashboard = () => {
       )}
 
       {canSeeInventory && alertsError && <p className={styles.alertWarning}>{alertsError}</p>}
+
+      {canSeeInventory && alertsReady && alerts.length === 0 && (
+        <p className={styles.alertOk} role="status">
+          Inventario en orden: ningún producto está por debajo de su stock mínimo.
+        </p>
+      )}
 
       {canSeeInventory && alerts.length > 0 && (
         <section className={styles.alertPanel}>
