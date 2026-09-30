@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import styles from './ui.module.css'
 
-export default function Modal({ title, onClose, children }) {
+export default function Modal({ title, onClose, children, wide = false }) {
   const titleId = useId()
   const dialogRef = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -27,7 +27,7 @@ export default function Modal({ title, onClose, children }) {
     <div className={styles.backdrop} onMouseDown={onClose}>
       <div
         ref={dialogRef}
-        className={styles.modal}
+        className={`${styles.modal} ${wide ? styles.modalWide : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
