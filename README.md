@@ -55,9 +55,9 @@ Abre http://localhost:5173.
 Al entrar a cualquier pantalla interna, `AuthProvider` pide
 `/api/auth/me/` y guarda los permisos del usuario. Con ellos:
 
-- `Sidebar` habilita un módulo si el usuario tiene `<módulo>.ver`; si no,
-  lo muestra con candado. Si tiene permiso pero la pantalla no existe
-  todavía, dice "Próximamente".
+- `Sidebar` muestra solo los módulos para los que el usuario tiene
+  `<módulo>.ver`; el resto no aparece (ni con candado). Si tiene permiso pero
+  la pantalla no existe todavía, dice "Próximamente".
 - `RequirePermission` protege cada ruta interna (por ejemplo
   `/seguridad/usuarios` exige `seguridad.ver`).
 - Botones como "Nuevo usuario" o "Guardar cambios" solo aparecen con el
