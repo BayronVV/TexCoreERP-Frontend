@@ -24,13 +24,15 @@ function firstErrorMessage(body) {
 
 async function send(path, { method, body, token }) {
   const headers = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // Con FormData el navegador pone el Content-Type (con el boundary) por su cuenta.
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
   try {
     return await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     throw new ApiError(0, { detail: 'No hay conexión con el servidor. Revisa que el backend esté encendido.' })
@@ -51,7 +53,7 @@ async function renewAccessToken() {
   return access
 }
 
-export async function apiRequest(path, { method = 'GET', body, auth = true } = {}) {
+export async function apiRequest(path, { method = 'GET', body, auth = true, blob = false } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null
   let response = await send(path, { method, body, token })
 
@@ -64,6 +66,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
     }
   }
 
+  if (blob && response.ok) return response.blob()
   const data = response.status === 204 ? null : await response.json().catch(() => null)
   if (!response.ok) throw new ApiError(response.status, data)
   return data
