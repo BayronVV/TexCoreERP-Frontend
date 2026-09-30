@@ -1,0 +1,253 @@
+/* Catálogo de productos y directorio de proveedores (HU 2.1 y 2.2). Reutiliza los
+   botones, formularios y badges de Inventory.module.css. */
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.group {
+  margin-bottom: 1.75rem;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  color: #0a1038;
+  margin-bottom: 0.9rem;
+}
+
+.groupCount {
+  min-width: 1.6rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #eef0f6;
+  color: #4b5563;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.cardArchived {
+  opacity: 0.75;
+  background: #fafbfd;
+}
+
+.thumb {
+  aspect-ratio: 3 / 2;
+  background: #f2f4f9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbEmpty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #e6ecff 0%, #e3f6f1 100%);
+  color: #273b9e;
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.cardBody {
+  flex: 1;
+  padding: 1rem 1.1rem 0.6rem;
+}
+
+.cardTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cardTitle h3 {
+  font-size: 1rem;
+  line-height: 1.3;
+  color: #0a1038;
+}
+
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--text-gray);
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+}
+
+/* Telas (se miden en metros o rollos) y conteos (unidades, cajas, kg) se distinguen de un vistazo. */
+.unitMeters {
+  background: #e6ecff;
+  color: #273b9e;
+}
+
+.unitCount {
+  background: #e3f6f1;
+  color: #0b5f57;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.facts dt {
+  color: var(--text-gray);
+}
+
+.facts dd {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem 0.7rem 0.7rem;
+  justify-content: flex-end;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem 0.6rem 1.1rem;
+  border-top: 1px solid #f0f2f8;
+  font-size: 0.82rem;
+}
+
+.cardFooter .cardActions {
+  padding: 0;
+}
+
+/* Proveedores */
+
+.supplierTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.nit {
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #273b9e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.supplierName {
+  font-size: 1.02rem;
+  line-height: 1.3;
+  color: #0a1038;
+}
+
+.supplierCategory {
+  margin: 0.25rem 0 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.contactList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: #374151;
+  overflow-wrap: anywhere;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.check input {
+  width: auto;
+}
+
+/* Imagen de referencia en el formulario del producto */
+
+.imagePicker {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.imagePreview {
+  width: 120px;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f2f4f9;
+  border: 1px solid #e6e9f2;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-weight: 400;
+}

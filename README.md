@@ -17,7 +17,7 @@ frontend/
 │   │   ├── Layout/    # Encabezado + menú lateral de las pantallas internas
 │   │   ├── Security/  # Usuarios y Roles y permisos (HU 1.4)
 │   │   ├── ui/        # Modal, avisos (toasts), RequirePermission
-│   │   ├── Inventory/ # Existencias, ingresos, salidas por orden e historial (HU 2.3, 2.4)
+│   │   ├── Inventory/ # Movimientos, catálogo de productos y proveedores (HU 2.1 a 2.4)
 │   │   └── ...        # Dashboard, Register, Sidebar
 │   ├── config/       # modules.js: módulos del menú (etiquetas y rutas)
 │   ├── App.jsx       # Enrutamiento principal
@@ -80,7 +80,9 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/dashboard` | Inicio |
 | `/seguridad/usuarios` | Usuarios: aprobar solicitudes, roles, activar/desactivar, invitar |
 | `/seguridad/roles` | Roles y matriz de permisos por módulo |
-| `/inventario` | Existencias, ingreso, salida por orden (cesta) e historial |
+| `/inventario` | Movimientos: existencias, ingreso, salida por orden (cesta) e historial |
+| `/inventario/catalogo` | Catálogo de telas e insumos por categoría, con imagen de referencia (sin existencias) |
+| `/inventario/proveedores` | Directorio de proveedores (NIT único, clasificación, archivados) |
 
 ## Variables de entorno
 

@@ -10,7 +10,15 @@ export const MODULES = [
       { label: 'Roles y permisos', path: '/seguridad/roles' },
     ],
   },
-  { id: 'inventario', label: 'Inventario de Materias Primas', path: '/inventario' },
+  {
+    id: 'inventario',
+    label: 'Inventario de Materias Primas',
+    children: [
+      { label: 'Movimientos', path: '/inventario' },
+      { label: 'Catálogo', path: '/inventario/catalogo' },
+      { label: 'Proveedores', path: '/inventario/proveedores' },
+    ],
+  },
   { id: 'fichas_tecnicas', label: 'Fichas Técnicas' },
   { id: 'produccion', label: 'Producción y Trazabilidad' },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
