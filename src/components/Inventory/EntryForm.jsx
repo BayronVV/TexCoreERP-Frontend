@@ -66,7 +66,7 @@ export default function EntryForm({ products, onChanged }) {
     try {
       movement = await apiRequest('/api/inventario/ingresos/', {
         method: 'POST',
-        body: { ...form, orden: form.orden || null },
+        body: { ...form, orden: form.orden || null, proveedor: form.proveedor || null },
       })
     } catch (error) {
       setErrors(fieldErrors(error))
