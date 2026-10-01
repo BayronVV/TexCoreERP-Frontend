@@ -104,5 +104,7 @@ Render como Static Site (pasos completos en `backend/docs/despliegue-render.md`)
   esa regla, recargar una ruta interna o abrir el enlace del correo de
   recuperación da 404.
 - Agrega el dominio del frontend a `CORS_ALLOWED_ORIGINS` en el backend.
+- El workflow `.github/workflows/deploy-render.yml` informa a Jira del resultado de cada despliegue
+  (detalles en `backend/docs/despliegue-render.md`, sección "Despliegues en Jira"). Necesita el secreto `RENDER_API_KEY`.
 
 Sirve también en cualquier hosting estático (Vercel, Netlify, Nginx, ...).
