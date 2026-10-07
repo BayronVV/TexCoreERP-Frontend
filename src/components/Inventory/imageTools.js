@@ -1,7 +1,15 @@
+/** Tipos de imagen que acepta el catálogo. */
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-// Reduce la foto antes de subirla: una foto de celular pesa varios MB y en el catálogo solo
-// se ve en miniatura. Devuelve un JPEG de a lo sumo `maxSide` píxeles por lado.
+/**
+ * Reduce la foto antes de subirla: una foto de celular pesa varios MB y en el catálogo solo se ve en miniatura.
+ *
+ * @param {File} file Imagen JPG, PNG o WEBP.
+ * @param {number} [maxSide=800] Lado máximo en píxeles.
+ * @param {number} [quality=0.85] Calidad JPEG (0 a 1).
+ * @returns {Promise<Blob>} Un JPEG de a lo sumo `maxSide` píxeles por lado.
+ * @throws {Error} Si el tipo no es válido o no se puede leer la imagen.
+ */
 export async function shrinkImage(file, maxSide = 800, quality = 0.85) {
   if (!IMAGE_TYPES.includes(file.type)) {
     throw new Error('Solo se aceptan imágenes JPG, PNG o WEBP.')

@@ -4,6 +4,10 @@
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
+/**
+ * Error de una respuesta de la API.
+ * `status` es el código HTTP (0 si no hubo conexión) y `body` el cuerpo JSON, p. ej. `{campo: [mensaje]}`.
+ */
 class ApiError extends Error {
   constructor(status, body) {
     super(firstErrorMessage(body) || `Error ${status}`)
@@ -53,6 +57,19 @@ async function renewAccessToken() {
   return access
 }
 
+/**
+ * Llama a la API con el token de la sesión.
+ * Si el access token venció lo renueva una vez con el refresh; si eso falla emite `texcore:session-expired`.
+ *
+ * @param {string} path Ruta, p. ej. `/api/inventario/productos/`.
+ * @param {object} [options]
+ * @param {'GET'|'POST'|'PATCH'|'DELETE'} [options.method='GET']
+ * @param {object|FormData} [options.body] JSON o FormData (archivos).
+ * @param {boolean} [options.auth=true] `false` para rutas públicas (login, registro).
+ * @param {boolean} [options.blob=false] `true` para descargar un archivo en lugar de JSON.
+ * @returns {Promise<any>} El JSON de la respuesta (o un Blob).
+ * @throws {ApiError} Si la respuesta no es 2xx.
+ */
 export async function apiRequest(path, { method = 'GET', body, auth = true, blob = false } = {}) {
   const token = auth ? localStorage.getItem('access_token') : null
   let response = await send(path, { method, body, token })
@@ -72,8 +89,10 @@ export async function apiRequest(path, { method = 'GET', body, auth = true, blob
   return data
 }
 
+/** Atajo de {@link apiRequest} para peticiones GET. */
 export function apiGet(path, options) {
   return apiRequest(path, { ...options, method: 'GET' })
 }
 
+/** URL base del backend (`VITE_API_URL`). */
 export { API_URL }

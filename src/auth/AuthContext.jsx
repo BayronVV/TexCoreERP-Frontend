@@ -5,6 +5,12 @@ import { AuthContext, clearSession } from './session'
 
 // Los permisos vienen siempre del servidor (/api/auth/me/), no del JWT: así un
 // cambio de rol se ve al recargar, sin volver a iniciar sesión.
+/**
+ * Carga el usuario de la sesión (`/api/auth/me/`) y lo comparte con toda la app.
+ * Si el servidor responde 401 cierra la sesión y manda al login.
+ *
+ * @param {{children: import('react').ReactNode}} props
+ */
 export function AuthProvider({ children }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
