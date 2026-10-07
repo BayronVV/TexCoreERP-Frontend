@@ -12,6 +12,10 @@ const load = () => {
   return pending
 }
 
+/**
+ * Hook que entrega los metadatos del catálogo (`{ meta, error }`): categorías, unidades y reglas.
+ * Se piden una sola vez por sesión y se comparten entre pantallas.
+ */
 export function useInventoryMeta() {
   const [state, setState] = useState({ meta: null, error: '' })
   useEffect(() => {
@@ -26,5 +30,7 @@ export function useInventoryMeta() {
   return state
 }
 
+/** Busca una categoría por su código (p. ej. `TELA`) en los metadatos. */
 export const categoryOf = (meta, code) => meta?.categorias.find((category) => category.codigo === code)
+/** Nombre legible de una unidad (`m` → «Metro»); si no existe devuelve el código. */
 export const unitName = (meta, code) => meta?.unidades.find((unit) => unit.codigo === code)?.nombre ?? code

@@ -14,7 +14,9 @@ export const UNITS = [
 ]
 
 // Se compran a un proveedor; el resto se fabrica y entra al cerrar una orden.
+/** Tipos de producto que se compran a un proveedor (los demás salen de una orden). */
 export const PURCHASED = ['MATERIA_PRIMA', 'INSUMO']
+/** Unidades que no admiten decimales. */
 export const WHOLE_UNITS = ['rollo', 'caja', 'unidad']
 
 export const ORDER_TYPES = [
@@ -22,24 +24,33 @@ export const ORDER_TYPES = [
   { value: 'LAVANDERIA', label: 'Lavandería', prefix: 'LV' },
 ]
 
+/** Nombre legible del tipo de producto (`MATERIA_PRIMA` → «Materia prima»). */
 export const typeLabel = (value) => PRODUCT_TYPES.find((t) => t.value === value)?.label ?? value
 
+/** Cantidad con separador de miles y hasta 2 decimales (es-CO), seguida de la unidad. */
 export const formatQty = (value, unit = '') => {
   const number = Number(value)
   const text = Number.isFinite(number) ? number.toLocaleString('es-CO', { maximumFractionDigits: 2 }) : value
   return unit ? `${text} ${unit}` : text
 }
 
+/** Fecha de hoy en hora local, formato `YYYY-MM-DD`. */
 export const todayISO = () => {
   const now = new Date()
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
   return local.toISOString().slice(0, 10)
 }
 
+/** Fecha `YYYY-MM-DD` como «01 oct 2026»; «—» si está vacía. */
 export const formatDate = (value) =>
   value ? new Date(`${value}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-// DRF devuelve {campo: [mensaje]}; deja un mapa campo -> primer mensaje.
+/**
+ * Convierte un error de la API (`{campo: [mensaje]}`) en un mapa campo → primer mensaje,
+ * para mostrar cada error junto a su campo del formulario.
+ * @param {Error & {body?: object}} error
+ * @returns {Record<string, string>}
+ */
 export function fieldErrors(error) {
   const body = error?.body
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { detail: error?.message }
