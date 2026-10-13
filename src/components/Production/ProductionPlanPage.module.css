@@ -291,6 +291,220 @@
   color: var(--text-gray);
 }
 
+.sizesSection {
+  margin-top: 1.6rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid #edf1f6;
+}
+
+.sizesHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sizesHeader h2,
+.sizeTotalsHeader h3 {
+  color: #0a1038;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sizesHeader p,
+.sizeTotalsHeader p {
+  margin-top: 0.25rem;
+  color: var(--text-gray);
+  font-size: 0.84rem;
+}
+
+.lotSizeList {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.lotSizeCard {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.lotSizeHeader,
+.sizeTotalsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.lotSizeHeader h3 {
+  color: #0a1038;
+  font-size: 0.95rem;
+}
+
+.lotSizeHeader span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-gray);
+  font-size: 0.8rem;
+}
+
+.lotTotalOk,
+.lotTotalWarn {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lotTotalOk,
+.lotMessageOk {
+  color: #0b5f57;
+}
+
+.lotTotalWarn,
+.lotMessageWarn {
+  color: #8a5a00;
+}
+
+.sizeRows {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.sizeRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 0.7fr) auto;
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.sizeField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  color: #374151;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sizeField input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1.5px solid #dbe0ea;
+  border-radius: 8px;
+  background: white;
+  color: var(--text-dark);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.sizeField input:focus {
+  outline: none;
+  border-color: #2bd6c0;
+  box-shadow: 0 0 0 3px rgba(43, 214, 192, 0.12);
+}
+
+.sizeField input[aria-invalid='true'] {
+  border-color: #d4483a;
+}
+
+.fieldError {
+  color: #b3261e;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.removeSizeButton,
+.addSizeButton {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  padding: 0.55rem 0.3rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.removeSizeButton {
+  color: #a8322a;
+}
+
+.addSizeButton {
+  color: #0f766e;
+}
+
+.lotSizeFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.lotSizeFooter p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.sizeTotalsPanel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #dfe9e7;
+  border-radius: 12px;
+  background: #f7fbfa;
+}
+
+.sizeTotalsHeader > span {
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sizeTotalsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.sizeTotalsList div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid #dce9e5;
+  border-radius: 8px;
+  background: white;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+.sizeTotalsList strong {
+  color: #0f766e;
+  font-variant-numeric: tabular-nums;
+}
+
+.sizeTotalsEmpty {
+  margin-top: 0.8rem;
+  color: var(--text-gray);
+  font-size: 0.83rem;
+}
+
+.continueNotice {
+  margin-top: 0.75rem;
+  color: #0b5f57;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -344,5 +558,24 @@
   .primaryBtn,
   .secondaryBtn {
     flex: 1 1 180px;
+  }
+
+  .sizeRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .removeSizeButton {
+    grid-column: 1 / -1;
+    justify-self: end;
+    padding-top: 0;
+  }
+
+  .lotSizeFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .continueNotice {
+    text-align: left;
   }
 }

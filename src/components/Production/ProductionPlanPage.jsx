@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './ProductionPlanPage.module.css'
 
@@ -10,6 +10,17 @@ const parsePositiveInteger = (value) => {
 
   const number = Number(normalized)
   if (!Number.isFinite(number) || !Number.isInteger(number)) return null
+
+  return number
+}
+
+const parseNonNegativeInteger = (value) => {
+  if (value === '' || value === undefined || value === null) return null
+
+  const normalized = String(value).trim()
+  if (!normalized) return null
+  const number = Number(normalized)
+  if (!Number.isFinite(number) || !Number.isInteger(number) || number <= 0) return null
 
   return number
 }
@@ -51,6 +62,9 @@ export default function ProductionPlanPage() {
   const [mode, setMode] = useState('count')
   const [lotCount, setLotCount] = useState('')
   const [unitsPerLot, setUnitsPerLot] = useState('')
+  const [sizeConfigurations, setSizeConfigurations] = useState({})
+  const nextSizeId = useRef(0)
+  const [continueNotice, setContinueNotice] = useState(false)
 
   const totalValue = parsePositiveInteger(totalUnits)
   const lotCountValue = parsePositiveInteger(lotCount)
@@ -92,6 +106,95 @@ export default function ProductionPlanPage() {
 
   const showSummary = !totalError && !countError && !unitsError && distribution
 
+  const lotBreakdown = useMemo(() => {
+    if (!distribution) return []
+
+    return distribution.lots.map((expectedUnits, lotIndex) => {
+      const entries = sizeConfigurations[lotIndex] ?? []
+      const labelCounts = new Map()
+
+      entries.forEach((entry) => {
+        const normalizedLabel = entry.label.trim().toLocaleLowerCase()
+        if (normalizedLabel) labelCounts.set(normalizedLabel, (labelCounts.get(normalizedLabel) ?? 0) + 1)
+      })
+
+      const rows = entries.map((entry) => {
+        const label = entry.label.trim()
+        const normalizedLabel = label.toLocaleLowerCase()
+        const quantity = parseNonNegativeInteger(entry.quantity)
+
+        return {
+          ...entry,
+          labelError: !label
+            ? 'Escribe la talla.'
+            : labelCounts.get(normalizedLabel) > 1
+              ? 'Esta talla ya está agregada en el lote.'
+              : '',
+          quantityValue: quantity,
+          quantityError: entry.quantity === ''
+            ? 'Ingresa las unidades de esta talla.'
+            : quantity === null
+              ? 'Usa un entero mayor que cero.'
+              : '',
+        }
+      })
+
+      const configuredUnits = rows.reduce((sum, row) => sum + (row.quantityValue ?? 0), 0)
+      const fieldsValid = rows.length > 0 && rows.every((row) => !row.labelError && !row.quantityError)
+
+      return {
+        lotIndex,
+        expectedUnits,
+        rows,
+        configuredUnits,
+        difference: expectedUnits - configuredUnits,
+        valid: fieldsValid && configuredUnits === expectedUnits,
+      }
+    })
+  }, [distribution, sizeConfigurations])
+
+  const configuredUnits = lotBreakdown.reduce((sum, lot) => sum + lot.configuredUnits, 0)
+  const configuredBySize = new Map()
+  lotBreakdown.forEach((lot) => {
+    lot.rows.forEach((row) => {
+      if (!row.label || row.quantityValue === null) return
+      const key = row.label.toLocaleLowerCase()
+      const existing = configuredBySize.get(key)
+      if (existing) existing.quantity += row.quantityValue
+      else configuredBySize.set(key, { label: row.label, quantity: row.quantityValue })
+    })
+  })
+  const sizeTotals = [...configuredBySize.values()].sort((first, second) => first.label.localeCompare(second.label))
+  const canContinue = Boolean(showSummary) && lotBreakdown.length > 0 && lotBreakdown.every((lot) => lot.valid)
+
+  const updateSizeRow = (lotIndex, rowId, field, value) => {
+    setContinueNotice(false)
+    setSizeConfigurations((current) => ({
+      ...current,
+      [lotIndex]: (current[lotIndex] ?? []).map((row) =>
+        row.id === rowId ? { ...row, [field]: value } : row,
+      ),
+    }))
+  }
+
+  const addSizeRow = (lotIndex) => {
+    const rowId = nextSizeId.current
+    nextSizeId.current += 1
+    setContinueNotice(false)
+    setSizeConfigurations((current) => ({
+      ...current,
+      [lotIndex]: [...(current[lotIndex] ?? []), { id: rowId, label: '', quantity: '' }],
+    }))
+  }
+
+  const removeSizeRow = (lotIndex, rowId) => {
+    setContinueNotice(false)
+    setSizeConfigurations((current) => ({
+      ...current,
+      [lotIndex]: (current[lotIndex] ?? []).filter((row) => row.id !== rowId),
+    }))
+  }
+
   const exactMessage = showSummary
     ? distribution.exact
       ? 'La distribución es exacta. No hay sobrantes.'
@@ -132,7 +235,7 @@ export default function ProductionPlanPage() {
               step="1"
               inputMode="numeric"
               value={totalUnits}
-              onChange={(event) => setTotalUnits(event.target.value)}
+              onChange={(event) => (setTotalUnits(event.target.value), setContinueNotice(false))}
               placeholder="Ej. 120"
               aria-invalid={Boolean(totalError)}
             />
@@ -145,7 +248,7 @@ export default function ProductionPlanPage() {
               <button
                 type="button"
                 className={`${styles.modeButton} ${mode === 'count' ? styles.modeButtonActive : ''}`}
-                onClick={() => setMode('count')}
+                onClick={() => (setMode('count'), setContinueNotice(false))}
                 aria-pressed={mode === 'count'}
               >
                 Cantidad de lotes
@@ -153,7 +256,7 @@ export default function ProductionPlanPage() {
               <button
                 type="button"
                 className={`${styles.modeButton} ${mode === 'size' ? styles.modeButtonActive : ''}`}
-                onClick={() => setMode('size')}
+                onClick={() => (setMode('size'), setContinueNotice(false))}
                 aria-pressed={mode === 'size'}
               >
                 Unidades por lote
@@ -171,7 +274,7 @@ export default function ProductionPlanPage() {
                 step="1"
                 inputMode="numeric"
                 value={lotCount}
-                onChange={(event) => setLotCount(event.target.value)}
+                onChange={(event) => (setLotCount(event.target.value), setContinueNotice(false))}
                 placeholder="Ej. 4"
                 aria-invalid={Boolean(countError)}
               />
@@ -189,7 +292,7 @@ export default function ProductionPlanPage() {
                 step="1"
                 inputMode="numeric"
                 value={unitsPerLot}
-                onChange={(event) => setUnitsPerLot(event.target.value)}
+                onChange={(event) => (setUnitsPerLot(event.target.value), setContinueNotice(false))}
                 placeholder="Ej. 30"
                 aria-invalid={Boolean(unitsError)}
               />
@@ -239,6 +342,119 @@ export default function ProductionPlanPage() {
                 </div>
               ))}
             </div>
+
+            <section className={styles.sizesSection} aria-labelledby="sizes-title">
+              <div className={styles.sizesHeader}>
+                <div>
+                  <h2 id="sizes-title">Tallas por lote</h2>
+                  <p>Escribe las tallas definidas para esta producción y asigna las unidades de cada una.</p>
+                </div>
+              </div>
+
+              <div className={styles.lotSizeList}>
+                {lotBreakdown.map((lot) => {
+                  const hasFieldErrors = lot.rows.some((row) => row.labelError || row.quantityError)
+                  const lotMessage = lot.rows.length === 0
+                    ? 'Agrega al menos una talla y asigna sus unidades.'
+                    : hasFieldErrors
+                      ? 'Corrige los campos marcados para validar este lote.'
+                      : lot.difference > 0
+                        ? `Faltan ${lot.difference} unidad${lot.difference === 1 ? '' : 'es'} para completar este lote.`
+                        : lot.difference < 0
+                          ? `Hay ${Math.abs(lot.difference)} unidad${Math.abs(lot.difference) === 1 ? '' : 'es'} de más en este lote.`
+                          : 'La suma de tallas coincide con las unidades previstas.'
+
+                  return (
+                    <article key={lot.lotIndex} className={styles.lotSizeCard}>
+                      <header className={styles.lotSizeHeader}>
+                        <div>
+                          <h3>Lote {lot.lotIndex + 1}</h3>
+                          <span>{lot.expectedUnits.toLocaleString('es-CO')} unidades previstas</span>
+                        </div>
+                        <strong className={lot.valid ? styles.lotTotalOk : styles.lotTotalWarn}>
+                          {lot.configuredUnits.toLocaleString('es-CO')} / {lot.expectedUnits.toLocaleString('es-CO')} u
+                        </strong>
+                      </header>
+
+                      {lot.rows.length > 0 && (
+                        <div className={styles.sizeRows}>
+                          {lot.rows.map((row) => (
+                            <div key={row.id} className={styles.sizeRow}>
+                              <label className={styles.sizeField}>
+                                <span>Talla</span>
+                                <input
+                                  type="text"
+                                  value={row.label}
+                                  maxLength={40}
+                                  placeholder="Según ficha técnica"
+                                  aria-invalid={Boolean(row.labelError)}
+                                  onChange={(event) => updateSizeRow(lot.lotIndex, row.id, 'label', event.target.value)}
+                                />
+                                {row.labelError && <small className={styles.fieldError}>{row.labelError}</small>}
+                              </label>
+                              <label className={styles.sizeField}>
+                                <span>Unidades</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  inputMode="numeric"
+                                  value={row.quantity}
+                                  aria-invalid={Boolean(row.quantityError)}
+                                  onChange={(event) => updateSizeRow(lot.lotIndex, row.id, 'quantity', event.target.value)}
+                                />
+                                {row.quantityError && <small className={styles.fieldError}>{row.quantityError}</small>}
+                              </label>
+                              <button
+                                type="button"
+                                className={styles.removeSizeButton}
+                                onClick={() => removeSizeRow(lot.lotIndex, row.id)}
+                                aria-label={`Quitar talla ${row.label || 'sin nombre'} del lote ${lot.lotIndex + 1}`}
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className={styles.lotSizeFooter}>
+                        <button type="button" className={styles.addSizeButton} onClick={() => addSizeRow(lot.lotIndex)}>
+                          + Agregar talla
+                        </button>
+                        <p className={lot.valid ? styles.lotMessageOk : styles.lotMessageWarn} role="status">
+                          {lotMessage}
+                        </p>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+
+              <div className={styles.sizeTotalsPanel}>
+                <div className={styles.sizeTotalsHeader}>
+                  <div>
+                    <h3>Resumen de unidades por talla</h3>
+                    <p>{configuredUnits.toLocaleString('es-CO')} de {totalValue.toLocaleString('es-CO')} unidades configuradas</p>
+                  </div>
+                  <span className={canContinue ? styles.badgeOk : styles.badgeWarn}>
+                    {canContinue ? 'Lotes completos' : 'Configuración pendiente'}
+                  </span>
+                </div>
+                {sizeTotals.length > 0 ? (
+                  <div className={styles.sizeTotalsList}>
+                    {sizeTotals.map((size) => (
+                      <div key={size.label.toLocaleLowerCase()}>
+                        <span>{size.label}</span>
+                        <strong>{size.quantity.toLocaleString('es-CO')} u</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.sizeTotalsEmpty}>Aún no hay unidades asignadas a tallas.</p>
+                )}
+              </div>
+            </section>
           </div>
         )}
       </section>
@@ -247,10 +463,20 @@ export default function ProductionPlanPage() {
         <button type="button" className={styles.secondaryBtn} onClick={() => navigate('/dashboard')}>
           Cancelar
         </button>
-        <button type="button" className={styles.primaryBtn} disabled={!showSummary}>
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          disabled={!canContinue}
+          onClick={() => setContinueNotice(true)}
+        >
           Continuar
         </button>
       </div>
+      {continueNotice && canContinue && (
+        <p className={styles.continueNotice} role="status">
+          Configuración validada localmente. La creación de la orden no está conectada en esta subtarea.
+        </p>
+      )}
     </div>
   )
 }
