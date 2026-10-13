@@ -118,30 +118,6 @@ const Login = () => {
             Regístrate
           </Link>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.setItem('access_token', 'mock_dev_token');
-            localStorage.setItem('user_role', 'PRODUCCION');
-            navigate('/produccion/liquidacion');
-          }}
-          style={{
-            marginTop: '0.85rem',
-            background: '#f8fafc',
-            border: '1px dashed #94a3b8',
-            borderRadius: '8px',
-            padding: '0.55rem',
-            color: '#475569',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            width: '100%',
-            transition: 'background 0.2s',
-          }}
-        >
-          ⚡ Acceso Demostración (Jefe de Producción)
-        </button>
       </form>
     </AuthShell>
   );
