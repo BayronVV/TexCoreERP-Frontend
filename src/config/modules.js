@@ -25,7 +25,11 @@ export const MODULES = [
     label: 'Producción y Trazabilidad',
     children: [{ label: 'Liquidación de Órdenes', path: '/produccion/liquidacion' }],
   },
-  { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
+  {
+    id: 'lavanderia',
+    label: 'Procesos Externos (Lavandería)',
+    children: [{ label: 'Remisión a Lavado', path: '/lavanderia/remisiones' }],
+  },
   { id: 'calidad', label: 'Control de Calidad' },
   { id: 'producto_terminado', label: 'Producto Terminado' },
   { id: 'ventas', label: 'Ventas y Despachos' },

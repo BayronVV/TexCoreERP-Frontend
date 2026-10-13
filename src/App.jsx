@@ -11,6 +11,7 @@ import SuppliersPage from './components/Inventory/SuppliersPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import OrderSettlementPage from './components/Production/OrderSettlementPage'
+import LaundryRemissionPage from './components/Laundry/LaundryRemissionPage'
 import RequirePermission from './components/ui/RequirePermission'
 
 function App() {
@@ -69,6 +70,14 @@ function App() {
             element={
               <RequirePermission code="produccion.ver">
                 <OrderSettlementPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/lavanderia/remisiones"
+            element={
+              <RequirePermission code="lavanderia.ver">
+                <LaundryRemissionPage />
               </RequirePermission>
             }
           />
