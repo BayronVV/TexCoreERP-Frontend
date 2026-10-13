@@ -20,7 +20,11 @@ export const MODULES = [
     ],
   },
   { id: 'fichas_tecnicas', label: 'Fichas Técnicas' },
-  { id: 'produccion', label: 'Producción y Trazabilidad' },
+  {
+    id: 'produccion',
+    label: 'Producción y Trazabilidad',
+    children: [{ label: 'Liquidación de Órdenes', path: '/produccion/liquidacion' }],
+  },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
   { id: 'calidad', label: 'Control de Calidad' },
   { id: 'producto_terminado', label: 'Producto Terminado' },

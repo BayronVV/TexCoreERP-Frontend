@@ -9,7 +9,8 @@ import styles from './ui.module.css'
  */
 export default function RequirePermission({ code, children }) {
   const { can } = useAuth()
-  if (can(code)) return children
+  const allowed = Array.isArray(code) ? code.some((c) => can(c)) : can(code)
+  if (allowed) return children
   return (
     <section className={styles.forbidden}>
       <h2>No tienes acceso a esta sección</h2>

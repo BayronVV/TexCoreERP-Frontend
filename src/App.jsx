@@ -10,6 +10,7 @@ import CatalogPage from './components/Inventory/CatalogPage'
 import SuppliersPage from './components/Inventory/SuppliersPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
+import OrderSettlementPage from './components/Production/OrderSettlementPage'
 import RequirePermission from './components/ui/RequirePermission'
 
 function App() {
@@ -60,6 +61,14 @@ function App() {
             element={
               <RequirePermission code="seguridad.ver">
                 <RolesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/produccion/liquidacion"
+            element={
+              <RequirePermission code="produccion.ver">
+                <OrderSettlementPage />
               </RequirePermission>
             }
           />
