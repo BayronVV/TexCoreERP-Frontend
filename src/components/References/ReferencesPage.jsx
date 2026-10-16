@@ -7,6 +7,7 @@ import { fieldErrors } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import catalogStyles from '../Inventory/Catalog.module.css'
 import refStyles from './References.module.css'
+import FichaForm from './FichaForm'
 import ReferenceForm from './ReferenceForm'
 
 const STATE_BADGE = { BORRADOR: styles.badgeWarn, ACTIVA: styles.badgeOk, DESCONTINUADA: styles.badgeOff }
@@ -17,7 +18,7 @@ const Placeholder = ({ name }) => (
   </div>
 )
 
-function ReferenceCard({ reference, canManage, onEdit, onState, onArchive }) {
+function ReferenceCard({ reference, canManage, canFicha, onEdit, onFicha, onState, onArchive }) {
   const main = reference.imagen_principal
   return (
     <article className={`${catalogStyles.card} ${reference.estado === 'DESCONTINUADA' ? catalogStyles.cardArchived : ''}`}>
@@ -40,6 +41,9 @@ function ReferenceCard({ reference, canManage, onEdit, onState, onArchive }) {
         <div className={catalogStyles.chips}>
           <span className={`${styles.badge} ${STATE_BADGE[reference.estado]}`}>{reference.estado_nombre}</span>
           <span className={`${styles.badge} ${styles.badgeInfo}`}>{reference.ajuste_nombre}</span>
+          <span className={`${styles.badge} ${reference.tiene_ficha ? styles.badgeOk : styles.badgeOff}`}>
+            {reference.tiene_ficha ? 'Con ficha técnica' : 'Sin ficha técnica'}
+          </span>
         </div>
         {reference.descripcion && <p className={styles.muted}>{reference.descripcion}</p>}
         <dl className={refStyles.facts}>
@@ -49,20 +53,27 @@ function ReferenceCard({ reference, canManage, onEdit, onState, onArchive }) {
           <dd>{reference.colores.length ? reference.colores.join(', ') : 'Sin definir'}</dd>
         </dl>
       </div>
-      {canManage && (
+      {(canManage || canFicha) && (
         <div className={catalogStyles.cardActions}>
-          <button type="button" className={styles.linkBtn} onClick={() => onEdit(reference)}>Editar</button>
-          {reference.estado !== 'ACTIVA' && (
+          {canFicha && (
+            <button type="button" className={styles.linkBtn} onClick={() => onFicha(reference)}>
+              Ficha técnica
+            </button>
+          )}
+          {canManage && (
+            <button type="button" className={styles.linkBtn} onClick={() => onEdit(reference)}>Editar</button>
+          )}
+          {canManage && reference.estado !== 'ACTIVA' && (
             <button type="button" className={styles.linkBtn} onClick={() => onState(reference, 'ACTIVA')}>
               {reference.estado === 'BORRADOR' ? 'Activar' : 'Reactivar'}
             </button>
           )}
-          {reference.estado === 'ACTIVA' && (
+          {canManage && reference.estado === 'ACTIVA' && (
             <button type="button" className={styles.linkBtn} onClick={() => onState(reference, 'DESCONTINUADA')}>
               Descontinuar
             </button>
           )}
-          {reference.estado !== 'ACTIVA' && (
+          {canManage && reference.estado !== 'ACTIVA' && (
             <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => onArchive(reference)}>
               Archivar
             </button>
@@ -78,12 +89,15 @@ export default function ReferencesPage() {
   const { can } = useAuth()
   const notify = useToast()
   const canManage = can('referencias.gestionar')
+  const canFicha = can('fichas_tecnicas.ver')
+  const canManageFicha = can('fichas_tecnicas.gestionar')
   const [meta, setMeta] = useState(null)
   const [metaError, setMetaError] = useState('')
   const [references, setReferences] = useState(null)
   const [loadError, setLoadError] = useState('')
   const [filters, setFilters] = useState({ q: '', estado: '', ajuste: '', talla: '', color: '' })
   const [editing, setEditing] = useState(null) // null | 'new' | referencia
+  const [sheetOf, setSheetOf] = useState(null) // referencia cuya ficha técnica está abierta
 
   useEffect(() => {
     apiGet('/api/referencias/metadatos/').then(setMeta).catch((error) => setMetaError(error.message))
@@ -176,11 +190,18 @@ export default function ReferencesPage() {
       <div className={catalogStyles.grid}>
         {references?.map((reference) => (
           <ReferenceCard
-            key={reference.id} reference={reference} canManage={canManage}
-            onEdit={setEditing} onState={changeState} onArchive={archive}
+            key={reference.id} reference={reference} canManage={canManage} canFicha={canFicha}
+            onEdit={setEditing} onFicha={setSheetOf} onState={changeState} onArchive={archive}
           />
         ))}
       </div>
+
+      {sheetOf && meta && (
+        <FichaForm
+          key={sheetOf.id} reference={sheetOf} meta={meta} canManage={canManageFicha}
+          onClose={() => { setSheetOf(null); load() }} // al cerrar se recarga: la marca «con ficha» puede haber cambiado
+        />
+      )}
 
       {editing && meta && (
         <ReferenceForm
