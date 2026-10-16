@@ -12,11 +12,11 @@ const NO_PLAN = { data: null, loading: false, error: '' }
 
 // Planificar producción (HU 4.1 / RF10): antes de crear una orden se simula si hay material para las prendas que se
 // quieren fabricar, con la ficha técnica de la referencia, y se configura cómo se divide el total en lotes.
-// Aquí no se guarda nada: los lotes y las órdenes de producción se generan en la historia siguiente (HU 4.2).
+// Aquí no se guarda nada: «Crear orden» lleva el plan a «Órdenes y lotes» (HU 4.2), donde se genera la orden y se reparten las tallas.
 export default function ProductionPlanPage() {
   const { can } = useAuth()
   const navigate = useNavigate()
-  const canRegisterExit = can('inventario.gestionar')
+  const canCreateOrders = can('produccion.gestionar')
   const [references, setReferences] = useState(null)
   const [referencesError, setReferencesError] = useState('')
   const [referencia, setReferencia] = useState('')
@@ -61,7 +61,7 @@ export default function ProductionPlanPage() {
   const view = simulationKey ? plan : NO_PLAN
   const problems = planProblems({ reference, total, sizes, plan: view })
   const viable = problems.length === 0
-  const canCreate = viable && canRegisterExit
+  const canCreate = viable && canCreateOrders
 
   const setSize = (index, value) => setSizes((current) => current.map((size, i) => (i === index ? value : size)))
   const data = view.data
@@ -73,8 +73,8 @@ export default function ProductionPlanPage() {
   }
 
   const create = () => {
-    // La orden de producción se registra como salida de inventario; el plan viaja al formulario ya rellenado.
-    navigate('/inventario', { state: { plan: { referencia: Number(referencia), cantidad: Number(total) } } })
+    // El plan viaja a «Órdenes y lotes» ya cargado: referencia, total y lotes.
+    navigate('/produccion/ordenes', { state: { plan: { referencia: Number(referencia), cantidad: Number(total), lotes: sizes.map(Number) } } })
   }
 
   return (
@@ -120,7 +120,7 @@ export default function ProductionPlanPage() {
           <h3 className={styles.subhead}>Lotes</h3>
           <p className={styles.muted}>
             Opcional. Divide el total en lotes que se cortan y cosen por separado; deben sumar exactamente las prendas a producir.
-            Los lotes se registran al generar la orden.
+            Los lotes se registran al crear la orden.
           </p>
         </div>
 
@@ -293,8 +293,8 @@ export default function ProductionPlanPage() {
         </button>
         <p id="plan-motivo" className={planStyles.reason} role="status">
           {!viable && problems[0]}
-          {viable && !canRegisterExit && 'El plan es viable. Tu rol no registra salidas de inventario: pásale la referencia y la cantidad a Almacén para que cree la orden.'}
-          {canCreate && 'Hay material. La orden se registra como salida de inventario, con este plan ya cargado.'}
+          {viable && !canCreateOrders && 'El plan es viable. Tu rol no crea órdenes de producción: pásale la referencia y la cantidad a Producción.'}
+          {canCreate && 'Hay material. Sigue en «Órdenes y lotes» con este plan ya cargado.'}
         </p>
       </div>
     </div>
