@@ -1,6 +1,5 @@
-// Lógica pura de la cesta de una orden de salida. Va aparte del formulario para poder probarla sin navegador.
-// El consumo por prenda y el redondeo los calcula el servidor (`/api/inventario/fichas-tecnicas/<id>/consumo/`):
-// aquí solo se coloca ese resultado en la cesta, así que no hay aritmética decimal en el cliente.
+// Lógica pura de la cesta de una orden de salida (hoy, la salida a lavandería). Va aparte del formulario para poder
+// probarla sin navegador. El consumo de las órdenes de producción lo calcula el servidor con la ficha técnica.
 
 /** Unidades que no admiten decimales (deben coincidir con `WHOLE_UNITS` del backend). */
 export const WHOLE = ['rollo', 'caja', 'unidad']
@@ -10,24 +9,6 @@ export const stepFor = (unit) => (WHOLE.includes(unit) ? '1' : '0.01')
 
 /** ¿El texto es un entero positivo (`'12'`)? Rechaza decimales, vacíos, ceros y negativos. */
 export const isPositiveInteger = (text) => /^\d+$/.test(String(text ?? '').trim()) && Number(text) > 0
-
-/**
- * Coloca en la cesta los materiales que calculó la ficha técnica.
- * Los materiales que ya venían de una ficha se reemplazan; los que la persona agregó a mano se
- * conservan, salvo los que la ficha también incluye (la ficha manda para no duplicar el producto).
- *
- * @param {{producto: number, cantidad: string, desdeFicha?: boolean}[]} basket
- * @param {{producto: number, requerido: string}[]} lines Líneas de la respuesta de consumo.
- */
-export function applyPlan(basket, lines) {
-  const planned = new Set(lines.map((line) => line.producto))
-  const manual = basket.filter((line) => !line.desdeFicha && !planned.has(line.producto))
-  const fromSheet = lines.map((line) => ({ producto: line.producto, cantidad: String(line.requerido), desdeFicha: true }))
-  return [...fromSheet, ...manual]
-}
-
-/** Quita de la cesta los materiales que vienen de una ficha (al cambiar de referencia o de tipo de orden). */
-export const withoutPlan = (basket) => basket.filter((line) => !line.desdeFicha)
 
 /**
  * Cuerpo del POST de una orden. En producción la cantidad de prendas es obligatoria y en lavandería no se envía
