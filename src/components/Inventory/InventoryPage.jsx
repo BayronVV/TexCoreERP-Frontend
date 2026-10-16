@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import EntryForm from './EntryForm'
@@ -10,7 +11,9 @@ import styles from './Inventory.module.css'
 export default function InventoryPage() {
   const { can } = useAuth()
   const canManage = can('inventario.gestionar')
-  const [tab, setTab] = useState('existencias')
+  const location = useLocation()
+  // Un plan de producción viable (pantalla Planificar producción) abre directamente la salida ya rellenada.
+  const [tab, setTab] = useState(location.state?.plan && canManage ? 'salida' : 'existencias')
   const [products, setProducts] = useState([])
   const [loadError, setLoadError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
