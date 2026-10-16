@@ -63,7 +63,9 @@ function OrderDetail({ order, canManage, onClose, onCancelled }) {
         <dt>Fecha de salida</dt><dd>{formatDate(order.fecha_salida)}</dd>
         <dt>Responsable</dt><dd>{order.responsable}</dd>
         {order.destino && (<><dt>Destino</dt><dd>{order.destino}</dd></>)}
-        <dt>Ficha técnica</dt><dd>{order.ficha_tecnica}</dd>
+        {order.referencia
+          ? (<><dt>Referencia</dt><dd>{order.referencia_codigo} · {order.referencia_nombre}</dd></>)
+          : (<><dt>Ficha técnica</dt><dd>{order.ficha_tecnica}</dd></>)}
         <dt>Resultado</dt><dd>{order.producto_resultado_nombre}</dd>
         {order.cantidad_prendas && (<><dt>Prendas</dt><dd>{formatQty(order.cantidad_prendas)}</dd></>)}
         <dt>Registró</dt><dd>{order.registrado_por_nombre}</dd>
