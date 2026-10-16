@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PRODUCT_TYPES, formatQty } from './labels'
+import { formatMoney } from './money'
 import styles from './Inventory.module.css'
 
 function stateOf(product) {
@@ -68,6 +69,7 @@ export default function StockTab({ products, canManage }) {
                   <th>Producto</th>
                   <th>Categoría</th>
                   <th className={styles.num}>Existencias</th>
+                  <th className={styles.num} title="Costo por unidad con promedio ponderado de las compras">Costo promedio</th>
                   <th className={styles.num}>Mínimo</th>
                   <th>Estado</th>
                 </tr>
@@ -81,6 +83,7 @@ export default function StockTab({ products, canManage }) {
                       <td>{product.nombre}</td>
                       <td>{product.categoria_nombre}</td>
                       <td className={styles.num}>{formatQty(product.stock_actual, product.unidad)}</td>
+                      <td className={styles.num}>{Number(product.costo_promedio) > 0 ? formatMoney(product.costo_promedio) : '—'}</td>
                       <td className={styles.num}>
                         {Number(product.stock_minimo) > 0 ? formatQty(product.stock_minimo, product.unidad) : '—'}
                       </td>
