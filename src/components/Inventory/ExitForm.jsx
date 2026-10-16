@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
@@ -36,8 +36,11 @@ const NO_PLAN = { data: null, loading: false, error: '' }
 export default function ExitForm({ products, onChanged }) {
   const notify = useToast()
   const { can } = useAuth()
+  const handedOver = useLocation().state?.plan // referencia y prendas que trae la pantalla Planificar producción
   const [tipo, setTipo] = useState('PRODUCCION')
-  const [form, setForm] = useState(EMPTY)
+  const [form, setForm] = useState(() =>
+    handedOver ? { ...EMPTY, referencia: String(handedOver.referencia), cantidad_prendas: String(handedOver.cantidad) } : EMPTY,
+  )
   const [references, setReferences] = useState(null)
   const [referencesError, setReferencesError] = useState('')
   const [basket, setBasket] = useState([]) // [{ producto, cantidad, desdeFicha? }]
