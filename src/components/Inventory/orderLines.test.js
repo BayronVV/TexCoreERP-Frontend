@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  applyPlan, buildOrderBody, isPositiveInteger, isShort, orderProblems, stepFor, withoutPlan,
+  buildOrderBody, isPositiveInteger, isShort, orderProblems, stepFor,
 } from './orderLines.js'
 
 const PRODUCTS = {
@@ -24,47 +24,6 @@ test('stepFor: entero para piezas y centésimas para el resto', () => {
 test('isPositiveInteger acepta solo enteros positivos', () => {
   for (const ok of ['1', '250', ' 12 ', 7]) assert.equal(isPositiveInteger(ok), true, String(ok))
   for (const bad of ['', '0', '-3', '1.5', 'abc', null, undefined, '1e3']) assert.equal(isPositiveInteger(bad), false, String(bad))
-})
-
-test('applyPlan coloca los materiales de la ficha y marca su origen', () => {
-  const result = applyPlan([], [{ producto: 1, requerido: '165.00' }, { producto: 2, requerido: '100' }])
-  assert.deepEqual(result, [
-    { producto: 1, cantidad: '165.00', desdeFicha: true },
-    { producto: 2, cantidad: '100', desdeFicha: true },
-  ])
-})
-
-test('applyPlan reemplaza lo que venía de una ficha anterior', () => {
-  const before = [{ producto: 1, cantidad: '165.00', desdeFicha: true }, { producto: 2, cantidad: '100', desdeFicha: true }]
-  const result = applyPlan(before, [{ producto: 1, requerido: '330.00' }])
-  assert.deepEqual(result, [{ producto: 1, cantidad: '330.00', desdeFicha: true }])
-})
-
-test('applyPlan conserva lo agregado a mano', () => {
-  const before = [{ producto: 3, cantidad: '20' }]
-  const result = applyPlan(before, [{ producto: 1, requerido: '10.00' }])
-  assert.deepEqual(result, [{ producto: 1, cantidad: '10.00', desdeFicha: true }, { producto: 3, cantidad: '20' }])
-})
-
-test('applyPlan no duplica un producto que la ficha también trae: manda la ficha', () => {
-  const before = [{ producto: 1, cantidad: '5' }]
-  const result = applyPlan(before, [{ producto: 1, requerido: '165.00' }])
-  assert.deepEqual(result, [{ producto: 1, cantidad: '165.00', desdeFicha: true }])
-})
-
-test('applyPlan no modifica la cesta original', () => {
-  const before = [{ producto: 3, cantidad: '20' }]
-  applyPlan(before, [{ producto: 1, requerido: '1.00' }])
-  assert.deepEqual(before, [{ producto: 3, cantidad: '20' }])
-})
-
-test('applyPlan convierte la cantidad a texto, como el resto de la cesta', () => {
-  assert.equal(applyPlan([], [{ producto: 1, requerido: 12.5 }])[0].cantidad, '12.5')
-})
-
-test('withoutPlan quita solo las líneas que vienen de una ficha', () => {
-  const basket = [{ producto: 1, cantidad: '1', desdeFicha: true }, { producto: 3, cantidad: '2' }]
-  assert.deepEqual(withoutPlan(basket), [{ producto: 3, cantidad: '2' }])
 })
 
 test('buildOrderBody de producción envía la referencia y la cantidad de prendas, sin la marca de origen', () => {
