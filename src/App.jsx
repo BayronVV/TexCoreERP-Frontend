@@ -10,6 +10,7 @@ import CatalogPage from './components/Inventory/CatalogPage'
 import SuppliersPage from './components/Inventory/SuppliersPage'
 import ReferencesPage from './components/References/ReferencesPage'
 import ProductionPlanPage from './components/Production/ProductionPlanPage'
+import LotsMasterPage from './components/Production/LotsMasterPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import RequirePermission from './components/ui/RequirePermission'
@@ -78,6 +79,14 @@ function App() {
             element={
               <RequirePermission code="seguridad.ver">
                 <RolesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/produccion/ordenes"
+            element={
+              <RequirePermission code="produccion.ver">
+                <LotsMasterPage />
               </RequirePermission>
             }
           />
