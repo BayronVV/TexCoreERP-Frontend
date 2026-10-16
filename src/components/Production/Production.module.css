@@ -1,0 +1,37 @@
+/* Planificar producción (HU 4.1). Reutiliza botones, tablas, banners y badges de Inventory.module.css. */
+
+.evenRow {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.evenRow input {
+  width: 90px;
+}
+
+.lotTable input {
+  width: 130px;
+}
+
+.lotTable th,
+.lotTable td {
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0 2rem;
+}
+
+.reason {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
