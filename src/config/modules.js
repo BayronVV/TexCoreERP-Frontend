@@ -19,6 +19,11 @@ export const MODULES = [
       { label: 'Proveedores', path: '/inventario/proveedores' },
     ],
   },
+  {
+    id: 'referencias',
+    label: 'Referencias de Jean',
+    children: [{ label: 'Catálogo de jeans', path: '/referencias' }],
+  },
   { id: 'fichas_tecnicas', label: 'Fichas Técnicas' },
   { id: 'produccion', label: 'Producción y Trazabilidad' },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
