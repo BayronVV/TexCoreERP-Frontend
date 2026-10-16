@@ -6,6 +6,7 @@ import { useToast } from '../ui/toastContext'
 import EvidencePicker from './EvidencePicker'
 import { uploadEvidence } from './evidence'
 import { PRODUCT_TYPES, PURCHASED, fieldErrors, formatDate, formatQty, todayISO } from './labels'
+import { stepFor } from './orderLines'
 import styles from './Inventory.module.css'
 
 const EMPTY = { producto: '', cantidad: '', fecha: todayISO(), proveedor: '', orden_compra: '', lote: '', orden: '', observaciones: '' }
@@ -171,7 +172,7 @@ export default function EntryForm({ products, onChanged }) {
               </option>
               {orders.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.codigo} · sale {formatDate(o.fecha_salida)} · {o.responsable}
+                  {o.codigo} · {o.referencia_nombre || o.ficha_tecnica} · sale {formatDate(o.fecha_salida)} · {o.responsable}
                 </option>
               ))}
             </select>
@@ -189,7 +190,7 @@ export default function EntryForm({ products, onChanged }) {
             <label className={styles.field}>
               Cantidad ({product.unidad})
               <input
-                type="number" min="0" step={['rollo', 'caja', 'unidad'].includes(product.unidad) ? '1' : '0.01'}
+                type="number" min="0" step={stepFor(product.unidad)}
                 value={form.cantidad} onChange={set('cantidad')} required
               />
               {order?.tipo === 'LAVANDERIA' && (
@@ -207,7 +208,7 @@ export default function EntryForm({ products, onChanged }) {
               {err('fecha')}
             </label>
             <div className={styles.field}>
-              {purchased ? <label htmlFor="ing-lote">Lote</label> : 'Lote (ficha técnica de la orden)'}
+              {purchased ? <label htmlFor="ing-lote">Lote</label> : 'Lote (referencia de la orden)'}
               {purchased ? (
                 <input id="ing-lote" value={form.lote} onChange={set('lote')} maxLength={60} required placeholder="L-2026-01" />
               ) : (

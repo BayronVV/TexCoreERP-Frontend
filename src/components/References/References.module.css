@@ -170,3 +170,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Ficha técnica de consumo por unidad (HU 3.2) */
+
+.fichaTable select {
+  min-width: 150px;
+  max-width: 210px;
+}
+
+.fichaTable input[type='number'] {
+  width: 84px;
+}
+
+.fichaTable td:nth-child(5) input {
+  min-width: 110px;
+}
+
+.documentBox {
+  padding: 0.9rem 1rem;
+  border: 1px dashed #c9cfe0;
+  border-radius: 10px;
+  background: #fafbfd;
+}
+
+.documentRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.fichaBadge {
+  align-self: flex-start;
+}

@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiRequest } from '../../api/client'
+import { apiGet, apiRequest } from '../../api/client'
+import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
 import EvidencePicker from './EvidencePicker'
 import { uploadEvidence } from './evidence'
-import {
-  ORDER_TYPES, PURCHASED, WHOLE_UNITS, fieldErrors, formatQty, todayISO, typeLabel,
-} from './labels'
+import { ORDER_TYPES, PURCHASED, WHOLE_UNITS, fieldErrors, formatQty, todayISO, typeLabel } from './labels'
+import { applyPlan, buildOrderBody, isPositiveInteger, isShort, orderProblems, stepFor, withoutPlan } from './orderLines'
 import styles from './Inventory.module.css'
 
 // Qué puede llevar la cesta y qué producto resulta, según el tipo de orden.
@@ -15,7 +15,7 @@ const RULES = {
     inputs: PURCHASED,
     output: 'GENERICO',
     outputHelp: 'Pantalón genérico que se obtiene al terminar (entrará en Ingreso).',
-    basketHelp: 'Tela, hilo, cierres y demás insumos que se usan para armar el pantalón genérico.',
+    basketHelp: 'Los materiales salen de la ficha técnica de la referencia según las prendas a producir. Puedes ajustarlos o agregar otros.',
   },
   LAVANDERIA: {
     inputs: [...PURCHASED, 'GENERICO'],
@@ -26,15 +26,22 @@ const RULES = {
 }
 
 const EMPTY = {
-  fecha_salida: todayISO(), responsable: '', destino: '', ficha_tecnica: '',
+  fecha_salida: todayISO(), responsable: '', destino: '', referencia: '',
   producto_resultado: '', cantidad_prendas: '', observaciones: '',
 }
+const NO_PLAN = { data: null, loading: false, error: '' }
 
+// Salida de inventario hacia producción o lavandería. La orden se hace sobre una referencia de jean elegida de la lista:
+// en producción, al indicar cuántas prendas se fabrican, la cesta se llena con los materiales de su ficha técnica.
 export default function ExitForm({ products, onChanged }) {
   const notify = useToast()
+  const { can } = useAuth()
   const [tipo, setTipo] = useState('PRODUCCION')
   const [form, setForm] = useState(EMPTY)
-  const [basket, setBasket] = useState([]) // [{ producto, cantidad }]
+  const [references, setReferences] = useState(null)
+  const [referencesError, setReferencesError] = useState('')
+  const [basket, setBasket] = useState([]) // [{ producto, cantidad, desdeFicha? }]
+  const [plan, setPlan] = useState(NO_PLAN)
   const [pick, setPick] = useState({ producto: '', cantidad: '' })
   const [pickError, setPickError] = useState('')
   const [files, setFiles] = useState([])
@@ -45,26 +52,75 @@ export default function ExitForm({ products, onChanged }) {
   const rules = RULES[tipo]
   const prefix = ORDER_TYPES.find((t) => t.value === tipo).prefix
   const byId = useMemo(() => new Map(products.map((p) => [String(p.id), p])), [products])
+  const productOf = (id) => byId.get(String(id))
   const inputProducts = products.filter((p) => rules.inputs.includes(p.tipo))
   const outputProducts = products.filter((p) => p.tipo === rules.output)
+  const reference = references?.find((r) => String(r.id) === form.referencia)
+
+  useEffect(() => {
+    apiGet('/api/inventario/fichas-tecnicas/')
+      .then(setReferences)
+      .catch((error) => setReferencesError(error.message))
+  }, [])
+
+  // Con referencia (que tenga ficha) y prendas válidas, el servidor calcula los materiales; se espera a que la persona deje de escribir.
+  const planKey =
+    tipo === 'PRODUCCION' && reference?.tiene_ficha && isPositiveInteger(form.cantidad_prendas)
+      ? `${reference.id}:${Number(form.cantidad_prendas)}`
+      : ''
+  useEffect(() => {
+    if (!planKey) return undefined
+    const [referenceId, garments] = planKey.split(':')
+    let alive = true
+    const timer = setTimeout(() => {
+      setPlan((current) => ({ ...current, loading: true, error: '' }))
+      apiGet(`/api/inventario/fichas-tecnicas/${referenceId}/consumo/?cantidad=${garments}`)
+        .then((data) => {
+          if (!alive) return
+          setPlan({ data, loading: false, error: '' })
+          setBasket((current) => applyPlan(current, data.lineas))
+          setShortages([])
+        })
+        .catch((error) => alive && setPlan({ data: null, loading: false, error: error.message }))
+    }, 350)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [planKey])
 
   const set = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
+
+  const clearPlan = () => {
+    setPlan(NO_PLAN)
+    setBasket(withoutPlan)
+  }
 
   const changeType = (event) => {
     setTipo(event.target.value)
     setBasket([])
+    setPlan(NO_PLAN)
     setPick({ producto: '', cantidad: '' })
-    setForm((current) => ({ ...current, producto_resultado: '', cantidad_prendas: '', destino: '' }))
+    setForm((current) => ({ ...current, referencia: '', producto_resultado: '', cantidad_prendas: '', destino: '' }))
     setErrors({})
     setShortages([])
   }
 
-  const step = (product) => (WHOLE_UNITS.includes(product?.unidad) ? '1' : '0.01')
-  const lineProduct = (line) => byId.get(String(line.producto))
-  const isShort = (line) => Number(line.cantidad) > Number(lineProduct(line)?.stock_actual ?? 0)
+  const pickReference = (event) => {
+    setForm((current) => ({ ...current, referencia: event.target.value }))
+    clearPlan()
+  }
+
+  const changeGarments = (event) => {
+    const value = event.target.value
+    setForm((current) => ({ ...current, cantidad_prendas: value }))
+    if (!isPositiveInteger(value)) clearPlan()
+  }
+
+  const lineProduct = (line) => productOf(line.producto)
 
   const addToBasket = () => {
-    const product = byId.get(String(pick.producto))
+    const product = productOf(pick.producto)
     const quantity = Number(pick.cantidad)
     if (!product) return setPickError('Elige un producto.')
     if (!(quantity > 0)) return setPickError('Escribe una cantidad mayor que cero.')
@@ -87,11 +143,18 @@ export default function ExitForm({ products, onChanged }) {
   const updateLine = (id, cantidad) =>
     setBasket((current) => current.map((l) => (l.producto === id ? { ...l, cantidad } : l)))
 
-  const genericLine = basket.find((l) => lineProduct(l)?.tipo === 'GENERICO')
-  const anyShort = basket.some(isShort)
-  const anyInvalid = basket.some((l) => !(Number(l.cantidad) > 0))
-  const missingGeneric = tipo === 'LAVANDERIA' && !genericLine
-  const canSubmit = basket.length > 0 && !anyShort && !anyInvalid && !missingGeneric && form.producto_resultado
+  const problems = orderProblems({ tipo, form, basket, productOf, reference })
+  const canSubmit = problems.length === 0 && !plan.loading
+  const missingGeneric = tipo === 'LAVANDERIA' && basket.length > 0 && !basket.some((l) => lineProduct(l)?.tipo === 'GENERICO')
+
+  const reset = () => {
+    setForm({ ...EMPTY, fecha_salida: todayISO() })
+    setBasket([])
+    setPlan(NO_PLAN)
+    setFiles([])
+    setErrors({})
+    setShortages([])
+  }
 
   const submit = async (event) => {
     event.preventDefault()
@@ -100,15 +163,7 @@ export default function ExitForm({ products, onChanged }) {
     setShortages([])
     let order
     try {
-      order = await apiRequest('/api/inventario/ordenes/', {
-        method: 'POST',
-        body: {
-          ...form,
-          tipo,
-          cantidad_prendas: tipo === 'PRODUCCION' && form.cantidad_prendas ? form.cantidad_prendas : null,
-          lineas: basket,
-        },
-      })
+      order = await apiRequest('/api/inventario/ordenes/', { method: 'POST', body: buildOrderBody({ form, tipo, basket }) })
     } catch (error) {
       setErrors(fieldErrors(error))
       setShortages(error.body?.faltantes ?? [])
@@ -121,14 +176,15 @@ export default function ExitForm({ products, onChanged }) {
     } catch (error) {
       notify(`Orden ${order.codigo} registrada, pero las evidencias no se subieron: ${error.message}`, 'error')
     }
-    setForm({ ...EMPTY, fecha_salida: todayISO() })
-    setBasket([])
-    setFiles([])
+    reset()
     setSaving(false)
     onChanged()
   }
 
   const err = (name) => errors[name] && <span className={styles.fieldError}>{errors[name]}</span>
+  const referenceHint = reference
+    ? `${reference.materiales} material${reference.materiales === 1 ? '' : 'es'} en la ficha${reference.lavado_nombre ? ` · Lavado: ${reference.lavado_nombre}` : ''}. Su código será el lote del inventario.`
+    : 'Su código (REF-0001) será el lote con el que volverá al inventario.'
 
   return (
     <>
@@ -164,12 +220,42 @@ export default function ExitForm({ products, onChanged }) {
               <input value={form.destino} onChange={set('destino')} maxLength={120} />
             </label>
           )}
-          <label className={styles.field}>
-            Ficha técnica
-            <input value={form.ficha_tecnica} onChange={set('ficha_tecnica')} maxLength={60} required placeholder="Código de la ficha" />
-            <span className={styles.hint}>Es el lote con el que volverá al inventario.</span>
-            {err('ficha_tecnica')}
-          </label>
+
+          <div className={`${styles.field} ${styles.full}`}>
+            <label htmlFor="sal-referencia">Referencia de jean</label>
+            <select id="sal-referencia" value={form.referencia} onChange={pickReference} required disabled={!references}>
+              <option value="">{references ? 'Selecciona la referencia' : 'Cargando referencias…'}</option>
+              {references?.map((r) => {
+                const blocked = tipo === 'PRODUCCION' && !r.tiene_ficha
+                return (
+                  <option key={r.id} value={r.id} disabled={blocked}>
+                    {r.codigo} · {r.nombre} ({r.ajuste_nombre}){blocked ? ' — sin ficha técnica' : ''}
+                  </option>
+                )
+              })}
+            </select>
+            <span className={styles.hint}>
+              {referenceHint}{' '}
+              {references && references.length === 0 && 'No hay referencias activas. '}
+              {tipo === 'PRODUCCION' && references?.some((r) => !r.tiene_ficha) && can('fichas_tecnicas.gestionar') && (
+                <>Las que no tienen ficha se definen en <Link to="/referencias" className={styles.textLink}>Referencias de jean</Link>.</>
+              )}
+            </span>
+            {referencesError && <span className={styles.fieldError}>{referencesError}</span>}
+            {err('referencia')}
+          </div>
+
+          {tipo === 'PRODUCCION' && (
+            <label className={styles.field}>
+              Prendas a producir
+              <input
+                type="number" min="1" step="1" value={form.cantidad_prendas} onChange={changeGarments}
+                required placeholder="Ej. 100"
+              />
+              <span className={styles.hint}>Con este número se calculan los materiales de la ficha.</span>
+              {err('cantidad_prendas')}
+            </label>
+          )}
           <div className={styles.field}>
             <label htmlFor="sal-resultado">{tipo === 'PRODUCCION' ? 'Se producirá' : 'Modelo a crear'}</label>
             <div className={styles.inline}>
@@ -185,13 +271,6 @@ export default function ExitForm({ products, onChanged }) {
             </span>
             {err('producto_resultado')}
           </div>
-          {tipo === 'PRODUCCION' && (
-            <label className={styles.field}>
-              Pantalones a producir (opcional)
-              <input type="number" min="1" step="1" value={form.cantidad_prendas} onChange={set('cantidad_prendas')} />
-              {err('cantidad_prendas')}
-            </label>
-          )}
         </div>
 
         <div>
@@ -199,9 +278,33 @@ export default function ExitForm({ products, onChanged }) {
           <p className={styles.muted}>{rules.basketHelp}</p>
         </div>
 
+        {plan.loading && <p className={styles.muted} role="status">Calculando los materiales de la ficha…</p>}
+        {plan.error && <p className={styles.formError}>{plan.error}</p>}
+        {plan.data && !plan.loading && (
+          <div className={`${styles.banner} ${plan.data.viable ? '' : styles.bannerWarn}`} role="status">
+            <div>
+              Materiales calculados con la ficha de <strong>{plan.data.referencia.codigo}</strong> para{' '}
+              <strong>{plan.data.cantidad}</strong> prendas (con la merma, redondeado hacia arriba). Si cambias la
+              referencia o la cantidad se recalculan.
+              {!plan.data.viable && (
+                <>
+                  {' '}<strong>Con el stock actual faltan:</strong>
+                  <ul>
+                    {plan.data.faltantes.map((row) => (
+                      <li key={row.producto}>
+                        {row.nombre}: faltan {formatQty(row.falta, row.unidad)} (se necesitan {formatQty(row.requerido, row.unidad)} y hay {formatQty(row.disponible, row.unidad)}).
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className={styles.basketAdd}>
           <label className={styles.field}>
-            Producto
+            Agregar otro producto
             <select value={pick.producto} onChange={(e) => setPick((c) => ({ ...c, producto: e.target.value }))}>
               <option value="">Selecciona</option>
               {inputProducts.map((p) => (
@@ -212,9 +315,9 @@ export default function ExitForm({ products, onChanged }) {
             </select>
           </label>
           <label className={styles.field}>
-            Cantidad {byId.get(String(pick.producto)) ? `(${byId.get(String(pick.producto)).unidad})` : ''}
+            Cantidad {productOf(pick.producto) ? `(${productOf(pick.producto).unidad})` : ''}
             <input
-              type="number" min="0" step={step(byId.get(String(pick.producto)))} value={pick.cantidad}
+              type="number" min="0" step={stepFor(productOf(pick.producto)?.unidad)} value={pick.cantidad}
               onChange={(e) => setPick((c) => ({ ...c, cantidad: e.target.value }))}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addToBasket())}
             />
@@ -224,7 +327,11 @@ export default function ExitForm({ products, onChanged }) {
         {pickError && <span className={styles.fieldError}>{pickError}</span>}
 
         {basket.length === 0 ? (
-          <p className={styles.empty}>La cesta está vacía. Agrega los productos que salen en esta orden.</p>
+          <p className={styles.empty}>
+            {tipo === 'PRODUCCION'
+              ? 'La cesta está vacía. Elige la referencia e indica las prendas a producir, o agrega los productos a mano.'
+              : 'La cesta está vacía. Agrega los productos que salen en esta orden.'}
+          </p>
         ) : (
           <div className={styles.tableWrap}>
             <table className={`${styles.table} ${styles.basketTable}`}>
@@ -239,17 +346,18 @@ export default function ExitForm({ products, onChanged }) {
               <tbody>
                 {basket.map((line) => {
                   const product = lineProduct(line)
-                  const short = isShort(line)
+                  const short = isShort(line, product)
                   return (
                     <tr key={line.producto} className={short ? styles.rowShort : ''}>
                       <td>
                         {product.nombre}
                         <span className={styles.muted}> · {typeLabel(product.tipo)}</span>
+                        {line.desdeFicha && <span className={`${styles.badge} ${styles.badgeInfo}`}> Ficha</span>}
                       </td>
                       <td className={styles.num}>{formatQty(product.stock_actual, product.unidad)}</td>
                       <td>
                         <input
-                          type="number" min="0" step={step(product)} value={line.cantidad}
+                          type="number" min="0" step={stepFor(product.unidad)} value={line.cantidad}
                           onChange={(e) => updateLine(line.producto, e.target.value)} aria-label={`Cantidad de ${product.nombre}`}
                         />{' '}
                         {product.unidad}
@@ -270,7 +378,7 @@ export default function ExitForm({ products, onChanged }) {
             </table>
           </div>
         )}
-        {missingGeneric && basket.length > 0 && (
+        {missingGeneric && (
           <span className={styles.fieldError}>Agrega los pantalones genéricos que se envían a lavandería.</span>
         )}
         {err('lineas')}
@@ -298,13 +406,11 @@ export default function ExitForm({ products, onChanged }) {
 
         {errors.detail && shortages.length === 0 && <p className={styles.formError}>{errors.detail}</p>}
         <div className={styles.actions}>
+          <button type="button" className={styles.secondaryBtn} onClick={reset}>Limpiar</button>
           <button
-            type="button" className={styles.secondaryBtn}
-            onClick={() => { setForm({ ...EMPTY, fecha_salida: todayISO() }); setBasket([]); setFiles([]); setErrors({}); setShortages([]) }}
+            type="submit" className={styles.primaryBtn} disabled={saving || !canSubmit}
+            title={problems.length ? problems.join(' ') : undefined}
           >
-            Limpiar
-          </button>
-          <button type="submit" className={styles.primaryBtn} disabled={saving || !canSubmit}>
             {saving ? 'Guardando…' : `Registrar orden ${prefix}`}
           </button>
         </div>
