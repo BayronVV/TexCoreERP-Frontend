@@ -9,7 +9,6 @@ import InventoryPage from './components/Inventory/InventoryPage'
 import CatalogPage from './components/Inventory/CatalogPage'
 import SuppliersPage from './components/Inventory/SuppliersPage'
 import ReferencesPage from './components/References/ReferencesPage'
-import ProductionPlanPage from './components/Production/ProductionPlanPage'
 import LotsMasterPage from './components/Production/LotsMasterPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -58,14 +57,7 @@ function App() {
               </RequirePermission>
             }
           />
-          <Route
-            path="/produccion/planificar"
-            element={
-              <RequirePermission code="produccion.ver">
-                <ProductionPlanPage />
-              </RequirePermission>
-            }
-          />
+          <Route path="/produccion/planificar" element={<Navigate to="/produccion/ordenes" replace />} />
           <Route
             path="/seguridad/usuarios"
             element={
