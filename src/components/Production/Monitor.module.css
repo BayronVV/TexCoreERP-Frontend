@@ -1,0 +1,160 @@
+/* Monitor de estado (HU 4.5). Reutiliza botones, campos y textos de Inventory.module.css. */
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.toolbar select {
+  min-width: 200px;
+}
+
+.refresh {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.notice {
+  min-height: 1.4rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+.column {
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+  min-height: 160px;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.dropOk {
+  border-color: #2563eb;
+  background: #e0ecff;
+}
+
+.dim {
+  opacity: 0.45;
+}
+
+.columnHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.columnHead h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.count {
+  min-width: 1.8rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #1e293b;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.card[draggable='true'] {
+  cursor: grab;
+}
+
+.dragging {
+  opacity: 0.5;
+}
+
+.cardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cardMeta {
+  display: grid;
+  gap: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.alertBar {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.alertBadge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.alertAttention {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.alertCritical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.cardAttention {
+  border-color: #f59e0b;
+}
+
+.cardCritical {
+  border-color: #dc2626;
+  border-width: 2px;
+}
+
+.cardCancelled {
+  opacity: 0.7;
+  background: #f8fafc;
+}

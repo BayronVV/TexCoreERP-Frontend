@@ -28,7 +28,10 @@ export const MODULES = [
   {
     id: 'produccion',
     label: 'Producción y Trazabilidad',
-    children: [{ label: 'Órdenes de producción', path: '/produccion/ordenes' }],
+    children: [
+      { label: 'Órdenes de producción', path: '/produccion/ordenes' },
+      { label: 'Monitor de estado', path: '/produccion/monitor' },
+    ],
   },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
   { id: 'calidad', label: 'Control de Calidad' },
