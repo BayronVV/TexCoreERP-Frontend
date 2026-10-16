@@ -1,40 +1,40 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
-import { fieldErrors, formatDate } from '../Inventory/labels'
+import { fieldErrors, formatDate, formatQty } from '../Inventory/labels'
 import { isPositiveInteger } from '../Inventory/orderLines'
 import styles from '../Inventory/Inventory.module.css'
 import planStyles from './Production.module.css'
-import { MAX_GARMENTS, MAX_LOTS, lotProblems, lotsSum, splitEvenly } from './lotSplit'
+import { MAX_GARMENTS, MAX_LOTS, buildSimulationBody, lotProblems, lotsSum, planProblems, splitEvenly } from './lotSplit'
 import {
   buildOrderBody, effectiveLots, emptySizeRow, orderProblems, sizeProblems, sizeTotals, splitByUnits, takenByOthers,
 } from './lotSizes'
 
+const NO_PLAN = { data: null, loading: false, error: '' }
 const STATUS_BADGE = { EN_PROCESO: styles.badgeInfo, COMPLETADA: styles.badgeOk, ANULADA: styles.badgeOff }
 
 // Generación de órdenes y lotes (HU 4.2 / RF11 y RF12): se crea la orden de producción de una referencia, se divide en lotes
 // con identificador único y, si se quiere, se reparten las tallas de cada lote. Al crearla, el servidor descuenta del
-// almacén el material de la ficha técnica. Llega con el plan ya cargado desde «Planificar producción».
+// almacén el material de la ficha técnica. Antes de crearla, la pantalla simula si hay material (HU 4.1 / RF10): muestra lo
+// que pide la ficha, lo disponible, el máximo producible y hasta qué lote alcanza el stock.
 export default function LotsMasterPage() {
   const { can } = useAuth()
-  const navigate = useNavigate()
-  const plan = useLocation().state?.plan
   const canManage = can('produccion.gestionar')
 
   const [references, setReferences] = useState(null)
   const [products, setProducts] = useState(null)
   const [loadError, setLoadError] = useState('')
-  const [referencia, setReferencia] = useState(plan?.referencia ? String(plan.referencia) : '')
-  const [total, setTotal] = useState(plan?.cantidad ? String(plan.cantidad) : '')
+  const [referencia, setReferencia] = useState('')
+  const [total, setTotal] = useState('')
   const [resultado, setResultado] = useState('')
   const [responsable, setResponsable] = useState('')
   const [observaciones, setObservaciones] = useState('')
-  const [sizes, setSizes] = useState(plan?.lotes?.map(String) ?? []) // prendas de cada lote, como texto
+  const [sizes, setSizes] = useState([]) // prendas de cada lote, como texto
   const [mode, setMode] = useState('count')
   const [amount, setAmount] = useState('2')
   const [sizeState, setSizeState] = useState({ key: '', rows: [] }) // tallas de cada lote; se reinician si cambia el reparto
   const [variants, setVariants] = useState([])
+  const [plan, setPlan] = useState(NO_PLAN) // simulación de material
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [shortages, setShortages] = useState([])
@@ -75,7 +75,35 @@ export default function LotsMasterPage() {
   const lotsKey = `${referencia}|${lotSizes.join(',')}`
   const rowsByLot = sizeState.key === lotsKey ? sizeState.rows : []
   const lotsError = lotProblems(sizes, total)
-  const problems = orderProblems({ reference, total, resultado, sizes, rowsByLot })
+
+  // La simulación espera a que la persona deje de escribir y descarta respuestas de datos que ya cambiaron.
+  const simulationKey =
+    reference?.tiene_ficha && isPositiveInteger(total) && Number(total) <= MAX_GARMENTS
+      ? JSON.stringify(buildSimulationBody({ referencia, total, sizes }))
+      : ''
+  useEffect(() => {
+    if (!simulationKey) return undefined
+    let alive = true
+    const timer = setTimeout(() => {
+      setPlan((current) => ({ ...current, loading: true, error: '' }))
+      apiRequest('/api/produccion/simulacion/', { method: 'POST', body: JSON.parse(simulationKey) })
+        .then((data) => alive && setPlan({ data, loading: false, error: '' }))
+        .catch((error) => {
+          if (!alive) return
+          const fields = fieldErrors(error)
+          setPlan({ data: null, loading: false, error: fields.lotes ?? fields.cantidad ?? fields.referencia ?? error.message })
+        })
+    }, 400)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [simulationKey])
+  const view = simulationKey ? plan : NO_PLAN
+  const data = view.data
+
+  const orderIssues = orderProblems({ reference, total, resultado, sizes, rowsByLot })
+  const problems = orderIssues.length > 0 ? orderIssues : planProblems({ reference, total, sizes, plan: view })
   const totals = sizeTotals(rowsByLot, (id) => variants.find((v) => String(v.id) === String(id)))
   const canCreate = canManage && problems.length === 0 && !saving
 
@@ -83,6 +111,12 @@ export default function LotsMasterPage() {
     const base = lotSizes.map((_, i) => rowsByLot[i] ?? [])
     base[lotIndex] = change(base[lotIndex])
     setSizeState({ key: lotsKey, rows: base })
+  }
+
+  // Al llevar el total al máximo, los lotes que ya había se vuelven a repartir en la misma cantidad de partes iguales.
+  const applyMaximum = (maximum) => {
+    setTotal(String(maximum))
+    if (sizes.length > 0) setSizes(splitEvenly(maximum, Math.min(sizes.length, maximum)).map(String))
   }
 
   const generate = () => {
@@ -130,10 +164,10 @@ export default function LotsMasterPage() {
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <p className={styles.eyebrow}>Producción</p>
-        <h1>Órdenes y lotes</h1>
+        <h1>Órdenes de producción</h1>
         <p className={styles.subtitle}>
-          Crea la orden de producción de una referencia, divídela en lotes con su código y reparte las tallas de cada uno.
-          Al crearla se descuenta del almacén el material de la ficha técnica.
+          Comprueba si hay material para las prendas que quieres fabricar, divídelas en lotes con su código y reparte las tallas
+          de cada uno. Al crear la orden se descuenta del almacén el material de la ficha técnica.
         </p>
       </header>
 
@@ -349,9 +383,6 @@ export default function LotsMasterPage() {
           <button type="submit" className={styles.primaryBtn} disabled={!canCreate} aria-describedby="ord-motivo">
             {saving ? 'Creando…' : 'Crear orden'}
           </button>
-          <button type="button" className={styles.secondaryBtn} onClick={() => navigate('/produccion/planificar')}>
-            Volver a planificar
-          </button>
           <p id="ord-motivo" className={planStyles.reason} role="status">
             {!canManage && 'Tu rol puede consultar las órdenes pero no crearlas.'}
             {canManage && problems[0]}
@@ -359,6 +390,96 @@ export default function LotsMasterPage() {
           </p>
         </div>
       </form>
+
+      {view.loading && <p className={styles.muted} role="status">Calculando la disponibilidad de material…</p>}
+      {view.error && <p className={styles.formError}>{view.error}</p>}
+
+      {data && !view.loading && data.cantidad === Number(total) && (
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Disponibilidad de material</h2>
+
+          <div className={`${styles.banner} ${data.viable ? '' : styles.bannerWarn}`} role="status">
+            <div>
+              {data.viable ? (
+                <>Hay material para producir <strong>{data.cantidad}</strong> prendas de {data.referencia.codigo}.</>
+              ) : (
+                <><strong>No hay material suficiente</strong> para producir {data.cantidad} prendas de {data.referencia.codigo}.</>
+              )}{' '}
+              Con el stock actual se pueden fabricar hasta <strong>{data.maximo_producible}</strong> prendas
+              {data.cuello_de_botella && (
+                <> (lo limita <strong>{data.cuello_de_botella.nombre}</strong>: hay {formatQty(data.cuello_de_botella.disponible, data.cuello_de_botella.unidad)}).</>
+              )}
+              {data.maximo_producible > 0 && data.maximo_producible !== data.cantidad && (
+                <>
+                  {' '}
+                  <button type="button" className={styles.linkBtn} onClick={() => applyMaximum(data.maximo_producible)}>
+                    Usar {data.maximo_producible}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Material</th><th className={styles.num}>Por prenda</th><th className={styles.num}>Requerido</th>
+                  <th className={styles.num}>Disponible</th><th className={styles.num}>Falta</th><th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.lineas.map((row) => (
+                  <tr key={row.producto} className={row.suficiente ? '' : styles.rowShort}>
+                    <td>{row.nombre}</td>
+                    <td className={styles.num}>{formatQty(row.por_prenda, row.unidad)}{Number(row.merma) > 0 ? ` (+${Number(row.merma)} %)` : ''}</td>
+                    <td className={styles.num}>{formatQty(row.requerido, row.unidad)}</td>
+                    <td className={styles.num}>{formatQty(row.disponible, row.unidad)}</td>
+                    <td className={styles.num}>{row.suficiente ? '—' : formatQty(row.falta, row.unidad)}</td>
+                    <td>
+                      <span className={`${styles.badge} ${row.suficiente ? styles.badgeOk : styles.badgeDanger}`}>
+                        {row.suficiente ? 'Alcanza' : 'Falta'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {data.lotes && (
+            <>
+              <h3 className={styles.subhead}>Cobertura por lote</h3>
+              <p className={styles.muted}>
+                Los lotes comparten el mismo material, así que un lote se cubre si alcanza para él y los anteriores juntos.
+                {' '}{data.lotes_cubiertos} de {data.lotes.length} lotes cubiertos.
+              </p>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr><th>Lote</th><th className={styles.num}>Prendas</th><th className={styles.num}>Acumulado</th><th>Estado</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.lotes.map((lot) => (
+                      <tr key={lot.numero} className={lot.cubierto ? '' : styles.rowShort}>
+                        <td>Lote {lot.numero}</td>
+                        <td className={styles.num}>{lot.cantidad}</td>
+                        <td className={styles.num}>{lot.acumulado}</td>
+                        <td>
+                          <span className={`${styles.badge} ${lot.cubierto ? styles.badgeOk : styles.badgeDanger}`}>
+                            {lot.cubierto ? 'Cubierto' : 'Sin material'}
+                          </span>
+                          {!lot.cubierto && <span className={styles.muted}> · falta {lot.faltantes.join(', ')}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Órdenes recientes</h2>
