@@ -4,6 +4,7 @@ import { useToast } from '../ui/toastContext'
 import Modal from '../ui/Modal'
 import { openEvidence } from './evidence'
 import { fieldErrors, formatDate, formatQty } from './labels'
+import { formatMoney } from './money'
 import styles from './Inventory.module.css'
 
 const STATUS_BADGE = { EN_PROCESO: styles.badgeInfo, COMPLETADA: styles.badgeOk, ANULADA: styles.badgeOff }
@@ -216,7 +217,7 @@ function Kardex({ products, refreshKey }) {
             <thead>
               <tr>
                 <th>Fecha</th><th>Producto</th><th>Movimiento</th><th className={styles.num}>Cantidad</th>
-                <th className={styles.num}>Saldo</th><th>Detalle</th><th>Registró</th><th>Evidencias</th>
+                <th className={styles.num}>Costo unit.</th><th className={styles.num}>Saldo</th><th>Detalle</th><th>Registró</th><th>Evidencias</th>
               </tr>
             </thead>
             <tbody>
@@ -231,6 +232,7 @@ function Kardex({ products, refreshKey }) {
                     <span className={styles.muted}> {REASONS[row.motivo]}</span>
                   </td>
                   <td className={styles.num}>{row.tipo === 'INGRESO' ? '+' : '−'}{formatQty(row.cantidad, row.unidad)}</td>
+                  <td className={styles.num}>{row.costo_unitario ? formatMoney(row.costo_unitario) : '—'}</td>
                   <td className={styles.num}>{formatQty(row.stock_despues, row.unidad)}</td>
                   <td>
                     {[row.orden_codigo, row.proveedor_nombre, row.orden_compra, row.lote && `Lote ${row.lote}`]

@@ -6,10 +6,14 @@ import { useToast } from '../ui/toastContext'
 import EvidencePicker from './EvidencePicker'
 import { uploadEvidence } from './evidence'
 import { PRODUCT_TYPES, PURCHASED, fieldErrors, formatDate, formatQty, todayISO } from './labels'
+import { costError, formatMoney, purchaseValue } from './money'
 import { stepFor } from './orderLines'
 import styles from './Inventory.module.css'
 
-const EMPTY = { producto: '', cantidad: '', fecha: todayISO(), proveedor: '', orden_compra: '', lote: '', orden: '', observaciones: '' }
+const EMPTY = {
+  producto: '', cantidad: '', fecha: todayISO(), proveedor: '', orden_compra: '', lote: '', orden: '', observaciones: '',
+  costo_unitario: '',
+}
 
 const byName = (a, b) => a.razon_social.localeCompare(b.razon_social, 'es')
 
@@ -55,19 +59,24 @@ export default function EntryForm({ products, onChanged }) {
   const pickProduct = (event) => {
     setOrders([])
     setOrdersLoaded(false)
-    setForm((current) => ({ ...current, producto: event.target.value, orden: '', lote: '', proveedor: '', orden_compra: '' }))
+    setForm((current) => ({ ...current, producto: event.target.value, orden: '', lote: '', proveedor: '', orden_compra: '', costo_unitario: '' }))
     setErrors({})
   }
 
   const submit = async (event) => {
     event.preventDefault()
+    const costProblem = purchased ? costError(form.costo_unitario) : ''
+    if (costProblem) return setErrors({ costo_unitario: costProblem })
     setSaving(true)
     setErrors({})
     let movement
     try {
       movement = await apiRequest('/api/inventario/ingresos/', {
         method: 'POST',
-        body: { ...form, orden: form.orden || null, proveedor: form.proveedor || null },
+        body: {
+          ...form, orden: form.orden || null, proveedor: form.proveedor || null,
+          costo_unitario: purchased && form.costo_unitario.trim() ? form.costo_unitario.trim() : null,
+        },
       })
     } catch (error) {
       setErrors(fieldErrors(error))
@@ -216,6 +225,23 @@ export default function EntryForm({ products, onChanged }) {
               )}
               {err('lote')}
             </div>
+            {purchased && (
+              <label className={styles.field}>
+                Costo unitario (COP, opcional)
+                <input
+                  type="number" min="0" step="0.01" inputMode="decimal" value={form.costo_unitario}
+                  onChange={set('costo_unitario')} placeholder="Ej. 18500"
+                />
+                <span className={styles.hint}>
+                  Lo que costó cada {product.unidad}. Se usa para costear las órdenes de producción.
+                  {Number(product.costo_promedio) > 0 && <> Costo promedio actual: <strong>{formatMoney(product.costo_promedio)}</strong>.</>}
+                  {purchaseValue(form.cantidad, form.costo_unitario) !== null && (
+                    <> Valor de esta compra: <strong>{formatMoney(purchaseValue(form.cantidad, form.costo_unitario))}</strong>.</>
+                  )}
+                </span>
+                {err('costo_unitario')}
+              </label>
+            )}
           </>
         )}
 
