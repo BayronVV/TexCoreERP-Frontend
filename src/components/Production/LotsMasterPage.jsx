@@ -5,13 +5,14 @@ import { fieldErrors, formatDate, formatQty } from '../Inventory/labels'
 import { isPositiveInteger } from '../Inventory/orderLines'
 import styles from '../Inventory/Inventory.module.css'
 import planStyles from './Production.module.css'
+import LotTracker, { StateBadge } from './LotTracker'
+import { formatDuration, replaceLot } from './lotTracking'
 import { MAX_GARMENTS, MAX_LOTS, buildSimulationBody, lotProblems, lotsSum, planProblems, splitEvenly } from './lotSplit'
 import {
   buildOrderBody, effectiveLots, emptySizeRow, orderProblems, sizeProblems, sizeTotals, splitByUnits, takenByOthers,
 } from './lotSizes'
 
 const NO_PLAN = { data: null, loading: false, error: '' }
-const STATUS_BADGE = { EN_PROCESO: styles.badgeInfo, COMPLETADA: styles.badgeOk, ANULADA: styles.badgeOff }
 
 // Generación de órdenes y lotes (HU 4.2 / RF11 y RF12): se crea la orden de producción de una referencia, se divide en lotes
 // con identificador único y, si se quiere, se reparten las tallas de cada lote. Al crearla, el servidor descuenta del
@@ -40,10 +41,23 @@ export default function LotsMasterPage() {
   const [shortages, setShortages] = useState([])
   const [created, setCreated] = useState(null)
   const [orders, setOrders] = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(0) // cuándo llegaron los tiempos que se muestran
+  const [openOrder, setOpenOrder] = useState(null) // orden con el seguimiento abierto
   const [cancelling, setCancelling] = useState(null) // { id, motivo }
   const [cancelError, setCancelError] = useState('')
 
-  const loadOrders = () => apiGet('/api/produccion/ordenes/?limit=15').then(setOrders).catch((error) => setLoadError(error.message))
+  const loadOrders = () =>
+    apiGet('/api/produccion/ordenes/?limit=15')
+      .then((data) => (setOrders(data), setFetchedAt(Date.now())))
+      .catch((error) => setLoadError(error.message))
+
+  // Tras una acción sobre un lote, el servidor devuelve el lote ya actualizado: se muestra al instante y luego se refresca
+  // la lista para que el estado de la orden (planeada, en proceso, en pausa, terminada) también quede al día.
+  const updateLot = (orderId, lot) => {
+    setOrders((current) => current.map((order) => (order.id === orderId ? replaceLot(order, lot) : order)))
+    setFetchedAt(Date.now())
+    loadOrders()
+  }
 
   useEffect(() => {
     Promise.all([apiGet('/api/inventario/fichas-tecnicas/'), apiGet('/api/inventario/productos/')])
@@ -56,6 +70,7 @@ export default function LotsMasterPage() {
   }, [])
 
   const reference = references?.find((r) => String(r.id) === referencia)
+  const tracked = orders?.find((order) => order.id === openOrder) ?? null
   const generics = (products ?? []).filter((p) => p.tipo === 'GENERICO')
 
   // Las variantes (talla y color) salen de la referencia elegida.
@@ -492,19 +507,24 @@ export default function LotsMasterPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Orden</th><th>Referencia</th><th className={styles.num}>Prendas</th><th>Lotes</th><th>Fecha</th><th>Estado</th><th />
+                  <th>Orden</th><th>Referencia</th><th className={styles.num}>Prendas</th><th>Lotes</th><th>Fecha</th><th>Estado</th><th>Tiempo neto</th><th />
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id}>
+                  <tr key={order.id} className={openOrder === order.id ? planStyles.rowOpen : ''}>
                     <td>{order.codigo}</td>
                     <td>{order.referencia_codigo} · {order.referencia_nombre}</td>
                     <td className={styles.num}>{order.cantidad}</td>
                     <td>{order.lotes.map((lot) => `${lot.codigo.split('-L')[1] ? `L${lot.codigo.split('-L')[1]}` : lot.codigo}: ${lot.cantidad}`).join(' · ')}</td>
                     <td>{formatDate(order.fecha_salida)}</td>
-                    <td><span className={`${styles.badge} ${STATUS_BADGE[order.estado] ?? ''}`}>{order.estado_nombre}</span></td>
+                    <td><StateBadge state={order.estado_produccion} name={order.estado_produccion_nombre} /></td>
+                    <td>{formatDuration(order.tiempo_neto_segundos)}</td>
                     <td>
+                      <button type="button" className={styles.linkBtn} aria-expanded={openOrder === order.id}
+                        onClick={() => setOpenOrder(openOrder === order.id ? null : order.id)}>
+                        {openOrder === order.id ? 'Ocultar seguimiento' : 'Seguimiento'}
+                      </button>
                       {canManage && order.estado === 'EN_PROCESO' && (
                         <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => setCancelling({ id: order.id, motivo: '' })}>
                           Anular
@@ -515,6 +535,16 @@ export default function LotsMasterPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {tracked && (
+          <div>
+            <h3 className={styles.subhead}>Seguimiento de {tracked.codigo}</h3>
+            <p className={styles.muted}>
+              Cada lote recorre sus etapas en orden. El tiempo es neto: no cuenta las pausas.
+            </p>
+            <LotTracker order={tracked} canManage={canManage} fetchedAt={fetchedAt} onChange={(lot) => updateLot(tracked.id, lot)} />
           </div>
         )}
 
