@@ -1,0 +1,172 @@
+/* Catálogo de referencias de jean (HU 3.1). Reutiliza botones, formularios y badges de
+   Inventory.module.css y las tarjetas de Catalog.module.css. */
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.facts dt {
+  color: var(--text-gray);
+}
+
+.facts dd {
+  color: #1f2937;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.imageCount {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(10, 16, 56, 0.75);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.thumbBox {
+  position: relative;
+}
+
+/* Variantes (talla + color) en el formulario */
+
+.combos {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.combos label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.variantList {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #273b9e;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.variant button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.variant button:hover {
+  background: rgba(39, 59, 158, 0.15);
+}
+
+/* Imágenes del prototipo */
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.imageTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 400;
+}
+
+.imageTile .frame {
+  aspect-ratio: 4 / 5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f2f4f9;
+  border: 2px solid #e6e9f2;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+}
+
+.imageTile .frameMain {
+  border-color: #0b9d8d;
+}
+
+.frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mainTag {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #0b9d8d;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tileActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.dropHint {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  aspect-ratio: 4 / 5;
+  border: 2px dashed #c9cfe0;
+  border-radius: 10px;
+  color: #4b5563;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.dropHint:hover {
+  border-color: #273b9e;
+  color: #273b9e;
+}
+
+.dropHintOff {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .combos {
+    grid-template-columns: 1fr;
+  }
+}

@@ -6,24 +6,26 @@ import { apiRequest } from '../../api/client'
 const cache = new Map()
 
 /**
- * Imagen de referencia de un producto.
+ * Imagen protegida por sesión: la de referencia de un producto o cualquier otra ruta de la API.
  *
  * @param {object} props
- * @param {number} props.productId
- * @param {number} props.version `imagen_version` del producto: al cambiar, se vuelve a descargar.
+ * @param {number} [props.productId] Producto del catálogo de insumos (se ignora si llega `path`).
+ * @param {string} [props.path] Ruta de la imagen en la API, p. ej. `/api/referencias/imagenes/3/archivo/`.
+ * @param {number} props.version Versión de la imagen: al cambiar, se vuelve a descargar.
  * @param {string} props.alt
  * @param {string} [props.className]
  * @param {(failed: boolean) => import('react').ReactNode} props.placeholder Qué mostrar mientras carga o si falla.
  */
-export default function AuthImage({ productId, version, alt, className, placeholder }) {
-  const key = `${productId}:${version}`
+export default function AuthImage({ productId, path, version, alt, className, placeholder }) {
+  const url = path ?? `/api/inventario/catalogo/${productId}/imagen/`
+  const key = `${url}:${version}`
   const [, refresh] = useState(0)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (cache.has(key)) return undefined
     let alive = true
-    apiRequest(`/api/inventario/catalogo/${productId}/imagen/`, { blob: true })
+    apiRequest(url, { blob: true })
       .then((blob) => {
         cache.set(key, URL.createObjectURL(blob))
         if (alive) refresh((n) => n + 1)
@@ -32,7 +34,7 @@ export default function AuthImage({ productId, version, alt, className, placehol
     return () => {
       alive = false
     }
-  }, [key, productId])
+  }, [key, url])
 
   const src = cache.get(key)
   if (!src) return placeholder(failed)

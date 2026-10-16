@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard/Dashboard'
 import InventoryPage from './components/Inventory/InventoryPage'
 import CatalogPage from './components/Inventory/CatalogPage'
 import SuppliersPage from './components/Inventory/SuppliersPage'
+import ReferencesPage from './components/References/ReferencesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import RequirePermission from './components/ui/RequirePermission'
@@ -44,6 +45,14 @@ function App() {
             element={
               <RequirePermission code="inventario.ver">
                 <SuppliersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/referencias"
+            element={
+              <RequirePermission code="referencias.ver">
+                <ReferencesPage />
               </RequirePermission>
             }
           />
