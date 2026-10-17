@@ -112,9 +112,6 @@ export default function OrderSettlementPage() {
       {/* Encabezado Superior */}
       <header className={styles.topHeader}>
         <div className={styles.titleArea}>
-          <div className={styles.ticketBadge}>
-            TE-56 / TE-127 • <span>Liquidación de Órdenes</span>
-          </div>
           <h1>Liquidación de Orden de Producción</h1>
           <p className={styles.subtitle}>
             Conciliación financiera de Costo de Materiales vs Costo de Mano de Obra, rendimientos y costos por lote.
