@@ -31,6 +31,7 @@ export const MODULES = [
     children: [
       { label: 'Órdenes de producción', path: '/produccion/ordenes' },
       { label: 'Monitor de estado', path: '/produccion/monitor' },
+      { label: 'Liquidación de Órdenes', path: '/produccion/liquidacion' },
     ],
   },
   { id: 'lavanderia', label: 'Procesos Externos (Lavandería)' },
