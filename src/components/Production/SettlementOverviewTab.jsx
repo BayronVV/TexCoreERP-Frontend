@@ -1,12 +1,12 @@
 import React from 'react'
-import { formatMoney } from '../Inventory/money'
 import { formatDuration } from './lotTracking'
-import { parseCostingSummary, buildDistributionSeries, formatPercentage } from './costSettlement'
+import { parseCostingSummary, buildDistributionSeries, formatPercentage, formatPesos, settlementStatus } from './costSettlement'
 import styles from './Settlement.module.css'
 
 export default function SettlementOverviewTab({ costosData }) {
   const summary = parseCostingSummary(costosData)
   const series = buildDistributionSeries(summary)
+  const status = settlementStatus(summary)
 
   const orden = costosData?.orden || {}
   const manoObra = costosData?.mano_obra || {}
@@ -36,9 +36,7 @@ export default function SettlementOverviewTab({ costosData }) {
             </p>
           </div>
           <div className={styles.legendItem}>
-            <span className={`${styles.statusPill} ${summary.completo ? styles.pillSuccess : styles.pillWarning}`}>
-              {summary.completo ? 'Costeo Completo' : 'Costeo Parcial'}
-            </span>
+            <span className={`${styles.statusPill} ${styles[status.pill]}`}>Costeo {status.label.toLowerCase()}</span>
           </div>
         </div>
 
@@ -48,19 +46,19 @@ export default function SettlementOverviewTab({ costosData }) {
             <div
               className={styles.barSegmentMat}
               style={{ width: `${pctMat}%` }}
-              title={`Materiales: ${formatPercentage(pctMat)} (${formatMoney(parseFloat(summary.totalMateriales))})`}
+              title={`Materiales: ${formatPercentage(pctMat)} (${formatPesos(parseFloat(summary.totalMateriales))})`}
             />
             <div
               className={styles.barSegmentMo}
               style={{ width: `${pctMo}%` }}
-              title={`Mano de Obra: ${formatPercentage(pctMo)} (${formatMoney(parseFloat(summary.totalManoObra))})`}
+              title={`Mano de Obra: ${formatPercentage(pctMo)} (${formatPesos(parseFloat(summary.totalManoObra))})`}
             />
           </div>
 
           <div className={styles.distributionLegend}>
             {series.map((item) => (
-              <div key={item.key} className={styles.legendEntry}>
-                <span className={styles.colorDot} style={{ backgroundColor: item.color }} />
+              <div key={item.key} className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ backgroundColor: item.color }} />
                 <span className={styles.legendName}>{item.label}:</span>
                 <span className={styles.legendPct}>{item.formattedPct}</span>
                 <span className={styles.legendValue}>({item.formattedAmount})</span>
@@ -71,7 +69,7 @@ export default function SettlementOverviewTab({ costosData }) {
 
         {/* Gráfico Circular y Desglose por Etapa */}
         <div className={styles.chartsGrid}>
-          <div className={styles.donutBox}>
+          <div className={styles.donutSvgWrap}>
             <svg viewBox="0 0 160 160" className={styles.donutSvg} aria-hidden="true">
               <circle
                 cx="80"
@@ -102,9 +100,9 @@ export default function SettlementOverviewTab({ costosData }) {
                 strokeDashoffset={offsetMo}
               />
             </svg>
-            <div className={styles.donutCenterText}>
-              <span className={styles.donutCenterLabel}>Total Liquidado</span>
-              <span className={styles.donutCenterVal}>{formatMoney(parseFloat(summary.granTotal))}</span>
+            <div className={styles.donutCenterLabel}>
+              <small>Total liquidado</small>
+              <strong>{formatPesos(parseFloat(summary.granTotal))}</strong>
             </div>
           </div>
 
@@ -126,7 +124,7 @@ export default function SettlementOverviewTab({ costosData }) {
                     </td>
                     <td>{formatDuration(st.segundos_netos || 0)}</td>
                     <td className={styles.colMoney}>
-                      <strong>{formatMoney(parseFloat(st.costo || 0))}</strong>
+                      <strong>{formatPesos(parseFloat(st.costo || 0))}</strong>
                     </td>
                   </tr>
                 ))}
@@ -147,8 +145,8 @@ export default function SettlementOverviewTab({ costosData }) {
           </div>
         </div>
 
-        <div className={styles.tableWrapper}>
-          <table className={styles.detailTable}>
+        <div className={styles.tableContainer}>
+          <table className={styles.dataTable}>
             <thead>
               <tr>
                 <th>Lote</th>
@@ -170,10 +168,10 @@ export default function SettlementOverviewTab({ costosData }) {
                       <strong>{lote.codigo}</strong>
                     </td>
                     <td>{lote.cantidad} und</td>
-                    <td className={styles.colMoney}>{formatMoney(matVal)}</td>
-                    <td className={styles.colMoney}>{formatMoney(moVal)}</td>
+                    <td className={styles.colMoney}>{formatPesos(matVal)}</td>
+                    <td className={styles.colMoney}>{formatPesos(moVal)}</td>
                     <td className={styles.colMoney}>
-                      <strong className={styles.totalHighlight}>{formatMoney(lotTotal)}</strong>
+                      <strong className={styles.totalHighlight}>{formatPesos(lotTotal)}</strong>
                     </td>
                   </tr>
                 )

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { formatMoney } from '../Inventory/money'
-import { prepareLaborLots } from './costSettlement'
+import { prepareLaborLots, formatPesos } from './costSettlement'
 import styles from './Settlement.module.css'
 
 export default function LaborCostTab({ manoObra }) {
@@ -43,7 +42,7 @@ export default function LaborCostTab({ manoObra }) {
         {porEtapa.map((st) => (
           <div key={st.etapa} className={styles.stageKpiCard}>
             <span className={styles.stageKpiName}>{st.etapa_nombre || st.etapa}</span>
-            <span className={styles.stageKpiCost}>{formatMoney(parseFloat(st.costo || 0))}</span>
+            <span className={styles.stageKpiCost}>{formatPesos(parseFloat(st.costo || 0))}</span>
             <span className={styles.stageKpiTime}>
               {Math.round((st.segundos_netos || 0) / 60)} min invertidos
             </span>
@@ -75,7 +74,7 @@ export default function LaborCostTab({ manoObra }) {
                 </div>
               </div>
 
-              <div className={styles.tableWrapper}>
+              <div className={styles.tableContainer}>
                 <table className={styles.subDetailTable}>
                   <thead>
                     <tr>
@@ -123,7 +122,7 @@ export default function LaborCostTab({ manoObra }) {
 
       <div className={styles.totalLaborFooter}>
         <span>TOTAL MANO DE OBRA DIRECTA</span>
-        <strong className={styles.totalHighlight}>{formatMoney(totalNum)}</strong>
+        <strong className={styles.totalHighlight}>{formatPesos(totalNum)}</strong>
       </div>
     </div>
   )

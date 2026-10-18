@@ -3,8 +3,48 @@
  * Funciones puras probadas con node --test, sin dependencias de React ni del DOM.
  */
 
-import { formatMoney } from '../Inventory/money.js'
 import { formatDuration } from './lotTracking.js'
+
+const PESOS = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 2 })
+const PESOS_CENTS = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Pesos para la liquidación: sin decimales si el monto es entero y siempre con dos si no (`$ 18.500`, `$ 832.057,50`), o `—` si no es un número. */
+export function formatPesos(value) {
+  if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—'
+  const number = Number(value)
+  return (Number.isInteger(number) ? PESOS : PESOS_CENTS).format(number)
+}
+
+const STATE_NAMES = {
+  PLANEADA: 'Planeada',
+  EN_PROCESO: 'En proceso',
+  EN_PAUSA: 'En pausa',
+  TERMINADA: 'Terminada',
+  CANCELADA: 'Cancelada',
+}
+
+/** Nombre legible del estado de producción de la orden (el servidor envía el código). */
+export function productionStateName(code) {
+  return STATE_NAMES[code] || code || '—'
+}
+
+/**
+ * Etiqueta y color del estado del costeo. Una orden anulada no está «parcial»: liquida en cero por definición.
+ * @param {object} summary - Resultado de parseCostingSummary
+ * @returns {{ label: string, pill: string }} `pill` es el nombre de la clase de color en Settlement.module.css
+ */
+export function settlementStatus(summary) {
+  if (summary?.anulada) return { label: 'Anulada', pill: 'pillNeutral' }
+  if (summary?.completo) return { label: 'Completo', pill: 'pillSuccess' }
+  return { label: 'Parcial', pill: 'pillWarning' }
+}
+
+/** Fecha de hoy en la zona horaria del navegador (`AAAA-MM-DD`); `toISOString()` usa UTC y adelanta el día por la noche. */
+export function localDateISO(date = new Date()) {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
 
 /**
  * Formatea un porcentaje numérico o en texto a formato legible con símbolo %.
@@ -79,7 +119,7 @@ export function buildDistributionSeries(summary) {
       label: 'Materiales e insumos',
       pct: summary.materialesPct,
       formattedPct: formatPercentage(summary.materialesPct),
-      formattedAmount: formatMoney(totalMat),
+      formattedAmount: formatPesos(totalMat),
       color: '#0d9488', // teal-600
       barClass: 'distributionBarMaterials',
     },
@@ -88,7 +128,7 @@ export function buildDistributionSeries(summary) {
       label: 'Mano de obra (MOD)',
       pct: summary.manoObraPct,
       formattedPct: formatPercentage(summary.manoObraPct),
-      formattedAmount: formatMoney(totalMo),
+      formattedAmount: formatPesos(totalMo),
       color: '#f59e0b', // amber-500
       barClass: 'distributionBarLabor',
     },
@@ -105,9 +145,9 @@ export function prepareMaterialRows(lineas) {
 
   return lineas.map((line, index) => {
     const unitCost = line.costo_unitario !== null && line.costo_unitario !== undefined
-      ? formatMoney(parseFloat(line.costo_unitario))
+      ? formatPesos(parseFloat(line.costo_unitario))
       : 'Sin costo'
-    const totalCost = formatMoney(parseFloat(line.costo || 0))
+    const totalCost = formatPesos(parseFloat(line.costo || 0))
 
     return {
       id: line.producto || `mat-${index}`,
@@ -135,7 +175,7 @@ export function prepareLaborLots(lotes) {
   return lotes.map((lote) => {
     const etapasFormatted = (lote.etapas || []).map((etapa) => {
       const rateText = etapa.tarifa_minuto !== null && etapa.tarifa_minuto !== undefined
-        ? `${formatMoney(parseFloat(etapa.tarifa_minuto))}/min`
+        ? `${formatPesos(parseFloat(etapa.tarifa_minuto))}/min`
         : 'Sin tarifa'
 
       return {
@@ -145,7 +185,7 @@ export function prepareLaborLots(lotes) {
         tiempoFormatted: formatDuration(etapa.segundos_netos || 0),
         segundosNetos: etapa.segundos_netos || 0,
         tarifaFormatted: rateText,
-        costoFormatted: formatMoney(parseFloat(etapa.costo || 0)),
+        costoFormatted: formatPesos(parseFloat(etapa.costo || 0)),
         sinTarifa: Boolean(etapa.sin_tarifa),
         provisional: Boolean(etapa.provisional),
       }
@@ -155,8 +195,8 @@ export function prepareLaborLots(lotes) {
       loteId: lote.lote,
       codigo: lote.codigo,
       cantidad: lote.cantidad,
-      materialesAsignadosFormatted: formatMoney(parseFloat(lote.materiales_asignados || 0)),
-      totalManoObraFormatted: formatMoney(parseFloat(lote.total || 0)),
+      materialesAsignadosFormatted: formatPesos(parseFloat(lote.materiales_asignados || 0)),
+      totalManoObraFormatted: formatPesos(parseFloat(lote.total || 0)),
       etapas: etapasFormatted,
     }
   })
