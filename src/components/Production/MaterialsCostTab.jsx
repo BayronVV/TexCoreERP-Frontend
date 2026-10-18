@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { formatMoney } from '../Inventory/money'
-import { prepareMaterialRows } from './costSettlement'
+import { prepareMaterialRows, formatPesos } from './costSettlement'
 import styles from './Settlement.module.css'
 
 export default function MaterialsCostTab({ lineas, total }) {
@@ -39,8 +38,8 @@ export default function MaterialsCostTab({ lineas, total }) {
         </div>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.detailTable}>
+      <div className={styles.tableContainer}>
+        <table className={styles.dataTable}>
           <thead>
             <tr>
               <th>Código</th>
@@ -90,12 +89,12 @@ export default function MaterialsCostTab({ lineas, total }) {
             )}
           </tbody>
           <tfoot>
-            <tr className={styles.totalRow}>
+            <tr className={styles.tableTotalRow}>
               <td colSpan={5}>
                 <strong>TOTAL MATERIALES E INSUMOS</strong>
               </td>
               <td className={styles.colMoney}>
-                <strong className={styles.totalHighlight}>{formatMoney(totalNum)}</strong>
+                <strong className={styles.totalHighlight}>{formatPesos(totalNum)}</strong>
               </td>
               <td />
             </tr>

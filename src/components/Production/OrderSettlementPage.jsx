@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { apiGet } from '../../api/client'
-import { formatMoney } from '../Inventory/money'
-import { parseCostingSummary, formatPercentage } from './costSettlement'
+import { parseCostingSummary, formatPercentage, formatPesos, settlementStatus, productionStateName } from './costSettlement'
 import SettlementOverviewTab from './SettlementOverviewTab'
 import MaterialsCostTab from './MaterialsCostTab'
 import LaborCostTab from './LaborCostTab'
@@ -88,6 +87,7 @@ export default function OrderSettlementPage() {
   }
 
   const summary = parseCostingSummary(costosData)
+  const status = settlementStatus(summary)
   const ordenInfo = costosData?.orden || {}
   const lineasMaterial = costosData?.materiales?.lineas || []
   const lotesManoObra = costosData?.mano_obra?.por_lote || []
@@ -140,7 +140,7 @@ export default function OrderSettlementPage() {
                 </select>
               </div>
 
-              <button type="button" onClick={handlePrint} className={styles.btnPrint}>
+              <button type="button" onClick={handlePrint} className={`${styles.btn} ${styles.btnSecondary}`}>
                 Imprimir Reporte
               </button>
             </>
@@ -153,7 +153,7 @@ export default function OrderSettlementPage() {
       </header>
 
       {/* Navegación por Pestañas */}
-      <nav className={styles.tabNav} aria-label="Secciones de Liquidación">
+      <nav className={styles.tabsNav} aria-label="Secciones de Liquidación">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -163,7 +163,7 @@ export default function OrderSettlementPage() {
           >
             {t.label}
             {t.count !== null && t.count !== undefined && (
-              <span className={styles.tabCountBadge}>{t.count}</span>
+              <span className={styles.tabCounter}>{t.count}</span>
             )}
           </button>
         ))}
@@ -197,7 +197,7 @@ export default function OrderSettlementPage() {
           )}
 
           {/* Alerta de advertencias si el costeo es incompleto o la orden está anulada */}
-          {costosData && !summary.completo && summary.advertencias.length > 0 && (
+          {costosData && !summary.anulada && !summary.completo && summary.advertencias.length > 0 && (
             <div className={styles.warningBanner}>
               <div className={styles.warningBannerTitle}>
                 ⚠️ Liquidación Parcial: Se encontraron faltantes en tarifas o costos de material
@@ -210,7 +210,7 @@ export default function OrderSettlementPage() {
             </div>
           )}
 
-          {ordenInfo.anulada && (
+          {summary.anulada && (
             <div className={styles.annulledBanner}>
               🚫 Esta orden de producción fue <strong>ANULADA</strong>. Los materiales fueron devueltos al almacén y los costos se liquidan en cero.
             </div>
@@ -218,28 +218,22 @@ export default function OrderSettlementPage() {
 
           {/* Tarjeta de Metadatos de la Orden */}
           <section className={styles.orderMetaCard}>
-            <div className={styles.metaRow}>
-              <div className={styles.metaCol}>
-                <span className={styles.metaLabel}>ORDEN DE PRODUCCIÓN</span>
-                <span className={styles.metaValPrimary}>{ordenInfo.codigo || '—'}</span>
-              </div>
-              <div className={styles.metaCol}>
-                <span className={styles.metaLabel}>REFERENCIA PRENDA</span>
-                <span className={styles.metaVal}>{ordenInfo.referencia_nombre || '—'}</span>
-                <span className={styles.metaSubVal}>({ordenInfo.referencia_codigo || '—'})</span>
-              </div>
-              <div className={styles.metaCol}>
-                <span className={styles.metaLabel}>PRENDAS A FABRICAR</span>
-                <span className={styles.metaValHighlight}>
-                  {ordenInfo.cantidad ? `${ordenInfo.cantidad} prendas` : '—'}
-                </span>
-              </div>
-              <div className={styles.metaCol}>
-                <span className={styles.metaLabel}>ESTADO DE PRODUCCIÓN</span>
-                <span className={styles.statusPillMeta}>
-                  {ordenInfo.estado_produccion || 'EN_PROCESO'}
-                </span>
-              </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Orden de producción</span>
+              <span className={styles.metaValueHighlight}>{ordenInfo.codigo || '—'}</span>
+            </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Referencia</span>
+              <span className={styles.metaValue}>{ordenInfo.referencia_nombre || '—'}</span>
+              <span className={styles.metaSubVal}>{ordenInfo.referencia_codigo || '—'}</span>
+            </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Prendas a fabricar</span>
+              <span className={styles.metaValue}>{ordenInfo.cantidad ? `${ordenInfo.cantidad} prendas` : '—'}</span>
+            </div>
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Estado de producción</span>
+              <span className={styles.statusPillMeta}>{productionStateName(ordenInfo.estado_produccion)}</span>
             </div>
           </section>
 
@@ -250,51 +244,49 @@ export default function OrderSettlementPage() {
               {/* Tarjetas KPI Superiores */}
               <section className={styles.kpiGrid}>
                 {/* Costo Total Liquidado */}
-                <div className={styles.kpiCard}>
+                <div className={`${styles.kpiCard} ${styles.kpiCardAccentTotal}`}>
                   <div className={styles.kpiHead}>
                     <span className={styles.kpiLabel}>COSTO TOTAL LIQUIDADO</span>
-                    <span className={`${styles.statusPill} ${summary.completo ? styles.pillSuccess : styles.pillWarning}`}>
-                      {summary.completo ? 'Completo' : 'Parcial'}
-                    </span>
+                    <span className={`${styles.statusPill} ${styles[status.pill]}`}>{status.label}</span>
                   </div>
-                  <div className={styles.kpiValueMain}>{formatMoney(parseFloat(summary.granTotal))}</div>
-                  <div className={styles.kpiFoot}>
+                  <div className={styles.kpiAmount}>{formatPesos(parseFloat(summary.granTotal))}</div>
+                  <div className={styles.kpiFooter}>
                     Total de materiales y mano de obra devengada.
                   </div>
                 </div>
 
                 {/* Costo Unitario por Prenda */}
-                <div className={styles.kpiCard}>
+                <div className={`${styles.kpiCard} ${styles.kpiCardAccentMargen}`}>
                   <div className={styles.kpiHead}>
                     <span className={styles.kpiLabel}>COSTO X PRENDA</span>
-                    <span className={styles.kpiBadgeSub}>{ordenInfo.cantidad} prendas</span>
+                    <span className={styles.kpiBadge}>{ordenInfo.cantidad} prendas</span>
                   </div>
-                  <div className={styles.kpiValueMain}>{formatMoney(parseFloat(summary.costoPorPrenda))}</div>
-                  <div className={styles.kpiFoot}>
+                  <div className={styles.kpiAmount}>{formatPesos(parseFloat(summary.costoPorPrenda))}</div>
+                  <div className={styles.kpiFooter}>
                     Costo real promedio por unidad fabricada.
                   </div>
                 </div>
 
                 {/* Costo de Materiales */}
-                <div className={styles.kpiCard}>
+                <div className={`${styles.kpiCard} ${styles.kpiCardAccentMat}`}>
                   <div className={styles.kpiHead}>
                     <span className={styles.kpiLabel}>COSTO DE MATERIALES</span>
                     <span className={styles.kpiPctBadge}>{formatPercentage(summary.materialesPct)} DEL TOTAL</span>
                   </div>
-                  <div className={styles.kpiValueAccentTeal}>{formatMoney(parseFloat(summary.totalMateriales))}</div>
-                  <div className={styles.kpiFoot}>
+                  <div className={styles.kpiAmountTeal}>{formatPesos(parseFloat(summary.totalMateriales))}</div>
+                  <div className={styles.kpiFooter}>
                     Telas, cierres, botones, hilos e insumos.
                   </div>
                 </div>
 
                 {/* Costo de Mano de Obra */}
-                <div className={styles.kpiCard}>
+                <div className={`${styles.kpiCard} ${styles.kpiCardAccentMo}`}>
                   <div className={styles.kpiHead}>
                     <span className={styles.kpiLabel}>COSTO MANO DE OBRA</span>
                     <span className={styles.kpiPctBadgeMo}>{formatPercentage(summary.manoObraPct)} DEL TOTAL</span>
                   </div>
-                  <div className={styles.kpiValueAccentAmber}>{formatMoney(parseFloat(summary.totalManoObra))}</div>
-                  <div className={styles.kpiFoot}>
+                  <div className={styles.kpiAmountAmber}>{formatPesos(parseFloat(summary.totalManoObra))}</div>
+                  <div className={styles.kpiFooter}>
                     Corte, confección y terminación.
                   </div>
                 </div>

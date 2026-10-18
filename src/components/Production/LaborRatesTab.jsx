@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { apiRequest } from '../../api/client'
-import { formatMoney } from '../Inventory/money'
+import { formatPesos, localDateISO } from './costSettlement'
 import { useAuth } from '../../auth/session'
 import styles from './Settlement.module.css'
 
@@ -16,7 +16,7 @@ export default function LaborRatesTab({ rates, onReload, notify }) {
 
   const [stage, setStage] = useState('CORTE')
   const [minuteRate, setMinuteRate] = useState('')
-  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [effectiveDate, setEffectiveDate] = useState(() => localDateISO())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
 
@@ -132,8 +132,8 @@ export default function LaborRatesTab({ rates, onReload, notify }) {
         </form>
       )}
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.detailTable}>
+      <div className={styles.tableContainer}>
+        <table className={styles.dataTable}>
           <thead>
             <tr>
               <th>Etapa</th>
@@ -157,7 +157,7 @@ export default function LaborRatesTab({ rates, onReload, notify }) {
                     <span className={styles.stageTag}>{t.etapa_nombre || t.etapa}</span>
                   </td>
                   <td className={styles.colMoney}>
-                    <strong>{formatMoney(parseFloat(t.costo_minuto))}/min</strong>
+                    <strong>{formatPesos(parseFloat(t.costo_minuto))}/min</strong>
                   </td>
                   <td>{t.vigente_desde}</td>
                   <td>{t.creado_por_nombre || '—'}</td>
