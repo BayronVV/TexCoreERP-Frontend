@@ -7,6 +7,10 @@ import {
   buildDistributionSeries,
   prepareMaterialRows,
   prepareLaborLots,
+  formatPesos,
+  productionStateName,
+  settlementStatus,
+  localDateISO,
 } from './costSettlement.js'
 
 test('formatPercentage: formatea valores numéricos y nulos', () => {
@@ -135,4 +139,31 @@ test('prepareLaborLots: prepara etapas con tiempos y tarifas formateadas', () =>
   assert.equal(prepared[0].etapas[0].tarifaFormatted.includes('/min'), true)
   assert.equal(prepared[0].etapas[0].sinTarifa, false)
   assert.equal(prepared[0].etapas[0].provisional, false)
+})
+
+test('formatPesos: sin decimales si el monto es entero y con dos si no', () => {
+  assert.equal(formatPesos(18500).replace(/\s/g, ' '), '$ 18.500')
+  assert.equal(formatPesos(832057.5).replace(/\s/g, ' '), '$ 832.057,50')
+  assert.equal(formatPesos('1234.56').replace(/\s/g, ' '), '$ 1.234,56')
+  assert.equal(formatPesos(null), '—')
+  assert.equal(formatPesos('x'), '—')
+})
+
+test('productionStateName: nombre legible y el código si no se conoce', () => {
+  assert.equal(productionStateName('EN_PROCESO'), 'En proceso')
+  assert.equal(productionStateName('CANCELADA'), 'Cancelada')
+  assert.equal(productionStateName('OTRO'), 'OTRO')
+  assert.equal(productionStateName(undefined), '—')
+})
+
+test('settlementStatus: una orden anulada no se muestra como parcial', () => {
+  assert.deepEqual(settlementStatus({ anulada: true, completo: false }), { label: 'Anulada', pill: 'pillNeutral' })
+  assert.deepEqual(settlementStatus({ anulada: false, completo: true }), { label: 'Completo', pill: 'pillSuccess' })
+  assert.deepEqual(settlementStatus({ anulada: false, completo: false }), { label: 'Parcial', pill: 'pillWarning' })
+})
+
+test('localDateISO: usa el día local y no el de UTC', () => {
+  // 22:43 del 17 de octubre en cualquier zona: la fecha local sigue siendo el 17.
+  assert.equal(localDateISO(new Date(2026, 9, 17, 22, 43)), '2026-10-17')
+  assert.equal(localDateISO(new Date(2026, 0, 5, 0, 5)), '2026-01-05')
 })
