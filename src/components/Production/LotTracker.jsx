@@ -3,7 +3,11 @@ import { apiGet, apiRequest } from '../../api/client'
 import { fieldErrors } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import trackStyles from './Production.module.css'
+import resourceStyles from './Resources.module.css'
 import { buttonsFor, formatDuration, isRunning, liveSeconds, lotLiveSeconds, stageProgress } from './lotTracking'
+import { historyLine } from './resources'
+import StageAssignments from './StageAssignments'
+import { useResourceCatalog } from './useResourceCatalog'
 
 const STATE_BADGE = {
   PLANEADA: styles.badgeOff, EN_PROCESO: styles.badgeInfo, EN_PAUSA: styles.badgeWarn, TERMINADA: styles.badgeOk, CANCELADA: styles.badgeDanger,
@@ -35,7 +39,8 @@ const formatMoment = (value) =>
 export default function LotTracker({ order, canManage, fetchedAt, onChange }) {
   const [busy, setBusy] = useState(null)
   const [errors, setErrors] = useState({})
-  const [history, setHistory] = useState({}) // lote → eventos (si se abrió el historial)
+  const [history, setHistory] = useState({}) // lote → { events, assignments } (si se abrió el historial)
+  const { catalog, reload: reloadCatalog } = useResourceCatalog(canManage)
   const now = useNow(order.lotes.some(isRunning), fetchedAt)
 
   const act = async (lot, action) => {
@@ -54,7 +59,9 @@ export default function LotTracker({ order, canManage, fetchedAt, onChange }) {
   }
 
   const loadHistory = (lotId) =>
-    apiGet(`/api/produccion/lotes/${lotId}/historial/`).then((events) => setHistory((current) => ({ ...current, [lotId]: events })))
+    Promise.all([apiGet(`/api/produccion/lotes/${lotId}/historial/`), apiGet(`/api/produccion/lotes/${lotId}/asignaciones/`)]).then(
+      ([events, assignments]) => setHistory((current) => ({ ...current, [lotId]: { events, assignments } })),
+    )
 
   const toggleHistory = (lot) => {
     if (history[lot.id]) return setHistory((current) => ({ ...current, [lot.id]: undefined }))
@@ -68,7 +75,8 @@ export default function LotTracker({ order, canManage, fetchedAt, onChange }) {
         const play = buttons.find((b) => b.id === 'reanudar' && b.enabled) ?? buttons.find((b) => b.id === 'iniciar')
         const shown = [play, buttons.find((b) => b.id === 'pausar'), buttons.find((b) => b.id === 'completar')]
         const progress = stageProgress(lot)
-        const events = history[lot.id]
+        const events = history[lot.id]?.events
+        const assignments = history[lot.id]?.assignments ?? []
         return (
           <article key={lot.id} className={trackStyles.trackLot}>
             <header className={trackStyles.trackHead}>
@@ -90,6 +98,14 @@ export default function LotTracker({ order, canManage, fetchedAt, onChange }) {
                 </span>
               ))}
             </div>
+
+            <StageAssignments
+              lot={lot} canManage={canManage} catalog={catalog} onReloadCatalog={reloadCatalog}
+              onChange={(updated) => {
+                onChange(updated)
+                if (history[lot.id]) loadHistory(lot.id)
+              }}
+            />
 
             <div className={trackStyles.trackButtons}>
               {shown.map((button) => (
@@ -121,6 +137,19 @@ export default function LotTracker({ order, canManage, fetchedAt, onChange }) {
                   ))}
                 </ul>
               )
+            )}
+            {events && assignments.length > 0 && (
+              <>
+                <p className={resourceStyles.assignTitle}>Quién trabajó cada etapa</p>
+                <ul className={trackStyles.history}>
+                  {assignments.map((row) => (
+                    <li key={row.id}>
+                      {historyLine(row)}
+                      <span className={styles.muted}> — desde {formatMoment(row.inicio_at)}{row.fin_at ? ` hasta ${formatMoment(row.fin_at)}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </article>
         )
