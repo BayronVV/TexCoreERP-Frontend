@@ -218,6 +218,11 @@ export default function MonitorPage() {
                       <span className={styles.muted}>Último movimiento {ageLabel(lot.ultimo_movimiento, now || fetchedAt)}</span>
                     )}
                     {lot.responsable_nombre && <span className={styles.muted}>{lot.responsable_nombre}</span>}
+                    {(lot.operario_nombre || lot.maquina_codigo) && (
+                      <span className={styles.muted} title="Operario y máquina de la etapa en curso">
+                        👷 {[lot.operario_nombre, lot.maquina_codigo].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
                   </div>
                   {canManage && (
                     <div className={boardStyles.cardButtons}>
