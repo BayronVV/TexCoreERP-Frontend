@@ -1,0 +1,118 @@
+/* Recursos del taller (HU 4.4): operarios y máquinas. Reutiliza Inventory.module.css para la página, las tarjetas y las tablas. */
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.check input {
+  width: auto;
+}
+
+.stageChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.35rem 0;
+}
+
+.stageChecks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.stageChecks input {
+  width: auto;
+}
+
+.inactiveRow td {
+  color: #94a3b8;
+}
+
+.busyNote {
+  display: block;
+  font-size: 0.76rem;
+  color: #b45309;
+  margin-top: 0.15rem;
+}
+
+.rowActions {
+  display: inline-flex;
+  gap: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Recursos asignados a las etapas de un lote (seguimiento de la orden) */
+.assignRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+  padding: 0.35rem 0;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.assignRow:first-of-type {
+  border-top: none;
+}
+
+.assignStage {
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding-top: 0.45rem;
+}
+
+.assignField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.assignField select {
+  width: 100%;
+  font-size: 0.86rem;
+}
+
+.assignDone {
+  grid-column: 2 / -1;
+  font-size: 0.86rem;
+  color: #64748b;
+  padding-top: 0.45rem;
+}
+
+.assignTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0.6rem 0 0.15rem;
+}
+
+@media (max-width: 640px) {
+  .assignRow {
+    grid-template-columns: 1fr;
+  }
+
+  .assignStage {
+    padding-top: 0;
+  }
+
+  .assignDone {
+    grid-column: 1;
+  }
+}
