@@ -20,6 +20,14 @@ export const MODULES = [
     ],
   },
   {
+    id: 'compras',
+    label: 'Compras',
+    children: [
+      { label: 'Órdenes de compra', path: '/compras/ordenes' },
+      { label: 'Recepción de mercancía', path: '/compras/recepcion' },
+    ],
+  },
+  {
     id: 'referencias',
     label: 'Referencias de Jean',
     children: [{ label: 'Catálogo de jeans', path: '/referencias' }],

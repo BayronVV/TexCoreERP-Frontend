@@ -1,0 +1,160 @@
+/* Compras (órdenes de compra y recepción de mercancía). Reutiliza Inventory.module.css para la página, las tarjetas, los
+   formularios, las tablas y las insignias; aquí solo lo propio de este módulo. */
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rowActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 110px;
+}
+
+.progressBar {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: #0f766e;
+  border-radius: 999px;
+}
+
+.progressText {
+  font-size: 0.78rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.pickRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) 1fr 1fr auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.totalBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.modeSwitch {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: #eef2f8;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.modeSwitch label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #475569;
+}
+
+.modeSwitch input {
+  width: auto;
+}
+
+.modeActive {
+  background: #0a1038;
+  color: white !important;
+}
+
+.receiptTable input {
+  width: 100%;
+  min-width: 90px;
+}
+
+.receiptTable td {
+  vertical-align: top;
+}
+
+.rowError {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  color: #b3261e;
+}
+
+.rowInvalid input {
+  border-color: #b3261e;
+}
+
+.note {
+  font-size: 0.86rem;
+  color: #64748b;
+  margin: 0.35rem 0;
+}
+
+.success {
+  padding: 0.9rem 1rem;
+  background: #e6f6f4;
+  color: #0f766e;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.detailGrid dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detailGrid dd {
+  margin: 0.1rem 0 0;
+}
+
+.reasonBox textarea {
+  width: 100%;
+  min-height: 80px;
+}
+
+@media (max-width: 720px) {
+  .pickRow {
+    grid-template-columns: 1fr;
+  }
+}
