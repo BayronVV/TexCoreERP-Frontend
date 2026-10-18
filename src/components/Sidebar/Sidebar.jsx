@@ -15,7 +15,7 @@ const Sidebar = () => {
       </NavLink>
 
       <ul className={styles.list}>
-        {MODULES.filter((module) => can(`${module.id}.ver`)).map((module) => {
+        {MODULES.filter((module) => !module.hidden && can(`${module.id}.ver`)).map((module) => {
           // Lo que el rol no puede ver no se muestra: ni el nombre ni un candado.
           // Un módulo permitido pero sin pantalla todavía sí aparece, como "Próximamente".
           if (!module.path && !module.children) {
