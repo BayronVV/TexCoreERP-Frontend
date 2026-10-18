@@ -1,5 +1,6 @@
 // Módulos del menú lateral: solo etiquetas y rutas. Qué ve cada rol lo decide
 // el backend; un módulo se muestra si el usuario tiene el permiso "<id>.ver".
+// `hidden`: el módulo no aparece en el menú, pero sigue existiendo para sus permisos (la pantalla de roles los agrupa por él).
 
 export const MODULES = [
   {
@@ -32,7 +33,8 @@ export const MODULES = [
     label: 'Referencias de Jean',
     children: [{ label: 'Catálogo de jeans', path: '/referencias' }],
   },
-  { id: 'fichas_tecnicas', label: 'Fichas Técnicas' },
+  // La ficha técnica se edita dentro del Catálogo de jeans (botón «Ficha técnica»); no hay una pantalla aparte.
+  { id: 'fichas_tecnicas', label: 'Fichas Técnicas', hidden: true },
   {
     id: 'produccion',
     label: 'Producción y Trazabilidad',
