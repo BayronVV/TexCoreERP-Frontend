@@ -17,6 +17,10 @@ const EMPTY = {
 
 const byName = (a, b) => a.razon_social.localeCompare(b.razon_social, 'es')
 
+/**
+ * Formulario de ingreso al almacén: compra a proveedor (con costo unitario opcional, que actualiza el costo promedio) o retorno de
+ * una orden para pantalones. Permite adjuntar evidencias (foto o PDF).
+ */
 export default function EntryForm({ products, onChanged }) {
   const notify = useToast()
   const { user } = useAuth()

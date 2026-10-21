@@ -3,6 +3,11 @@ import { formatDuration } from './lotTracking'
 import { parseCostingSummary, buildDistributionSeries, formatPercentage, formatPesos, settlementStatus } from './costSettlement'
 import styles from './Settlement.module.css'
 
+/**
+ * Pestaña «Comparativa & Resumen»: totales, costo por prenda, distribución entre materiales y mano de obra, mano de obra por etapa
+ * y costo de cada lote.
+ * @param {{ costosData: object }} props Respuesta completa de `/costos/` de la orden.
+ */
 export default function SettlementOverviewTab({ costosData }) {
   const summary = parseCostingSummary(costosData)
   const series = buildDistributionSeries(summary)

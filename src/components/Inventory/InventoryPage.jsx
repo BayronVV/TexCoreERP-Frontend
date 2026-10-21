@@ -7,6 +7,10 @@ import HistoryTab from './HistoryTab'
 import StockTab from './StockTab'
 import styles from './Inventory.module.css'
 
+/**
+ * Movimientos de inventario (HU 2.3): pestañas Existencias, Ingreso, Salida a lavandería (estas dos con `inventario.gestionar`)
+ * e Historial. Las salidas de producción se crean en `/produccion/ordenes`, no aquí.
+ */
 export default function InventoryPage() {
   const { can } = useAuth()
   const canManage = can('inventario.gestionar')
