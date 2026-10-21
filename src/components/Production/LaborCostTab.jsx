@@ -2,6 +2,11 @@ import React, { useState, useMemo } from 'react'
 import { prepareLaborLots, formatPesos } from './costSettlement'
 import styles from './Settlement.module.css'
 
+/**
+ * Pestaña «Costo de Mano de Obra»: por lote y etapa, tiempo neto × tarifa por minuto; marca *Sin tarifa* y las etapas en curso
+ * (costo provisional).
+ * @param {{ manoObra: object }} props `mano_obra` de la respuesta de `/costos/`.
+ */
 export default function LaborCostTab({ manoObra }) {
   const [search, setSearch] = useState('')
 

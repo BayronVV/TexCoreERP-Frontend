@@ -5,6 +5,7 @@ import { API_URL } from '../../api/client';
 import AuthShell from './AuthShell';
 import styles from './Auth.module.css';
 
+/** Pantalla de inicio de sesión: pide usuario o correo y contraseña y abre la sesión con el JWT del backend. */
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

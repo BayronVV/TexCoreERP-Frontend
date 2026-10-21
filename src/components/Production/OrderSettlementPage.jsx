@@ -8,6 +8,11 @@ import LaborRatesTab from './LaborRatesTab'
 import { useToast } from '../ui/toastContext'
 import styles from './Settlement.module.css'
 
+/**
+ * Liquidación de órdenes y costeo (HU 4.6 / RF16). Elige una orden y muestra cuatro pestañas: resumen comparativo, costo de
+ * materiales, costo de mano de obra y tarifas por minuto. Consume `GET /api/produccion/ordenes/<id>/costos/` y
+ * `/api/produccion/tarifas/`; el cálculo lo hace el backend, aquí solo se presenta.
+ */
 export default function OrderSettlementPage() {
   const notify = useToast()
 

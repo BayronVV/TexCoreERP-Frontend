@@ -19,6 +19,11 @@ import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
 import RequirePermission from './components/ui/RequirePermission'
 
+/**
+ * Enrutamiento principal. Las rutas públicas (acceso, registro y recuperación de contraseña) van sueltas; las internas
+ * cuelgan de `AppLayout` y cada una se protege con `RequirePermission` según el permiso `<módulo>.ver` que exige.
+ * `/produccion/planificar` redirige a `/produccion/ordenes`, donde hoy vive la planificación.
+ */
 function App() {
   return (
     <Router>

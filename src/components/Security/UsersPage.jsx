@@ -101,6 +101,7 @@ function CreateUserForm({ roles, onCreated, onCancel }) {
   )
 }
 
+/** Usuarios (HU 1.4): solicitudes pendientes, asignación de rol, activar o desactivar, invitar y eliminar. */
 export default function UsersPage() {
   const { user: me, can } = useAuth()
   const notify = useToast()

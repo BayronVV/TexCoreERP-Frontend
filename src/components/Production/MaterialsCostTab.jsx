@@ -2,6 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { prepareMaterialRows, formatPesos } from './costSettlement'
 import styles from './Settlement.module.css'
 
+/**
+ * Pestaña «Costo de Materiales»: cantidad consumida × costo unitario de cada línea; marca *Sin costo* cuando el material no lo tiene.
+ * @param {{ lineas: object[], total: string }} props Líneas de `materiales` y su total.
+ */
 export default function MaterialsCostTab({ lineas, total }) {
   const [search, setSearch] = useState('')
 

@@ -250,6 +250,7 @@ function Kardex({ products, refreshKey }) {
   )
 }
 
+/** Historial de inventario: kardex de movimientos y lista de órdenes de salida, con la anulación de las que están en proceso. */
 export default function HistoryTab({ products, canManage, refreshKey, onChanged }) {
   const [view, setView] = useState('ordenes')
   return (

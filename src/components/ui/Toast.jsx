@@ -4,6 +4,7 @@ import styles from './ui.module.css'
 
 let nextId = 0
 
+/** Proveedor de avisos breves (toasts). Los componentes los lanzan con el hook `useToast` de `toastContext.js`. */
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 

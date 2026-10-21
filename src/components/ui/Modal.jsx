@@ -1,6 +1,10 @@
 import { useEffect, useId, useRef } from 'react'
 import styles from './ui.module.css'
 
+/**
+ * Ventana modal accesible con título y botón de cierre.
+ * @param {{ title: string, onClose: () => void, children: import('react').ReactNode, wide?: boolean }} props
+ */
 export default function Modal({ title, onClose, children, wide = false }) {
   const titleId = useId()
   const dialogRef = useRef(null)

@@ -17,6 +17,7 @@ const MailIcon = () => (
   </svg>
 )
 
+/** Solicitud del enlace de recuperación de contraseña (HU 1.3). Responde igual exista o no la cuenta. */
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
