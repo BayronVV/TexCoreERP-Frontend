@@ -4,6 +4,10 @@ import { apiGet } from '../../api/client';
 import { useAuth } from '../../auth/session';
 import styles from './Dashboard.module.css';
 
+/**
+ * Inicio: saludo, tarjeta con las solicitudes de acceso pendientes (si el rol gestiona usuarios) y las alertas de stock mínimo
+ * de inventario (si el rol puede ver inventario).
+ */
 const Dashboard = () => {
   const { user, can } = useAuth();
   const canReviewUsers = can('seguridad.gestionar');

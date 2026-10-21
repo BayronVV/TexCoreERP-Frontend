@@ -11,6 +11,7 @@ function stateOf(product) {
   return { label: 'Normal', badge: styles.badgeOk, row: '' }
 }
 
+/** Existencias por producto con su estado (en orden, bajo el mínimo, agotado) y su costo promedio ponderado. Solo lectura. */
 export default function StockTab({ products, canManage }) {
   const [kind, setKind] = useState('')
   const [search, setSearch] = useState('')

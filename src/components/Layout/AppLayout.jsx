@@ -58,6 +58,10 @@ function Shell() {
   )
 }
 
+/**
+ * Marco de las pantallas internas: carga el usuario (`/api/auth/me/`) y sus permisos, muestra el encabezado con su rol, el menú lateral y
+ * la ruta hija. Si la cuenta está Pendiente muestra un aviso en lugar de las pantallas.
+ */
 export default function AppLayout() {
   return (
     <AuthProvider>

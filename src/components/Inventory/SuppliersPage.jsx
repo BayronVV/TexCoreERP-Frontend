@@ -52,6 +52,7 @@ function SupplierCard({ supplier, canManage, onEdit, onRemove, onRestore }) {
   )
 }
 
+/** Directorio de proveedores (HU 2.1): NIT único entre activos, clasificación por tipo de insumo, archivar y restaurar. */
 export default function SuppliersPage() {
   const { can } = useAuth()
   const notify = useToast()

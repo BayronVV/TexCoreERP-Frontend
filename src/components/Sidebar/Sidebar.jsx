@@ -5,6 +5,10 @@ import styles from './Sidebar.module.css'
 
 const linkClass = ({ isActive }) => `${styles.item} ${isActive ? styles.itemActive : ''}`
 
+/**
+ * Menú lateral construido con `config/modules.js`. Solo muestra los módulos para los que el usuario tiene `<módulo>.ver`
+ * (y no los marcados `hidden`, como Fichas Técnicas); un módulo permitido sin pantalla aparece como «Próximamente».
+ */
 const Sidebar = () => {
   const { can } = useAuth()
 

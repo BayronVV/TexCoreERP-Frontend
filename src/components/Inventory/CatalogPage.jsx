@@ -62,6 +62,7 @@ function ProductCard({ product, meta, canManage, onEdit, onRemove }) {
   )
 }
 
+/** Catálogo de telas e insumos por categoría (HU 2.2), con imagen de referencia. No muestra existencias. */
 export default function CatalogPage() {
   const { can } = useAuth()
   const notify = useToast()

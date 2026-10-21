@@ -10,6 +10,11 @@ const STAGES = [
   { code: 'TERMINACION', name: 'Terminación' },
 ]
 
+/**
+ * Pestaña «Tarifas por Minuto»: historial de vigencias por etapa y, con `produccion.gestionar`, formulario para registrar una nueva
+ * (nunca se edita ni se borra una anterior).
+ * @param {{ rates: object[], onReload: () => void, notify: (message: string, type?: string) => void }} props
+ */
 export default function LaborRatesTab({ rates, onReload, notify }) {
   const { can } = useAuth()
   const canManage = can('produccion.gestionar')
