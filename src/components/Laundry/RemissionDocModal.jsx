@@ -126,8 +126,8 @@ export default function RemissionDocModal({ remission, onClose, onPrint }) {
           <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} style={{ width: 'auto' }} onClick={onClose}>
             Cerrar
           </button>
-          <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} style={{ width: 'auto' }} onClick={onPrint}>
-            Imprimir Guía de Remisión
+          <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} style={{ width: 'auto' }} onClick={onPrint || (() => window.print())}>
+            🖨️ Imprimir Guía de Remisión Física
           </button>
         </div>
       </div>

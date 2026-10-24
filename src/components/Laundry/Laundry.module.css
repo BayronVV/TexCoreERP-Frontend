@@ -700,22 +700,61 @@
   padding-top: 0.35rem;
 }
 
-/* Reglas de Impresión */
+/* Reglas de Impresión Oficial del Ticket de Remisión */
 @media print {
   body {
     background: white !important;
+    color: black !important;
   }
 
+  /* Ocultar elementos de navegación y UI general */
+  :global(#root) > *:not(:has(.modalBackdrop)),
+  header,
+  nav,
+  aside,
   .tabsNav,
-  .topActions,
-  .btn,
-  .modalBackdrop {
+  .topHeader,
+  .formLayout,
+  .modalHeader,
+  .modalFooter,
+  .btn {
     display: none !important;
   }
 
-  .remissionDoc {
-    border: none !important;
+  .modalBackdrop {
+    position: static !important;
+    background: transparent !important;
     padding: 0 !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .modalBox {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .modalBody {
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .remissionDoc {
+    border: 2px solid #0a1038 !important;
+    border-radius: 4px !important;
+    padding: 1.5rem !important;
+    page-break-inside: avoid;
+  }
+
+  .dataTable th,
+  .dataTable td {
+    padding: 6px 10px !important;
+    font-size: 0.85rem !important;
   }
 }
 
