@@ -17,6 +17,7 @@ import ReceptionPage from './components/Purchasing/ReceptionPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
+import LaundryRemissionPage from './components/Laundry/LaundryRemissionPage'
 import RequirePermission from './components/ui/RequirePermission'
 
 /**
@@ -69,30 +70,6 @@ function App() {
           />
           <Route path="/produccion/planificar" element={<Navigate to="/produccion/ordenes" replace />} />
           <Route
-            path="/produccion/monitor"
-            element={
-              <RequirePermission code="produccion.ver">
-                <MonitorPage />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="/seguridad/usuarios"
-            element={
-              <RequirePermission code="seguridad.ver">
-                <UsersPage />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="/seguridad/roles"
-            element={
-              <RequirePermission code="seguridad.ver">
-                <RolesPage />
-              </RequirePermission>
-            }
-          />
-          <Route
             path="/produccion/ordenes"
             element={
               <RequirePermission code="produccion.ver">
@@ -101,10 +78,26 @@ function App() {
             }
           />
           <Route
+            path="/produccion/monitor"
+            element={
+              <RequirePermission code="produccion.ver">
+                <MonitorPage />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="/produccion/recursos"
             element={
               <RequirePermission code="produccion.ver">
                 <ResourcesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/produccion/liquidacion"
+            element={
+              <RequirePermission code="produccion.ver">
+                <OrderSettlementPage />
               </RequirePermission>
             }
           />
@@ -125,10 +118,26 @@ function App() {
             }
           />
           <Route
-            path="/produccion/liquidacion"
+            path="/seguridad/usuarios"
             element={
-              <RequirePermission code="produccion.ver">
-                <OrderSettlementPage />
+              <RequirePermission code="seguridad.ver">
+                <UsersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/seguridad/roles"
+            element={
+              <RequirePermission code="seguridad.ver">
+                <RolesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/lavanderia/remisiones"
+            element={
+              <RequirePermission code="lavanderia.ver">
+                <LaundryRemissionPage />
               </RequirePermission>
             }
           />
