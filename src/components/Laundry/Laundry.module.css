@@ -37,25 +37,6 @@
   min-width: 280px;
 }
 
-.ticketBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #0369a1;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  margin-bottom: 0.4rem;
-}
-
-.ticketBadge span {
-  color: #0a1038;
-}
 
 .titleArea h1 {
   font-size: 1.75rem;
