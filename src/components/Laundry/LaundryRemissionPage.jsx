@@ -251,9 +251,6 @@ export default function LaundryRemissionPage() {
       {/* Encabezado Superior */}
       <header className={styles.topHeader}>
         <div className={styles.titleArea}>
-          <div className={styles.ticketBadge}>
-            TE-57 / TE-131 • <span>Procesos Externos (Lavandería)</span>
-          </div>
           <h1>Remisión de Lotes Ensamblados a Lavado</h1>
           <p className={styles.subtitle}>
             Generación de guías oficiales de despacho descontando lotes de planta interna y asignando consecutivo de salida.
