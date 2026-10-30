@@ -48,7 +48,10 @@ export const MODULES = [
   {
     id: 'lavanderia',
     label: 'Procesos Externos (Lavandería)',
-    children: [{ label: 'Remisión a Lavado', path: '/lavanderia/remisiones' }],
+    children: [
+      { label: 'Remisión a Lavado', path: '/lavanderia/remisiones' },
+      { label: 'Recepción de Lavandería', path: '/lavanderia/recepcion' },
+    ],
   },
   { id: 'calidad', label: 'Control de Calidad' },
   { id: 'producto_terminado', label: 'Producto Terminado' },
