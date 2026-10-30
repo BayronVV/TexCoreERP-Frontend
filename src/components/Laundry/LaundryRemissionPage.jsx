@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import {
   MOCK_AVAILABLE_LOTS,
   MOCK_LAUNDRY_PROVIDERS,
@@ -255,6 +256,15 @@ export default function LaundryRemissionPage() {
           <p className={styles.subtitle}>
             Generación de guías oficiales de despacho descontando lotes de planta interna y asignando consecutivo de salida.
           </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Link
+            to="/lavanderia/recepcion"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            style={{ width: 'auto', textDecoration: 'none' }}
+          >
+            📥 Recepción & Cotejo de Lavandería
+          </Link>
         </div>
       </header>
 
