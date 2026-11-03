@@ -28,6 +28,7 @@ frontend/
 │   │   ├── References/  # Catálogo de jeans (HU 3.1) y ficha técnica de consumo (HU 3.2)
 │   │   ├── Production/  # Órdenes y lotes, monitor, recursos y liquidación (HU 4.1 a 4.6)
 │   │   ├── Quality/     # Control de calidad: inspecciones de lotes y catálogo de defectos (HU 6.1)
+│   │   ├── Finished/    # Producto terminado: ingreso al inventario final, existencias y movimientos (HU 6.2)
 │   │   └── ui/          # Modal, avisos (toasts), RequirePermission
 │   ├── App.jsx        # Enrutamiento principal
 │   ├── main.jsx       # Punto de entrada
@@ -63,7 +64,7 @@ Abre http://localhost:5173.
 | `npm run build`   | Genera la versión de producción en `dist/`. |
 | `npm run preview` | Sirve `dist/` para probar el build. |
 | `npm run lint`    | Revisa el código con oxlint. |
-| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 171 pruebas. |
+| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 179 pruebas. |
 
 ## Permisos en el frontend (HU 1.4)
 
@@ -95,7 +96,7 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/login`, `/register` | público | Acceso y solicitud de cuenta |
 | `/recuperar-contrasena` | público | Pedir el enlace de recuperación (HU 1.3) |
 | `/restablecer-contrasena?token=` | público | Definir la nueva contraseña o activar una cuenta invitada |
-| `/dashboard` | sesión | Inicio: solicitudes pendientes y alertas de stock |
+| `/dashboard` | sesión | Inicio: solicitudes pendientes, nuevo stock de producto terminado (`producto_terminado.ver`) y alertas de stock |
 | `/seguridad/usuarios` | `seguridad.ver` | Usuarios: aprobar solicitudes, roles, activar/desactivar, invitar |
 | `/seguridad/roles` | `seguridad.ver` | Roles y matriz de permisos por módulo |
 | `/inventario` | `inventario.ver` | Movimientos: existencias (con costo promedio), ingreso, salida a lavandería e historial |
@@ -110,6 +111,9 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/produccion/liquidacion` | `produccion.ver` | Liquidación de órdenes y tarifas de mano de obra por minuto |
 | `/calidad/inspecciones` | `calidad.ver` | Inspecciones: lotes por inspeccionar, formulario de aptas y marras por defecto con suma en vivo, historial y detalle (registrar exige `calidad.gestionar`) |
 | `/calidad/defectos` | `calidad.ver` | Catálogo de defectos corregibles e incorregibles (crear, editar y desactivar exige `calidad.gestionar`) |
+| `/producto-terminado/ingreso` | `producto_terminado.ver` | Ingreso: inspecciones por ingresar, formulario con matriz talla × color, suma en vivo y confirmación, historial y detalle (ingresar exige `producto_terminado.gestionar`) |
+| `/producto-terminado/existencias` | `producto_terminado.ver` | Existencias: matriz referencia × color × talla, con las celdas en cero resaltadas |
+| `/producto-terminado/movimientos` | `producto_terminado.ver` | Movimientos: libro de solo lectura con saldo antes y después |
 | `/produccion/planificar` | — | Redirige a `/produccion/ordenes` (la planificación se unió a esa pantalla) |
 | cualquier otra | — | Redirige a `/dashboard` |
 
@@ -126,6 +130,7 @@ La lógica que no necesita React vive en módulos `.js` con pruebas, para probar
 | `Production/resources.js` | Validación y cuerpo de operarios y máquinas, etiquetas y avisos de ocupación |
 | `Production/costSettlement.js` | Lectura del resultado de `/costos/` y estado de la liquidación (completa o parcial) |
 | `Quality/quality.js` | Desglose de marras, suma de aptas + marras contra lo recibido, validaciones y cuerpos de la inspección y del defecto |
+| `Finished/finished.js` | Matriz de variantes por talla y color, suma del reparto contra las aptas, validaciones, cuerpo y confirmación del ingreso, diferencia contra lo planificado e ingresos recientes del inicio |
 | `Purchasing/purchasing.js` | Estados y acciones de la orden de compra, filas de la recepción y sus validaciones |
 | `References/variants.js`, `fichaRows.js` | Combinaciones de talla y color; filas de la ficha técnica |
 
