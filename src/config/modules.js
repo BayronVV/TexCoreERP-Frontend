@@ -53,7 +53,14 @@ export const MODULES = [
       { label: 'Recepción de Lavandería', path: '/lavanderia/recepcion' },
     ],
   },
-  { id: 'calidad', label: 'Control de Calidad' },
+  {
+    id: 'calidad',
+    label: 'Control de Calidad',
+    children: [
+      { label: 'Inspecciones', path: '/calidad/inspecciones' },
+      { label: 'Defectos', path: '/calidad/defectos' },
+    ],
+  },
   { id: 'producto_terminado', label: 'Producto Terminado' },
   { id: 'ventas', label: 'Ventas y Despachos' },
   { id: 'reportes', label: 'Reportes' },

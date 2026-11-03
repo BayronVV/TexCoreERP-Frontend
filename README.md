@@ -27,6 +27,7 @@ frontend/
 │   │   ├── Purchasing/  # Órdenes de compra y recepción de mercancía
 │   │   ├── References/  # Catálogo de jeans (HU 3.1) y ficha técnica de consumo (HU 3.2)
 │   │   ├── Production/  # Órdenes y lotes, monitor, recursos y liquidación (HU 4.1 a 4.6)
+│   │   ├── Quality/     # Control de calidad: inspecciones de lotes y catálogo de defectos (HU 6.1)
 │   │   └── ui/          # Modal, avisos (toasts), RequirePermission
 │   ├── App.jsx        # Enrutamiento principal
 │   ├── main.jsx       # Punto de entrada
@@ -62,7 +63,7 @@ Abre http://localhost:5173.
 | `npm run build`   | Genera la versión de producción en `dist/`. |
 | `npm run preview` | Sirve `dist/` para probar el build. |
 | `npm run lint`    | Revisa el código con oxlint. |
-| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 154 pruebas. |
+| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 171 pruebas. |
 
 ## Permisos en el frontend (HU 1.4)
 
@@ -107,6 +108,8 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/produccion/monitor` | `produccion.ver` | Monitor de estado: tablero Kanban de lotes con arrastrar y soltar |
 | `/produccion/recursos` | `produccion.ver` | Catálogo de operarios y máquinas |
 | `/produccion/liquidacion` | `produccion.ver` | Liquidación de órdenes y tarifas de mano de obra por minuto |
+| `/calidad/inspecciones` | `calidad.ver` | Inspecciones: lotes por inspeccionar, formulario de aptas y marras por defecto con suma en vivo, historial y detalle (registrar exige `calidad.gestionar`) |
+| `/calidad/defectos` | `calidad.ver` | Catálogo de defectos corregibles e incorregibles (crear, editar y desactivar exige `calidad.gestionar`) |
 | `/produccion/planificar` | — | Redirige a `/produccion/ordenes` (la planificación se unió a esa pantalla) |
 | cualquier otra | — | Redirige a `/dashboard` |
 
@@ -122,6 +125,7 @@ La lógica que no necesita React vive en módulos `.js` con pruebas, para probar
 | `Production/monitorBoard.js` | Tablero del monitor: qué movimientos son válidos, alertas, refresco y consulta |
 | `Production/resources.js` | Validación y cuerpo de operarios y máquinas, etiquetas y avisos de ocupación |
 | `Production/costSettlement.js` | Lectura del resultado de `/costos/` y estado de la liquidación (completa o parcial) |
+| `Quality/quality.js` | Desglose de marras, suma de aptas + marras contra lo recibido, validaciones y cuerpos de la inspección y del defecto |
 | `Purchasing/purchasing.js` | Estados y acciones de la orden de compra, filas de la recepción y sus validaciones |
 | `References/variants.js`, `fichaRows.js` | Combinaciones de talla y color; filas de la ficha técnica |
 
