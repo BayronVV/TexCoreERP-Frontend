@@ -1,0 +1,85 @@
+/* Control de calidad (inspecciones y catálogo de defectos). Reutiliza Inventory.module.css para la página, las tarjetas, los
+   formularios, las tablas y las insignias; aquí solo lo propio de este módulo. */
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rowActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+}
+
+.lotInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.lotInfo dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lotInfo dd {
+  margin: 0.1rem 0 0;
+}
+
+.pickRow {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) 110px minmax(160px, 2fr) auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.balanceOk {
+  background: #e6f6f4;
+  color: #0f766e;
+}
+
+.balanceWarn {
+  background: #fff4e0;
+  color: #9a5b00;
+}
+
+.note {
+  font-size: 0.86rem;
+  color: #64748b;
+  margin: 0.35rem 0;
+}
+
+.noteCell {
+  max-width: 260px;
+  color: #475569;
+}
+
+.smallInput {
+  width: 110px;
+}
+
+@media (max-width: 720px) {
+  .pickRow {
+    grid-template-columns: 1fr;
+  }
+}
