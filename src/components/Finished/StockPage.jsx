@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiGet } from '../../api/client'
+import { useAuth } from '../../auth/session'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 
 // Producto terminado · Existencias: la matriz referencia × talla de las prendas de primera calidad. Las celdas en cero se
 // resaltan; el saldo lo calcula el servidor (el navegador solo lo muestra).
 export default function StockPage() {
+  const { can } = useAuth()
   const [matrix, setMatrix] = useState(null)
   const [reference, setReference] = useState('')
   const [search, setSearch] = useState('')
@@ -51,7 +54,10 @@ export default function StockPage() {
           <div key={item.referencia} className={finishedStyles.refBlock}>
             <h2 className={finishedStyles.refTitle}>
               <span>{item.codigo} · {item.nombre}</span>
-              <span className={styles.muted}>Total: {item.total}</span>
+              <span className={styles.muted}>
+                Total: {item.total}
+                {can('producto_terminado.ajustar') && <> · <Link to={`/producto-terminado/ajuste?referencia=${item.referencia}`}>Ajustar</Link></>}
+              </span>
             </h2>
             <div className={finishedStyles.matrixWrap}>
               <table className={finishedStyles.matrix}>
