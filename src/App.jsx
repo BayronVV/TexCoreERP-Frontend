@@ -14,6 +14,8 @@ import MonitorPage from './components/Production/MonitorPage'
 import OrderSettlementPage from './components/Production/OrderSettlementPage'
 import OrdersPage from './components/Purchasing/OrdersPage'
 import ReceptionPage from './components/Purchasing/ReceptionPage'
+import InspectionsPage from './components/Quality/InspectionsPage'
+import DefectsPage from './components/Quality/DefectsPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -115,6 +117,22 @@ function App() {
             element={
               <RequirePermission code="compras.ver">
                 <ReceptionPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/calidad/inspecciones"
+            element={
+              <RequirePermission code="calidad.ver">
+                <InspectionsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/calidad/defectos"
+            element={
+              <RequirePermission code="calidad.ver">
+                <DefectsPage />
               </RequirePermission>
             }
           />
