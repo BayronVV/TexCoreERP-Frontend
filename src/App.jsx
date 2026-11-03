@@ -16,6 +16,9 @@ import OrdersPage from './components/Purchasing/OrdersPage'
 import ReceptionPage from './components/Purchasing/ReceptionPage'
 import InspectionsPage from './components/Quality/InspectionsPage'
 import DefectsPage from './components/Quality/DefectsPage'
+import EntryPage from './components/Finished/EntryPage'
+import StockPage from './components/Finished/StockPage'
+import MovementsPage from './components/Finished/MovementsPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -133,6 +136,30 @@ function App() {
             element={
               <RequirePermission code="calidad.ver">
                 <DefectsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/producto-terminado/ingreso"
+            element={
+              <RequirePermission code="producto_terminado.ver">
+                <EntryPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/producto-terminado/existencias"
+            element={
+              <RequirePermission code="producto_terminado.ver">
+                <StockPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/producto-terminado/movimientos"
+            element={
+              <RequirePermission code="producto_terminado.ver">
+                <MovementsPage />
               </RequirePermission>
             }
           />

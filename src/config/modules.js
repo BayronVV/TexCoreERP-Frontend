@@ -61,7 +61,15 @@ export const MODULES = [
       { label: 'Defectos', path: '/calidad/defectos' },
     ],
   },
-  { id: 'producto_terminado', label: 'Producto Terminado' },
+  {
+    id: 'producto_terminado',
+    label: 'Producto Terminado',
+    children: [
+      { label: 'Ingreso', path: '/producto-terminado/ingreso' },
+      { label: 'Existencias', path: '/producto-terminado/existencias' },
+      { label: 'Movimientos', path: '/producto-terminado/movimientos' },
+    ],
+  },
   { id: 'ventas', label: 'Ventas y Despachos' },
   { id: 'reportes', label: 'Reportes' },
 ]
