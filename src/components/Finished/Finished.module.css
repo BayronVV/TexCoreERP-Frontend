@@ -1,0 +1,134 @@
+/* Producto terminado (ingreso, existencias y movimientos). Reutiliza Inventory.module.css para la página, las tarjetas, los
+   formularios, las tablas y las insignias; aquí solo lo propio de este módulo. */
+
+.lotInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.lotInfo dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lotInfo dd {
+  margin: 0.1rem 0 0;
+}
+
+.matrixWrap {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+}
+
+.matrix {
+  border-collapse: collapse;
+  min-width: 360px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.matrix thead th {
+  background: #f8fafc;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.matrix tbody th {
+  background: #f8fafc;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cellInput {
+  width: 72px;
+  text-align: center;
+}
+
+.cellZero {
+  color: #b3261e;
+  background: #fdf2f1;
+}
+
+.cellOk {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.cellMissing {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.plan {
+  display: block;
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.totalCol {
+  background: #eef2f8;
+  font-weight: 700;
+}
+
+.balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.balanceOk {
+  background: #e6f6f4;
+  color: #0f766e;
+}
+
+.balanceWarn {
+  background: #fff4e0;
+  color: #9a5b00;
+}
+
+.note {
+  font-size: 0.86rem;
+  color: #64748b;
+  margin: 0.35rem 0;
+}
+
+.up {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.down {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+.refBlock {
+  margin-bottom: 1.5rem;
+}
+
+.refTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.5rem;
+}

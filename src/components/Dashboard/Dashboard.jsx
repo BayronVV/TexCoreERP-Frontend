@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api/client';
 import { useAuth } from '../../auth/session';
+import { todayISO } from '../Inventory/labels';
+import { recentEntries } from '../Finished/finished';
 import styles from './Dashboard.module.css';
 
 /**
- * Inicio: saludo, tarjeta con las solicitudes de acceso pendientes (si el rol gestiona usuarios) y las alertas de stock mínimo
- * de inventario (si el rol puede ver inventario).
+ * Inicio: saludo, tarjeta con las solicitudes de acceso pendientes (si el rol gestiona usuarios), el aviso de nuevo stock de
+ * producto terminado de los últimos 7 días (si el rol puede ver producto terminado) y las alertas de stock mínimo de inventario
+ * (si el rol puede ver inventario).
  */
 const Dashboard = () => {
   const { user, can } = useAuth();
   const canReviewUsers = can('seguridad.gestionar');
   const canSeeInventory = can('inventario.ver');
+  const canSeeFinished = can('producto_terminado.ver');
+  const [newStock, setNewStock] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [alertsReady, setAlertsReady] = useState(false);
   const [alertsError, setAlertsError] = useState('');
@@ -26,6 +31,14 @@ const Dashboard = () => {
       })
       .catch(() => setAlertsError('No se pudieron cargar las alertas de inventario.'));
   }, [canSeeInventory]);
+
+  // Ingresos recientes de producto terminado: el aviso de nuevo stock para quien vende y consulta.
+  useEffect(() => {
+    if (!canSeeFinished) return;
+    apiGet('/api/terminado/ingresos/?limit=20')
+      .then((entries) => setNewStock(recentEntries(entries, todayISO(), 7)))
+      .catch(() => setNewStock([]));
+  }, [canSeeFinished]);
 
   // Registros que esperan que un administrador les asigne rol.
   useEffect(() => {
@@ -48,6 +61,18 @@ const Dashboard = () => {
             {pendingCount} {pendingCount === 1 ? 'solicitud de acceso pendiente' : 'solicitudes de acceso pendientes'}
           </strong>
           <span>Revisar y asignar rol →</span>
+        </Link>
+      )}
+
+      {canSeeFinished && newStock.length > 0 && (
+        <Link to="/producto-terminado/existencias" className={styles.stockCard}>
+          <strong>Nuevo stock de producto terminado</strong>
+          <ul>
+            {newStock.slice(0, 5).map((entry) => (
+              <li key={entry.id}>{entry.aptas} prendas de {entry.referencia_nombre} · lote {entry.lote_codigo}</li>
+            ))}
+          </ul>
+          <span>Ver existencias →</span>
         </Link>
       )}
 
