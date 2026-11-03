@@ -19,6 +19,7 @@ import DefectsPage from './components/Quality/DefectsPage'
 import EntryPage from './components/Finished/EntryPage'
 import StockPage from './components/Finished/StockPage'
 import MovementsPage from './components/Finished/MovementsPage'
+import AdjustmentPage from './components/Finished/AdjustmentPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -152,6 +153,14 @@ function App() {
             element={
               <RequirePermission code="producto_terminado.ver">
                 <StockPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/producto-terminado/ajuste"
+            element={
+              <RequirePermission code="producto_terminado.ver">
+                <AdjustmentPage />
               </RequirePermission>
             }
           />

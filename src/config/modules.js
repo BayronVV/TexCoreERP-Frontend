@@ -67,6 +67,7 @@ export const MODULES = [
     children: [
       { label: 'Ingreso', path: '/producto-terminado/ingreso' },
       { label: 'Existencias', path: '/producto-terminado/existencias' },
+      { label: 'Ajuste manual', path: '/producto-terminado/ajuste' },
       { label: 'Movimientos', path: '/producto-terminado/movimientos' },
     ],
   },

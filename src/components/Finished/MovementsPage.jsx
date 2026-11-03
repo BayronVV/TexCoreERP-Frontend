@@ -71,7 +71,7 @@ export default function MovementsPage() {
                     <td className={`${styles.num} ${row.cantidad > 0 ? finishedStyles.up : finishedStyles.down}`}>{signed(row.cantidad)}</td>
                     <td className={styles.num}>{row.saldo_antes}</td>
                     <td className={styles.num}>{row.saldo_despues}</td>
-                    <td>{[row.ingreso_codigo, row.lote_codigo].filter(Boolean).join(' · ') || '—'}</td>
+                    <td>{[row.ingreso_codigo, row.ajuste_codigo, row.lote_codigo].filter(Boolean).join(' · ') || '—'}</td>
                     <td>{row.usuario_nombre || '—'}</td>
                   </tr>
                 ))}
