@@ -99,3 +99,97 @@ export function recentEntries(entries, today, days = 7) {
 
 /** Etiqueta de una variante. */
 export const variantLabel = (variant) => `${variant.talla} · ${variant.color}`
+
+// --- Ajuste manual (HU 6.3) -----------------------------------------------------------------------------------------------
+// La persona digita el conteo real de la bodega y el navegador solo calcula las diferencias de lo digitado para mostrarlas; el
+// servidor vuelve a validar todo (saldo esperado, signo del motivo, más de 20 unidades por línea, observación) y escribe el libro.
+
+/** Conteo inicial de la matriz: el saldo que mostraba el sistema en cada celda (`{ idVariante: 'saldo' }`). */
+export function initialCounts(reference) {
+  const counts = {}
+  for (const row of reference?.colores ?? []) {
+    for (const cell of Object.values(row.tallas)) counts[cell.variante] = String(cell.cantidad)
+  }
+  return counts
+}
+
+/** Las celdas de la referencia como `{ variante, talla, color, esperado }`. */
+export function referenceCells(reference) {
+  return (reference?.colores ?? []).flatMap((row) =>
+    Object.entries(row.tallas).map(([talla, cell]) => ({ variante: cell.variante, talla, color: row.color, esperado: cell.cantidad })),
+  )
+}
+
+/** Celdas con un conteo mal escrito (vacío, decimal, negativo o texto). */
+export const invalidCounts = (reference, counts) =>
+  referenceCells(reference).filter((cell) => !isCount(counts?.[cell.variante], 0))
+
+/** Líneas con diferencia: `{ variante, talla, color, esperado, contado, diferencia }` (las celdas mal escritas no cuentan). */
+export function adjustmentLines(reference, counts) {
+  return referenceCells(reference)
+    .filter((cell) => isCount(counts?.[cell.variante], 0))
+    .map((cell) => ({ ...cell, contado: Number(String(counts[cell.variante]).trim()) }))
+    .map((cell) => ({ ...cell, diferencia: cell.contado - cell.esperado }))
+    .filter((cell) => cell.diferencia !== 0)
+}
+
+/** Faltantes y sobrantes por separado (nunca netos). */
+export function adjustmentSummary(lines) {
+  const missing = lines.filter((line) => line.diferencia < 0).reduce((sum, line) => sum - line.diferencia, 0)
+  const surplus = lines.filter((line) => line.diferencia > 0).reduce((sum, line) => sum + line.diferencia, 0)
+  return { missing, surplus, lines: lines.length }
+}
+
+const unitsText = (count) => `${count} ${count === 1 ? 'prenda' : 'prendas'}`
+
+/** «Faltan 3 prendas · sobra 1 prenda» o «Sin diferencias». */
+export function summaryText({ missing, surplus }) {
+  const parts = []
+  if (missing > 0) parts.push(`${missing === 1 ? 'Falta' : 'Faltan'} ${unitsText(missing)}`)
+  if (surplus > 0) parts.push(`${surplus === 1 ? 'Sobra' : 'Sobran'} ${unitsText(surplus)}`)
+  return parts.length ? parts.join(' · ') : 'Sin diferencias'
+}
+
+/** Líneas que cambian MÁS de `threshold` unidades (RF22). */
+export const largeLines = (lines, threshold) => lines.filter((line) => Math.abs(line.diferencia) > threshold)
+
+/** Motivos por los que todavía no se puede ajustar (vacío si está listo). `meta` es la respuesta de `/api/terminado/metadatos/`. */
+export function adjustmentProblems({ reference, counts, motivo, observacion, meta }) {
+  const problems = []
+  if (invalidCounts(reference, counts).length) problems.push('Revisa los conteos: deben ser números enteros desde cero.')
+  const lines = adjustmentLines(reference, counts)
+  if (!lines.length) problems.push('No hay diferencias: cambia el conteo de alguna talla.')
+  const reason = (meta?.motivos ?? []).find((item) => item.codigo === motivo)
+  if (!reason) {
+    problems.push('Elige el motivo del ajuste.')
+  } else {
+    if (reason.signo === '-' && lines.some((line) => line.diferencia > 0)) problems.push(`«${reason.nombre}» solo puede restar prendas.`)
+    if (reason.signo === '+' && lines.some((line) => line.diferencia < 0)) problems.push(`«${reason.nombre}» solo puede sumar prendas.`)
+  }
+  const text = String(observacion ?? '').trim()
+  const threshold = meta?.umbral_unidades ?? 20
+  const large = largeLines(lines, threshold)
+  if (text.length < (meta?.observacion_minima ?? 10)) problems.push(`Explica el ajuste en la observación (mínimo ${meta?.observacion_minima ?? 10} caracteres).`)
+  if (large.length) {
+    if (motivo === meta?.motivo_no_valido_sobre_umbral) problems.push(`Con más de ${threshold} unidades en una talla, «Otro» no se acepta: elige un motivo concreto.`)
+    if (text.length < (meta?.observacion_minima_umbral ?? 30)) problems.push(`Con más de ${threshold} unidades en una talla, la observación pide al menos ${meta?.observacion_minima_umbral ?? 30} caracteres.`)
+  }
+  return problems
+}
+
+/** Cuerpo del POST: solo las líneas con diferencia, cada una con el saldo esperado que vio la persona. */
+export function adjustmentBody({ reference, counts, motivo, observacion, token }) {
+  return {
+    motivo,
+    observacion: (observacion ?? '').trim(),
+    token,
+    lineas: adjustmentLines(reference, counts).map((line) => ({ variante: line.variante, esperado: line.esperado, contado: line.contado })),
+  }
+}
+
+/** Texto de la confirmación previa, con el detalle de cada línea («30 · Azul: 12 → 10 (−2)»). */
+export function adjustmentConfirmation(lines, reasonName) {
+  const detail = lines.map((line) => `${variantLabel(line)}: ${line.esperado} → ${line.contado} (${signed(line.diferencia)})`).join('\n')
+  return `Vas a ajustar el inventario por «${reasonName}»:\n\n${detail}\n\n${summaryText(adjustmentSummary(lines))}. ` +
+    'Un ajuste no se puede editar ni borrar: un error se corrige con otro ajuste. ¿Registrarlo?'
+}

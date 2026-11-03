@@ -2,17 +2,26 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  adjustmentBody,
+  adjustmentConfirmation,
+  adjustmentLines,
+  adjustmentProblems,
+  adjustmentSummary,
   balance,
   confirmationText,
   differenceLabel,
   enteredTotal,
   entryBody,
   entryProblems,
+  initialCounts,
   initialQuantities,
+  invalidCounts,
+  largeLines,
   plannedMap,
   recentEntries,
   signed,
   sizeSort,
+  summaryText,
   variantLabel,
   variantMatrix,
 } from './finished.js'
@@ -84,4 +93,84 @@ test('recentEntries: ingresos de los últimos días contando hoy', () => {
   const entries = [{ fecha: '2026-11-03' }, { fecha: '2026-10-28' }, { fecha: '2026-10-27' }, { fecha: '2026-10-01' }]
   assert.deepEqual(recentEntries(entries, '2026-11-03', 7).map((e) => e.fecha), ['2026-11-03', '2026-10-28'])
   assert.deepEqual(recentEntries(undefined, '2026-11-03'), [])
+})
+
+// --- Ajuste manual (HU 6.3) ---
+const reference = {
+  referencia: 1, codigo: 'REF-1', nombre: 'Jean', tallas: ['30', '32'],
+  colores: [
+    { color: 'Azul', tallas: { 30: { variante: 11, cantidad: 20 }, 32: { variante: 12, cantidad: 5 } }, total: 25 },
+    { color: 'Negro', tallas: { 30: { variante: 13, cantidad: 0 } }, total: 0 },
+  ],
+}
+const meta = {
+  motivos: [
+    { codigo: 'ERROR_CONTEO', nombre: 'Error de conteo', signo: '+-' }, { codigo: 'PERDIDA', nombre: 'Pérdida', signo: '-' },
+    { codigo: 'SOBRANTE', nombre: 'Sobrante o hallazgo', signo: '+' }, { codigo: 'OTRO', nombre: 'Otro', signo: '+-' },
+  ],
+  umbral_unidades: 20, observacion_minima: 10, observacion_minima_umbral: 30, motivo_no_valido_sobre_umbral: 'OTRO',
+}
+const LONG = 'Faltan cajas completas de la estantería B de la bodega'
+
+test('initialCounts: cada celda arranca con el saldo del sistema y sin diferencias', () => {
+  const counts = initialCounts(reference)
+  assert.deepEqual(counts, { 11: '20', 12: '5', 13: '0' })
+  assert.deepEqual(adjustmentLines(reference, counts), [])
+  assert.deepEqual(initialCounts(undefined), {})
+})
+
+test('adjustmentLines: solo las celdas que difieren, con diferencia = contado - esperado', () => {
+  const lines = adjustmentLines(reference, { 11: '18', 12: ' 7 ', 13: '0' })
+  assert.deepEqual(lines.map((line) => [line.variante, line.esperado, line.contado, line.diferencia]), [[11, 20, 18, -2], [12, 5, 7, 2]])
+  assert.deepEqual(adjustmentLines(reference, { 11: 'x', 12: '5', 13: '' }), []) // lo mal escrito no cuenta
+})
+
+test('invalidCounts: vacío, decimal, negativo o texto', () => {
+  assert.equal(invalidCounts(reference, { 11: '20', 12: '5', 13: '0' }).length, 0)
+  assert.deepEqual(invalidCounts(reference, { 11: '', 12: '2.5', 13: '-1' }).map((cell) => cell.variante), [11, 12, 13])
+})
+
+test('adjustmentSummary y summaryText: faltantes y sobrantes por separado, con plural', () => {
+  const lines = adjustmentLines(reference, { 11: '17', 12: '6', 13: '0' })
+  assert.deepEqual(adjustmentSummary(lines), { missing: 3, surplus: 1, lines: 2 })
+  assert.equal(summaryText(adjustmentSummary(lines)), 'Faltan 3 prendas · Sobra 1 prenda')
+  assert.equal(summaryText({ missing: 1, surplus: 0 }), 'Falta 1 prenda')
+  assert.equal(summaryText({ missing: 0, surplus: 4 }), 'Sobran 4 prendas')
+  assert.equal(summaryText({ missing: 0, surplus: 0 }), 'Sin diferencias')
+})
+
+test('largeLines: solo las líneas que pasan de 20 unidades, no el total', () => {
+  const lines = adjustmentLines(reference, { 11: '15', 12: '0', 13: '21' })
+  assert.deepEqual(largeLines(lines, 20).map((line) => line.variante), [13]) // 5 + 5 no son más de 20 cada una
+  assert.equal(largeLines(adjustmentLines(reference, { 11: '0', 12: '5', 13: '0' }), 20).length, 0) // exactamente 20 no pasa
+})
+
+test('adjustmentProblems: motivo, signo, observación y regla de más de 20 unidades', () => {
+  const base = { reference, meta, observacion: 'Conteo del viernes' }
+  assert.deepEqual(adjustmentProblems({ ...base, counts: { 11: '19', 12: '5', 13: '0' }, motivo: 'ERROR_CONTEO' }), [])
+  assert.ok(adjustmentProblems({ ...base, counts: initialCounts(reference), motivo: 'ERROR_CONTEO' })[0].includes('No hay diferencias'))
+  assert.ok(adjustmentProblems({ ...base, counts: { 11: '19', 12: '5', 13: '0' }, motivo: '' }).includes('Elige el motivo del ajuste.'))
+  assert.ok(adjustmentProblems({ ...base, counts: { 11: '21', 12: '5', 13: '0' }, motivo: 'PERDIDA' })[0].includes('solo puede restar'))
+  assert.ok(adjustmentProblems({ ...base, counts: { 11: '19', 12: '5', 13: '0' }, motivo: 'SOBRANTE' })[0].includes('solo puede sumar'))
+  assert.ok(adjustmentProblems({ ...base, counts: { 11: '19', 12: '5', 13: '0' }, motivo: 'PERDIDA', observacion: 'corto' })[0].includes('observación'))
+  assert.ok(adjustmentProblems({ ...base, counts: { 11: 'x', 12: '5', 13: '0' }, motivo: 'PERDIDA' })[0].includes('enteros'))
+  // más de 20 en una talla: «Otro» no vale y la observación pide 30 caracteres
+  const exactly20 = { 11: '0', 12: '5', 13: '0' }
+  assert.equal(adjustmentProblems({ ...base, counts: exactly20, motivo: 'PERDIDA' }).length, 0) // 20 exactos no pasan
+  const large = { 11: '19', 12: '5', 13: '30' }
+  assert.ok(adjustmentProblems({ ...base, counts: large, motivo: 'OTRO', observacion: LONG }).some((text) => text.includes('«Otro» no se acepta')))
+  assert.ok(adjustmentProblems({ ...base, counts: large, motivo: 'ERROR_CONTEO' }).some((text) => text.includes('al menos 30')))
+  assert.deepEqual(adjustmentProblems({ ...base, counts: large, motivo: 'ERROR_CONTEO', observacion: LONG }), [])
+})
+
+test('adjustmentBody: solo las líneas con diferencia y su saldo esperado', () => {
+  const body = adjustmentBody({ reference, counts: { 11: '18', 12: '5', 13: '0' }, motivo: 'PERDIDA', observacion: ' Se perdieron dos ', token: 'abc' })
+  assert.deepEqual(body, { motivo: 'PERDIDA', observacion: 'Se perdieron dos', token: 'abc', lineas: [{ variante: 11, esperado: 20, contado: 18 }] })
+})
+
+test('adjustmentConfirmation: detalle de cada línea y aviso de que no se edita', () => {
+  const lines = adjustmentLines(reference, { 11: '18', 12: '7', 13: '0' })
+  const text = adjustmentConfirmation(lines, 'Error de conteo')
+  assert.ok(text.includes('Error de conteo') && text.includes('20 → 18 (−2)') && text.includes('5 → 7 (+2)'))
+  assert.ok(text.includes('Faltan 2 prendas · Sobran 2 prendas') && text.includes('no se puede editar'))
 })
