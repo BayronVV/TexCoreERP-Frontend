@@ -20,6 +20,11 @@ import EntryPage from './components/Finished/EntryPage'
 import StockPage from './components/Finished/StockPage'
 import MovementsPage from './components/Finished/MovementsPage'
 import AdjustmentPage from './components/Finished/AdjustmentPage'
+import SalesPanel from './components/Sales/SalesPanel'
+import SalePage from './components/Sales/SalePage'
+import InvoicesPage from './components/Sales/InvoicesPage'
+import ClientsPage from './components/Sales/ClientsPage'
+import PricesPage from './components/Sales/PricesPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -169,6 +174,46 @@ function App() {
             element={
               <RequirePermission code="producto_terminado.ver">
                 <MovementsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/panel"
+            element={
+              <RequirePermission code="ventas.ver">
+                <SalesPanel />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/nueva"
+            element={
+              <RequirePermission code="ventas.gestionar">
+                <SalePage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/facturas"
+            element={
+              <RequirePermission code="ventas.ver">
+                <InvoicesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/clientes"
+            element={
+              <RequirePermission code="ventas.ver">
+                <ClientsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/precios"
+            element={
+              <RequirePermission code="ventas.ver">
+                <PricesPage />
               </RequirePermission>
             }
           />

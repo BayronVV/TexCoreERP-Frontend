@@ -1,0 +1,127 @@
+/* Ventas y facturación. Reutiliza Inventory.module.css para la página, las tarjetas, los formularios y las tablas, y
+   Finished.module.css para la matriz de tallas; aquí solo lo propio de este módulo. */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background: #fff4e0;
+  color: #9a5b00;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.kpi {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.kpi span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.qtyInput {
+  width: 64px;
+  text-align: center;
+}
+
+.disc {
+  width: 56px;
+  text-align: center;
+}
+
+.avail {
+  display: block;
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.totals {
+  margin-left: auto;
+  width: min(360px, 100%);
+  margin-top: 1rem;
+  border-top: 2px solid #0f172a;
+  padding-top: 0.5rem;
+}
+
+.totals div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+}
+
+.totals .grand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-top: 1px solid #cbd5e1;
+  margin-top: 0.3rem;
+  padding-top: 0.4rem;
+}
+
+.problems {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 1rem 0.6rem 1.6rem;
+  border-radius: 10px;
+  background: #fdf2f1;
+  color: #b3261e;
+  font-size: 0.86rem;
+}
+
+.voided {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+.rowVoided td {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.clientBar {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.clientBar > label {
+  flex: 1 1 260px;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
