@@ -71,6 +71,16 @@ export const MODULES = [
       { label: 'Movimientos', path: '/producto-terminado/movimientos' },
     ],
   },
-  { id: 'ventas', label: 'Ventas y Despachos' },
+  {
+    id: 'ventas',
+    label: 'Ventas y Despachos',
+    children: [
+      { label: 'Panel de ventas', path: '/ventas/panel' },
+      { label: 'Nueva venta', path: '/ventas/nueva' },
+      { label: 'Facturas', path: '/ventas/facturas' },
+      { label: 'Clientes', path: '/ventas/clientes' },
+      { label: 'Precios', path: '/ventas/precios' },
+    ],
+  },
   { id: 'reportes', label: 'Reportes' },
 ]
