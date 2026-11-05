@@ -9,6 +9,7 @@ const TYPES = [
   { value: 'ENTRADA_PRODUCCION', label: 'Entrada de producción' },
   { value: 'AJUSTE', label: 'Ajuste manual' },
   { value: 'SALIDA_VENTA', label: 'Salida por venta' },
+  { value: 'DEVOLUCION_VENTA', label: 'Reingreso por anulación de venta' },
 ]
 
 const formatMoment = (value) => new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
@@ -71,7 +72,7 @@ export default function MovementsPage() {
                     <td className={`${styles.num} ${row.cantidad > 0 ? finishedStyles.up : finishedStyles.down}`}>{signed(row.cantidad)}</td>
                     <td className={styles.num}>{row.saldo_antes}</td>
                     <td className={styles.num}>{row.saldo_despues}</td>
-                    <td>{[row.ingreso_codigo, row.ajuste_codigo, row.lote_codigo].filter(Boolean).join(' · ') || '—'}</td>
+                    <td>{[row.ingreso_codigo, row.ajuste_codigo, row.factura_numero, row.lote_codigo].filter(Boolean).join(' · ') || '—'}</td>
                     <td>{row.usuario_nombre || '—'}</td>
                   </tr>
                 ))}
