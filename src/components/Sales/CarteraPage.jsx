@@ -287,8 +287,8 @@ export default function CarteraPage() {
         <p className={styles.eyebrow}>Ventas y despachos</p>
         <h1>Gestión de Cartera</h1>
         <p className={styles.subtitle}>
-          Control de pagos contraentrega (HU 7.3). Consulta qué pedidos están pendientes de recaudo por las transportadoras,
-          y utiliza las acciones rápidas para confirmar el pago (actualizando el saldo de la empresa) o registrar devoluciones.
+          Consulta qué pedidos están pendientes de recaudo por las transportadoras, y utiliza las acciones rápidas para confirmar el pago
+          (actualizando el saldo financiero de la empresa) o registrar devoluciones de mercancía.
         </p>
       </header>
 
