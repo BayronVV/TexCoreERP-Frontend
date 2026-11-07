@@ -83,5 +83,9 @@ export const MODULES = [
       { label: 'Precios', path: '/ventas/precios' },
     ],
   },
-  { id: 'reportes', label: 'Reportes' },
+  {
+    id: 'reportes',
+    label: 'Reportes',
+    children: [{ label: 'Tablero gerencial', path: '/reportes' }],
+  },
 ]
