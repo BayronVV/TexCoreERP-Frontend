@@ -22,6 +22,7 @@ import MovementsPage from './components/Finished/MovementsPage'
 import AdjustmentPage from './components/Finished/AdjustmentPage'
 import SalesPanel from './components/Sales/SalesPanel'
 import SalePage from './components/Sales/SalePage'
+import CarteraPage from './components/Sales/CarteraPage'
 import InvoicesPage from './components/Sales/InvoicesPage'
 import ClientsPage from './components/Sales/ClientsPage'
 import PricesPage from './components/Sales/PricesPage'
@@ -190,6 +191,14 @@ function App() {
             element={
               <RequirePermission code="ventas.gestionar">
                 <SalePage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/ventas/cartera"
+            element={
+              <RequirePermission code="ventas.ver">
+                <CarteraPage />
               </RequirePermission>
             }
           />

@@ -40,6 +40,7 @@ export default function SalesPanel() {
 
       <div className={salesStyles.actions}>
         {can('ventas.gestionar') && <Link to="/ventas/nueva" className={styles.primaryBtn}>Nueva venta</Link>}
+        <Link to="/ventas/cartera" className={styles.secondaryBtn}>Gestión de cartera</Link>
         <Link to="/ventas/facturas" className={styles.secondaryBtn}>Ver facturas</Link>
         <Link to="/ventas/clientes" className={styles.secondaryBtn}>Clientes</Link>
         <Link to="/ventas/precios" className={styles.secondaryBtn}>Precios</Link>
@@ -53,15 +54,26 @@ export default function SalesPanel() {
             <table className={styles.table}>
               <thead><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th className={styles.num}>Total</th><th>Estado</th></tr></thead>
               <tbody>
-                {invoices.slice(0, 8).map((invoice) => (
-                  <tr key={invoice.id} className={invoice.estado === 'ANULADA' ? salesStyles.rowVoided : ''}>
-                    <td><strong>{invoice.numero}</strong></td>
-                    <td>{formatDate(invoice.fecha)}</td>
-                    <td>{invoice.cliente_nombre}</td>
-                    <td className={styles.num}>{money(invoice.total)}</td>
-                    <td>{invoice.estado === 'ANULADA' ? 'Anulada' : 'Por cobrar'}</td>
-                  </tr>
-                ))}
+                {invoices.slice(0, 8).map((invoice) => {
+                  let statusText = 'Por cobrar'
+                  if (invoice.estado === 'ANULADA') {
+                    statusText = 'Anulada'
+                  } else if (invoice.estado_cobro === 'PAGADO') {
+                    statusText = 'Pagado'
+                  } else if (invoice.estado_cobro === 'DEVOLUCION') {
+                    statusText = 'Devolución'
+                  }
+
+                  return (
+                    <tr key={invoice.id} className={invoice.estado === 'ANULADA' ? salesStyles.rowVoided : ''}>
+                      <td><strong>{invoice.numero}</strong></td>
+                      <td>{formatDate(invoice.fecha)}</td>
+                      <td>{invoice.cliente_nombre}</td>
+                      <td className={styles.num}>{money(invoice.total)}</td>
+                      <td>{statusText}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

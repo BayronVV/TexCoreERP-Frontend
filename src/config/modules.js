@@ -77,6 +77,7 @@ export const MODULES = [
     children: [
       { label: 'Panel de ventas', path: '/ventas/panel' },
       { label: 'Nueva venta', path: '/ventas/nueva' },
+      { label: 'Gestión de cartera', path: '/ventas/cartera' },
       { label: 'Facturas', path: '/ventas/facturas' },
       { label: 'Clientes', path: '/ventas/clientes' },
       { label: 'Precios', path: '/ventas/precios' },

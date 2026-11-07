@@ -135,3 +135,50 @@ export function dayResume(invoices, today) {
 
 /** Margen sobre el precio de venta (%) con un decimal; «—» si no hay precio. */
 export const marginLabel = (price, cost) => (price && cost ? `${(((price - cost) / price) * 100).toFixed(1).replace('.', ',')} %` : '—')
+
+/** Resumen consolidado del tablero de cartera y saldo financiero (HU 7.3). */
+export function carteraResume(invoices, saldoFinanciero = 0) {
+  const list = invoices ?? []
+  const issued = list.filter((inv) => inv.estado === 'EMITIDA')
+  const porCobrarList = issued.filter((inv) => inv.estado_cobro === 'POR_COBRAR')
+  const pagadasList = issued.filter((inv) => inv.estado_cobro === 'PAGADO')
+  const devolucionesList = issued.filter((inv) => inv.estado_cobro === 'DEVOLUCION')
+
+  const sum = (items) => items.reduce((acc, inv) => acc + (inv.valor_a_recaudar || inv.total || 0), 0)
+
+  return {
+    saldoFinanciero: Number(saldoFinanciero) || 0,
+    totalPorCobrar: sum(porCobrarList),
+    facturasPorCobrar: porCobrarList.length,
+    totalRecaudado: sum(pagadasList),
+    facturasPagadas: pagadasList.length,
+    totalDevoluciones: sum(devolucionesList),
+    facturasDevueltas: devolucionesList.length,
+  }
+}
+
+/** Filtra el listado de cartera por estado/pestaña, texto de búsqueda y transportadora. */
+export function filterCartera(invoices, { tab = 'POR_COBRAR', search = '', carrier = '' } = {}) {
+  let list = invoices ?? []
+  if (tab && tab !== 'TODAS') {
+    list = list.filter((inv) => inv.estado_cobro === tab)
+  }
+  if (carrier) {
+    list = list.filter((inv) => inv.transportadora === carrier)
+  }
+  const q = String(search ?? '').trim().toLowerCase()
+  if (q) {
+    list = list.filter((inv) =>
+      (inv.numero && inv.numero.toLowerCase().includes(q)) ||
+      (inv.cliente_nombre && inv.cliente_nombre.toLowerCase().includes(q)) ||
+      (inv.cliente_documento && inv.cliente_documento.toLowerCase().includes(q)) ||
+      (inv.numero_guia && inv.numero_guia.toLowerCase().includes(q))
+    )
+  }
+  return list
+}
+
+/** Determina si una factura está en condición de ser conciliada (por cobrar y emitida). */
+export function canReconcile(invoice) {
+  return Boolean(invoice && invoice.estado === 'EMITIDA' && invoice.estado_cobro === 'POR_COBRAR')
+}

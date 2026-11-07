@@ -2,9 +2,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  canReconcile,
   cartRows,
   cartTotals,
+  carteraResume,
   dayResume,
+  filterCartera,
   lineAmounts,
   marginLabel,
   maxDiscountFor,
@@ -133,4 +136,50 @@ test('dayResume: lo emitido hoy, lo anulado y lo que está por cobrar', () => {
   ]
   assert.deepEqual(dayResume(invoices, '2026-11-04'), { emitidasHoy: 1, vendidoHoy: 100, anuladasHoy: 1, porCobrar: 150, facturasPorCobrar: 2 })
   assert.deepEqual(dayResume(undefined, '2026-11-04'), { emitidasHoy: 0, vendidoHoy: 0, anuladasHoy: 0, porCobrar: 0, facturasPorCobrar: 0 })
+})
+
+test('carteraResume: calcula totales por cobrar, pagados y devoluciones', () => {
+  const invoices = [
+    { estado: 'EMITIDA', estado_cobro: 'POR_COBRAR', valor_a_recaudar: 150000 },
+    { estado: 'EMITIDA', estado_cobro: 'POR_COBRAR', valor_a_recaudar: 80000 },
+    { estado: 'EMITIDA', estado_cobro: 'PAGADO', valor_a_recaudar: 200000 },
+    { estado: 'EMITIDA', estado_cobro: 'DEVOLUCION', valor_a_recaudar: 50000 },
+    { estado: 'ANULADA', estado_cobro: 'POR_COBRAR', valor_a_recaudar: 90000 },
+  ]
+  const kpis = carteraResume(invoices, 500000)
+  assert.equal(kpis.saldoFinanciero, 500000)
+  assert.equal(kpis.totalPorCobrar, 230000)
+  assert.equal(kpis.facturasPorCobrar, 2)
+  assert.equal(kpis.totalRecaudado, 200000)
+  assert.equal(kpis.facturasPagadas, 1)
+  assert.equal(kpis.totalDevoluciones, 50000)
+  assert.equal(kpis.facturasDevueltas, 1)
+})
+
+test('filterCartera: filtra por pestaña, búsqueda y transportadora', () => {
+  const invoices = [
+    { numero: 'FV-0001', cliente_nombre: 'Moda Joven', cliente_documento: '901234', transportadora: 'INTERRAPIDISIMO', numero_guia: 'GUI-10', estado_cobro: 'POR_COBRAR' },
+    { numero: 'FV-0002', cliente_nombre: 'Carolina Pérez', cliente_documento: '103245', transportadora: 'ENVIA', numero_guia: 'GUI-20', estado_cobro: 'PAGADO' },
+    { numero: 'FV-0003', cliente_nombre: 'Boutique La 10', cliente_documento: '900765', transportadora: 'ENVIA', numero_guia: 'GUI-30', estado_cobro: 'DEVOLUCION' },
+  ]
+
+  // Por pestaña
+  assert.equal(filterCartera(invoices, { tab: 'POR_COBRAR' }).length, 1)
+  assert.equal(filterCartera(invoices, { tab: 'PAGADO' })[0].numero, 'FV-0002')
+  assert.equal(filterCartera(invoices, { tab: 'TODAS' }).length, 3)
+
+  // Por búsqueda
+  assert.equal(filterCartera(invoices, { tab: 'TODAS', search: 'Carolina' }).length, 1)
+  assert.equal(filterCartera(invoices, { tab: 'TODAS', search: 'GUI-30' })[0].numero, 'FV-0003')
+
+  // Por transportadora
+  assert.equal(filterCartera(invoices, { tab: 'TODAS', carrier: 'ENVIA' }).length, 2)
+})
+
+test('canReconcile: solo facturas emitidas en estado por cobrar', () => {
+  assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'POR_COBRAR' }), true)
+  assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'PAGADO' }), false)
+  assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'DEVOLUCION' }), false)
+  assert.equal(canReconcile({ estado: 'ANULADA', estado_cobro: 'POR_COBRAR' }), false)
+  assert.equal(canReconcile(null), false)
 })

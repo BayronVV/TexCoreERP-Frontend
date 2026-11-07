@@ -75,8 +75,14 @@ function InvoiceDetail({ invoice, canCancel, meta, onChanged, onClose }) {
         <div><dt>Dirección</dt><dd>{invoice.cliente_direccion}</dd></div>
         <div><dt>Fecha</dt><dd>{formatDate(invoice.fecha)}</dd></div>
         <div><dt>Vendedor</dt><dd>{invoice.vendedor_nombre || '—'}</dd></div>
-        <div><dt>Pago</dt><dd>Contraentrega · {invoice.estado_cobro === 'POR_COBRAR' ? 'por cobrar' : invoice.estado_cobro}</dd></div>
+        <div><dt>Pago</dt><dd>Contraentrega · {invoice.estado_cobro_nombre || (invoice.estado_cobro === 'POR_COBRAR' ? 'por cobrar' : invoice.estado_cobro)}</dd></div>
         <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || 'Por definir'} · guía {invoice.numero_guia || 'por asignar'}</dd></div>
+        {invoice.fecha_cobro && (
+          <div><dt>Conciliación</dt><dd>{formatDate(invoice.fecha_cobro.slice(0, 10))} · por {invoice.cobrado_por_nombre || '—'}</dd></div>
+        )}
+        {invoice.motivo_devolucion && (
+          <div><dt>Motivo devolución</dt><dd>{invoice.motivo_devolucion}</dd></div>
+        )}
       </dl>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -126,6 +132,7 @@ export default function InvoicesPage() {
   const [meta, setMeta] = useState(null)
   const [search, setSearch] = useState('')
   const [state, setState] = useState('')
+  const [collectState, setCollectState] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [loadError, setLoadError] = useState('')
@@ -135,10 +142,11 @@ export default function InvoicesPage() {
     const params = new URLSearchParams({ limit: '200' })
     if (search.trim()) params.set('q', search.trim())
     if (state) params.set('estado', state)
+    if (collectState) params.set('estado_cobro', collectState)
     if (from) params.set('desde', from)
     if (to) params.set('hasta', to)
     apiGet(`/api/ventas/facturas/?${params}`).then((data) => (setInvoices(data), setLoadError(''))).catch((error) => setLoadError(error.message))
-  }, [search, state, from, to])
+  }, [search, state, collectState, from, to])
 
   useEffect(() => {
     apiGet('/api/ventas/metadatos/').then(setMeta).catch(() => {})
@@ -161,9 +169,15 @@ export default function InvoicesPage() {
         <div className={styles.filters}>
           <input type="search" placeholder="Buscar por factura, cliente o documento" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar facturas" />
           <select value={state} onChange={(event) => setState(event.target.value)} aria-label="Filtrar por estado">
-            <option value="">Todas</option>
+            <option value="">Todos los estados</option>
             <option value="EMITIDA">Emitidas</option>
             <option value="ANULADA">Anuladas</option>
+          </select>
+          <select value={collectState} onChange={(event) => setCollectState(event.target.value)} aria-label="Filtrar por cobro">
+            <option value="">Todo recaudo</option>
+            <option value="POR_COBRAR">Por cobrar</option>
+            <option value="PAGADO">Pagadas</option>
+            <option value="DEVOLUCION">Devoluciones</option>
           </select>
           <label>Desde <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
           <label>Hasta <input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
@@ -174,7 +188,7 @@ export default function InvoicesPage() {
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Ciudad</th><th className={styles.num}>Unidades</th><th className={styles.num}>Total</th><th>Estado</th><th>Vendedor</th><th /></tr>
+                <tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Ciudad</th><th className={styles.num}>Unidades</th><th className={styles.num}>Total</th><th>Estado</th><th>Recaudo</th><th>Vendedor</th><th /></tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
@@ -186,6 +200,15 @@ export default function InvoicesPage() {
                     <td className={styles.num}>{invoice.unidades}</td>
                     <td className={styles.num}>{money(invoice.total)}</td>
                     <td>{invoice.estado === 'ANULADA' ? 'Anulada' : 'Emitida'}</td>
+                    <td>
+                      {invoice.estado_cobro === 'PAGADO' ? (
+                        <span className={salesStyles.badgePaid}>Pagado</span>
+                      ) : invoice.estado_cobro === 'DEVOLUCION' ? (
+                        <span className={salesStyles.badgeReturned}>Devolución</span>
+                      ) : (
+                        <span className={salesStyles.badgePending}>Por cobrar</span>
+                      )}
+                    </td>
                     <td>{invoice.vendedor_nombre || '—'}</td>
                     <td><button type="button" className={styles.linkBtn} onClick={() => setViewing(invoice)}>Ver</button></td>
                   </tr>
