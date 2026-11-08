@@ -9,6 +9,8 @@ import finishedStyles from '../Finished/Finished.module.css'
 import salesStyles from './Sales.module.css'
 import { canReconcile, carteraResume, filterCartera, INVOICE_NOTICE, money } from './sales'
 import { downloadInvoicePdf } from './invoiceFile'
+import GuideBadge from '../Shipping/GuideBadge'
+import { deliveredAwaitingPayment } from '../Shipping/shipping'
 
 // Modal de acción rápida: Confirmar Recaudo (PAGADO) y actualizar saldo financiero de la empresa
 function ConfirmPayModal({ invoice, onDone, onClose }) {
@@ -171,6 +173,7 @@ function QuickInvoiceModal({ invoice, onClose }) {
         <div><dt>Vendedor</dt><dd>{invoice.vendedor_nombre || '—'}</dd></div>
         <div><dt>Estado de cobro</dt><dd><strong>{invoice.estado_cobro_nombre || invoice.estado_cobro}</strong></dd></div>
         <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || 'Por definir'} · guía {invoice.numero_guia || '—'}</dd></div>
+        {invoice.guia && <div><dt>Estado de la guía</dt><dd><GuideBadge color={invoice.guia.color} name={invoice.guia.estado_nombre} /></dd></div>}
         {invoice.fecha_cobro && (
           <div><dt>Conciliación</dt><dd>{formatDate(invoice.fecha_cobro.slice(0, 10))} · por {invoice.cobrado_por_nombre || '—'}</dd></div>
         )}
@@ -456,7 +459,14 @@ export default function CarteraPage() {
                             )}
                           </div>
                         )}
-                        {isPending && !isVoided && <span style={{ color: '#d97706' }}>Esperando reporte de transportadora</span>}
+                        {isPending && !isVoided && (inv.guia ? (
+                          <div>
+                            <GuideBadge color={inv.guia.color} name={inv.guia.estado_nombre} />
+                            {deliveredAwaitingPayment({ estado: inv.guia.estado, estado_cobro: inv.estado_cobro }) && (
+                              <div style={{ color: '#166534', fontWeight: 600, marginTop: '0.2rem' }}>Guía entregada: ya puedes confirmar el pago</div>
+                            )}
+                          </div>
+                        ) : <span style={{ color: '#d97706' }}>Esperando reporte de transportadora</span>)}
                         {isVoided && <span style={{ color: '#94a3b8' }}>Factura anulada</span>}
                       </td>
                       <td>

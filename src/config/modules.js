@@ -84,6 +84,16 @@ export const MODULES = [
     ],
   },
   {
+    id: 'envios',
+    label: 'Envíos',
+    children: [
+      { label: 'Panel de envíos', path: '/envios/panel' },
+      { label: 'Guías', path: '/envios/guias' },
+      { label: 'Por despachar', path: '/envios/pendientes' },
+      { label: 'Relaciones de despacho', path: '/envios/relaciones' },
+    ],
+  },
+  {
     id: 'reportes',
     label: 'Reportes',
     children: [{ label: 'Tablero gerencial', path: '/reportes' }],
