@@ -12,11 +12,17 @@ export default function SalesPanel() {
   const { can } = useAuth()
   const [invoices, setInvoices] = useState(null)
   const [loadError, setLoadError] = useState('')
+  const [noGuide, setNoGuide] = useState(null)
+  const canShipping = can('envios.ver')
   const today = todayISO()
 
   useEffect(() => {
     apiGet('/api/ventas/facturas/?limit=200').then(setInvoices).catch((error) => setLoadError(error.message))
   }, [])
+
+  useEffect(() => {
+    if (canShipping) apiGet('/api/envios/pendientes/').then(setNoGuide).catch(() => {})
+  }, [canShipping])
 
   const resume = dayResume(invoices, today)
 
@@ -30,6 +36,16 @@ export default function SalesPanel() {
 
       <p className={salesStyles.notice} role="note">{INVOICE_NOTICE} Se genera un PDF descargable de cada factura.</p>
       {loadError && <p className={styles.formError}>{loadError}</p>}
+
+      {canShipping && noGuide && noGuide.length > 0 && (
+        <p className={salesStyles.notice} role="alert">
+          <span>
+            {noGuide.length} {noGuide.length === 1 ? 'factura sin guía' : 'facturas sin guía'}
+            {noGuide.filter((row) => row.urgencia === 'vencida').length > 0 && `, ${noGuide.filter((row) => row.urgencia === 'vencida').length} vencida(s)`}. Anota la guía lo antes posible.
+          </span>
+          <Link to="/envios/pendientes" className={styles.secondaryBtn}>Ver facturas sin guía</Link>
+        </p>
+      )}
 
       <div className={salesStyles.kpis}>
         <div className={salesStyles.kpi}><span>Facturas de hoy</span><strong>{resume.emitidasHoy}</strong></div>

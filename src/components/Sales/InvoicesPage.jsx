@@ -8,6 +8,7 @@ import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from '../Finished/Finished.module.css'
 import salesStyles from './Sales.module.css'
 import { downloadInvoicePdf } from './invoiceFile'
+import GuideBadge from '../Shipping/GuideBadge'
 import { INVOICE_NOTICE, money } from './sales'
 
 // Anulación con motivo: las unidades vuelven al inventario y el número de la factura no se reutiliza.
@@ -77,6 +78,10 @@ function InvoiceDetail({ invoice, canCancel, meta, onChanged, onClose }) {
         <div><dt>Vendedor</dt><dd>{invoice.vendedor_nombre || '—'}</dd></div>
         <div><dt>Pago</dt><dd>Contraentrega · {invoice.estado_cobro_nombre || (invoice.estado_cobro === 'POR_COBRAR' ? 'por cobrar' : invoice.estado_cobro)}</dd></div>
         <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || 'Por definir'} · guía {invoice.numero_guia || 'por asignar'}</dd></div>
+        <div>
+          <dt>Estado de la guía</dt>
+          <dd>{invoice.guia ? <GuideBadge color={invoice.guia.color} name={invoice.guia.estado_nombre} /> : 'Sin guía anotada'}{invoice.guia?.novedad ? ` · ${invoice.guia.novedad}` : ''}</dd>
+        </div>
         {invoice.fecha_cobro && (
           <div><dt>Conciliación</dt><dd>{formatDate(invoice.fecha_cobro.slice(0, 10))} · por {invoice.cobrado_por_nombre || '—'}</dd></div>
         )}

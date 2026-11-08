@@ -26,6 +26,10 @@ import CarteraPage from './components/Sales/CarteraPage'
 import InvoicesPage from './components/Sales/InvoicesPage'
 import ClientsPage from './components/Sales/ClientsPage'
 import PricesPage from './components/Sales/PricesPage'
+import ShippingPanel from './components/Shipping/ShippingPanel'
+import GuidesPage from './components/Shipping/GuidesPage'
+import PendingPage from './components/Shipping/PendingPage'
+import DispatchPage from './components/Shipping/DispatchPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
@@ -224,6 +228,38 @@ function App() {
             element={
               <RequirePermission code="ventas.ver">
                 <PricesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/envios/panel"
+            element={
+              <RequirePermission code="envios.ver">
+                <ShippingPanel />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/envios/guias"
+            element={
+              <RequirePermission code="envios.ver">
+                <GuidesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/envios/pendientes"
+            element={
+              <RequirePermission code="envios.ver">
+                <PendingPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/envios/relaciones"
+            element={
+              <RequirePermission code="envios.ver">
+                <DispatchPage />
               </RequirePermission>
             }
           />

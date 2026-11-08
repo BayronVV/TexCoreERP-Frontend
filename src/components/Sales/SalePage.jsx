@@ -70,8 +70,9 @@ export default function SalePage() {
     setErrors({})
     try {
       const saved = await apiRequest('/api/ventas/facturas/', { method: 'POST', body: saleBody({ client, rows, transportadora: carrier, numeroGuia: guide, observaciones: notes, token }) })
-      notify(`Factura ${saved.numero} generada. Inventario descontado.`)
-      setLastInvoice(saved)
+      const withoutGuide = !guide.trim()
+      notify(withoutGuide ? `Factura ${saved.numero} generada. Inventario descontado. Anota la guía cuanto antes en Envíos → Por despachar.` : `Factura ${saved.numero} generada. Inventario descontado.`)
+      setLastInvoice({ ...saved, sinGuia: withoutGuide })
       setCart({})
       setNotes('')
       setGuide('')
@@ -108,6 +109,7 @@ export default function SalePage() {
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>Factura {lastInvoice.numero} generada</h2>
           <p>Total a pagar contraentrega: <strong>{money(lastInvoice.total)}</strong> · {lastInvoice.unidades} prendas para {lastInvoice.cliente_nombre}.</p>
+          {lastInvoice.sinGuia && <p className={salesStyles.notice} role="note">Esta factura quedó sin número de guía: anótala cuanto antes en Envíos → Por despachar.</p>}
           <div className={styles.actions}>
             <button type="button" className={styles.primaryBtn} onClick={pdf}>Descargar PDF</button>
             <button type="button" className={styles.secondaryBtn} onClick={() => setLastInvoice(null)}>Cerrar</button>
@@ -219,7 +221,8 @@ export default function SalePage() {
         </section>
 
         <section className={styles.card}>
-          <h2 className={styles.cardTitle}>4. Despacho</h2>
+          <h2 className={styles.cardTitle}>4. Despacho y guía de envío</h2>
+          <p className={salesStyles.notice} role="note">La guía se genera en la transportadora antes de facturar: escribe aquí el número. Si aún no la tienes, anótala después en Envíos → Por despachar.</p>
           <div className={styles.grid}>
             <label className={styles.field}>
               Transportadora (opcional)
@@ -230,8 +233,8 @@ export default function SalePage() {
               {err('transportadora')}
             </label>
             <label className={styles.field}>
-              Número de guía (opcional)
-              <input value={guide} onChange={(event) => setGuide(event.target.value)} maxLength={40} placeholder="Se puede asignar después" />
+              Número de guía
+              <input value={guide} onChange={(event) => setGuide(event.target.value)} maxLength={40} placeholder="Número que te dio la transportadora" />
             </label>
             <label className={styles.field}>
               Observaciones (opcional)
