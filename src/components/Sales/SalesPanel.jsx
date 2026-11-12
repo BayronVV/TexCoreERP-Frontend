@@ -7,7 +7,10 @@ import styles from '../Inventory/Inventory.module.css'
 import salesStyles from './Sales.module.css'
 import { dayResume, INVOICE_NOTICE, money } from './sales'
 
-// Ventas · Panel: el aviso de que la factura es un comprobante interno, el resumen del día y las últimas facturas.
+/**
+ * Ventas · Panel, ruta `/ventas/panel` (`ventas.ver`): el aviso de que la factura es un comprobante interno, el resumen del día y las
+ * últimas facturas. Con `envios.ver` avisa también de las facturas sin guía. Endpoints: `GET /api/ventas/facturas/` y `GET /api/envios/pendientes/`.
+ */
 export default function SalesPanel() {
   const { can } = useAuth()
   const [invoices, setInvoices] = useState(null)

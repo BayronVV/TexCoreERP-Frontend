@@ -7,8 +7,10 @@ import shipStyles from './Shipping.module.css'
 import GuideBadge from './GuideBadge'
 import { colorKey, deliveredNotice, money, totalFreight } from './shipping'
 
-// Envíos · Panel: el semáforo de las guías, las facturas que aún no tienen guía (lo más urgente), las novedades abiertas y las
-// devoluciones por vendedor con su flete (que se le descuenta al vendedor: aquí solo se muestra).
+/**
+ * Envíos · Panel, ruta `/envios/panel` (`envios.ver`): el semáforo de las guías, las facturas sin guía (lo más urgente), las novedades abiertas y las
+ * devoluciones por vendedor con su flete (que se le descuenta al vendedor: aquí solo se muestra). Lee `GET /api/envios/resumen/`.
+ */
 export default function ShippingPanel() {
   const { can } = useAuth()
   const [summary, setSummary] = useState(null)

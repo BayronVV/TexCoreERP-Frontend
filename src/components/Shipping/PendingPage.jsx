@@ -12,7 +12,14 @@ import {
 const ROW_CLASS = { atencion: shipStyles.rowAtencion, vencida: shipStyles.rowVencida }
 const URGENCY_CLASS = { normal: shipStyles.urgencyNormal, atencion: shipStyles.urgencyAtencion, vencida: shipStyles.urgencyVencida }
 
-// Formulario rápido de una fila: transportadora y número de guía. Al guardar, la factura sale de la lista.
+/**
+ * Formulario rápido de una fila: transportadora y número de guía. Al guardar, la factura sale de la lista.
+ * Usa `POST /api/envios/facturas/:id/guia/`.
+ * @param {object} props
+ * @param {object} props.invoice Factura sin guía.
+ * @param {Array} props.carriers Transportadoras de los metadatos.
+ * @param {function()} props.onSaved Se llama al guardar.
+ */
 function QuickGuide({ invoice, carriers, onSaved }) {
   const notify = useToast()
   const [carrier, setCarrier] = useState('')
@@ -56,8 +63,10 @@ function QuickGuide({ invoice, carriers, onSaved }) {
   )
 }
 
-// Envíos · Por despachar: las facturas que todavía no tienen guía, las más antiguas primero. La guía se genera en la transportadora
-// antes de facturar; si no se tenía a mano, se anota aquí cuanto antes.
+/**
+ * Envíos · Por despachar, ruta `/envios/pendientes` (`envios.ver`): las facturas que todavía no tienen guía, las más antiguas primero. Anotar la guía
+ * exige `envios.anotar`. Endpoints: `GET /api/envios/pendientes/` y `GET /api/envios/metadatos/`.
+ */
 export default function PendingPage() {
   const { can } = useAuth()
   const [rows, setRows] = useState(null)

@@ -7,8 +7,14 @@ import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 import { balance, confirmationText, entryBody, entryProblems, initialQuantities, plannedMap, variantMatrix } from './finished'
 
-// Ingreso de las aptas de una inspección al inventario final: se reparten por talla y color en una matriz y la suma debe cuadrar
-// exacto con las aptas (el botón espera a que cuadre). Lo planificado en el lote se muestra solo como referencia.
+/**
+ * Ingreso de las aptas de una inspección al inventario final: se reparten por talla y color en una matriz y la suma debe cuadrar exacto con las
+ * aptas (el botón espera a que cuadre). Lo planificado en el lote es solo referencia. Usa `POST /api/terminado/ingresos/`.
+ * @param {object} props
+ * @param {object} props.pending Inspección pendiente de ingresar (de `/api/terminado/pendientes/`).
+ * @param {function(object)} props.onSaved Recibe el ingreso registrado.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 export default function EntryForm({ pending, onSaved, onClose }) {
   const notify = useToast()
   const [quantities, setQuantities] = useState(() => initialQuantities(pending))

@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 
+/** Pestañas del tablero gerencial: `id` (clave del reporte) y `label` (texto visible). */
 export const REPORT_TABS = [
   { id: 'consolidado', label: 'Consolidado por Tipo de Jean' },
   { id: 'produccion', label: 'Órdenes de Producción' },
@@ -7,6 +8,7 @@ export const REPORT_TABS = [
   { id: 'ventas_det', label: 'Detalle de Ventas' },
 ]
 
+/** Filtros avanzados vacíos del tablero; las claves son los parámetros de `GET /api/reportes/gerencial/`. */
 export const INITIAL_FILTERS = {
   desde: '',
   hasta: '',
@@ -17,8 +19,18 @@ export const INITIAL_FILTERS = {
   tipo_cliente: '',
 }
 
+/**
+ * Dinero en pesos con separador de miles local (`es-CO`).
+ * @param {number|string} value Valor numérico (lo no numérico cuenta como cero).
+ * @returns {string} Por ejemplo `$1.250.000`.
+ */
 export const money = (value) => `$${Number(value || 0).toLocaleString('es-CO')}`
 
+/**
+ * Número con separador de miles local (`es-CO`).
+ * @param {number|string} value Valor numérico (lo no numérico cuenta como cero).
+ * @returns {string}
+ */
 export const number = (value) => Number(value || 0).toLocaleString('es-CO')
 
 /**

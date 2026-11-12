@@ -8,7 +8,10 @@ import finishedStyles from './Finished.module.css'
 import EntryForm from './EntryForm'
 import { differenceLabel, variantLabel } from './finished'
 
-// Detalle de un ingreso registrado: reparto por talla frente a lo planificado (solo lectura: no se edita ni se borra).
+/**
+ * Detalle de un ingreso registrado: reparto por talla frente a lo planificado (solo lectura: no se edita ni se borra).
+ * @param {{entry: object, onClose: function()}} props
+ */
 function EntryDetail({ entry, onClose }) {
   return (
     <Modal title={`Ingreso ${entry.codigo}`} onClose={onClose} wide>
@@ -41,8 +44,10 @@ function EntryDetail({ entry, onClose }) {
   )
 }
 
-// Producto terminado · Ingreso: las inspecciones con aptas que todavía no entran al inventario final se reparten por talla y
-// color. Ingresar exige `producto_terminado.gestionar` (Secretaria y Administrador); consultar, `producto_terminado.ver`.
+/**
+ * Producto terminado · Ingreso, ruta `/producto-terminado/ingreso` (`producto_terminado.ver`): las inspecciones con aptas que aún no entran al inventario
+ * final se reparten por talla y color. Ingresar exige `producto_terminado.gestionar`. Endpoints: `GET /api/terminado/pendientes/` y `GET /api/terminado/ingresos/`.
+ */
 export default function EntryPage() {
   const { can } = useAuth()
   const canManage = can('producto_terminado.gestionar')

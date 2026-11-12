@@ -9,7 +9,11 @@ import { dispatchable, dispatchBody, dispatchConfirmation, dispatchProblems, mon
 
 const formatMoment = (value) => (value ? new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
 
-// Descarga el PDF de una relación con la sesión del usuario («RD-0001.pdf»).
+/**
+ * Descarga el PDF de una relación de despacho (`GET /api/envios/relaciones/:id/pdf/`) con la sesión del usuario y lo guarda como «RD-0001.pdf».
+ * @param {{id: number, codigo: string}} relation Relación de despacho.
+ * @returns {Promise<void>}
+ */
 async function downloadDispatchPdf(relation) {
   const blob = await apiRequest(`/api/envios/relaciones/${relation.id}/pdf/`, { blob: true })
   const url = URL.createObjectURL(blob)
@@ -22,8 +26,11 @@ async function downloadDispatchPdf(relation) {
   setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
-// Envíos · Relaciones de despacho: se elige la transportadora, se marcan las guías por despachar que se le entregan y se crea la
-// relación (RD-0001…): las guías pasan a «En tránsito» y queda un PDF para firmar. Abajo, el historial.
+/**
+ * Envíos · Relaciones de despacho, ruta `/envios/relaciones` (`envios.ver`): se elige la transportadora, se marcan las guías por despachar que se le
+ * entregan y se crea la relación (RD-0001…): las guías pasan a «En tránsito» y queda un PDF para firmar. Abajo, el historial. Crear exige `envios.gestionar`.
+ * Endpoints: `GET/POST /api/envios/relaciones/`, `GET /api/envios/guias/?estado=POR_DESPACHAR` y `GET /api/envios/metadatos/`.
+ */
 export default function DispatchPage() {
   const { can } = useAuth()
   const notify = useToast()

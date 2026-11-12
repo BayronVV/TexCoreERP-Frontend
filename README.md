@@ -7,6 +7,12 @@ Interfaz web del ERP TexCore (gestión y trazabilidad de la producción de jeans
 Documentación completa (manuales, arquitectura, API y modelo de datos): <https://bayronvv.github.io/TexCoreERP-Backend/>.
 El manual de usuario explica cada pantalla; este archivo es la guía para quien desarrolla el frontend.
 
+> **El frontend no publica GitHub Pages.** La documentación del sistema vive únicamente en el sitio del repositorio del backend
+> (enlace de arriba). Aquí solo está esta guía y los comentarios JSDoc de los componentes.
+
+**Estado:** Sprint 3 (lavandería, calidad, producto terminado, ventas, envíos, cartera y reportes). La aplicación en producción
+está en <https://texcore-web.onrender.com> y su API en <https://texcore-api.onrender.com>.
+
 ## Estructura
 
 ```
@@ -27,8 +33,12 @@ frontend/
 │   │   ├── Purchasing/  # Órdenes de compra y recepción de mercancía
 │   │   ├── References/  # Catálogo de jeans (HU 3.1) y ficha técnica de consumo (HU 3.2)
 │   │   ├── Production/  # Órdenes y lotes, monitor, recursos y liquidación (HU 4.1 a 4.6)
+│   │   ├── Laundry/     # Procesos externos: remisión a lavado y recepción de lavandería (TE-57, TE-58)
 │   │   ├── Quality/     # Control de calidad: inspecciones de lotes y catálogo de defectos (HU 6.1)
-│   │   ├── Finished/    # Producto terminado: ingreso al inventario final, existencias y movimientos (HU 6.2)
+│   │   ├── Finished/    # Producto terminado: ingreso, existencias, ajuste manual y movimientos (HU 6.2, TE-60 y TE-61)
+│   │   ├── Sales/       # Ventas: panel, nueva venta, cartera, facturas, clientes y precios (TE-62, TE-64)
+│   │   ├── Shipping/    # Envíos: panel, guías, por despachar y relaciones de despacho (TE-63)
+│   │   ├── Reports/     # Reportes: tablero gerencial con exportación a Excel/CSV (TE-65)
 │   │   └── ui/          # Modal, avisos (toasts), RequirePermission
 │   ├── App.jsx        # Enrutamiento principal
 │   ├── main.jsx       # Punto de entrada
@@ -63,8 +73,8 @@ Abre http://localhost:5173.
 | `npm run dev`     | Servidor de desarrollo con recarga en caliente. |
 | `npm run build`   | Genera la versión de producción en `dist/`. |
 | `npm run preview` | Sirve `dist/` para probar el build. |
-| `npm run lint`    | Revisa el código con oxlint. |
-| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 179 pruebas. |
+| `npm run lint`    | Revisa `src/` con oxlint. Hoy deja 9 avisos (`react/set-state-in-effect`, anteriores al Sprint 3) y ningún error. |
+| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 221 pruebas, sin navegador ni backend. |
 
 ## Permisos en el frontend (HU 1.4)
 
@@ -113,7 +123,21 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/calidad/defectos` | `calidad.ver` | Catálogo de defectos corregibles e incorregibles (crear, editar y desactivar exige `calidad.gestionar`) |
 | `/producto-terminado/ingreso` | `producto_terminado.ver` | Ingreso: inspecciones por ingresar, formulario con matriz talla × color, suma en vivo y confirmación, historial y detalle (ingresar exige `producto_terminado.gestionar`) |
 | `/producto-terminado/existencias` | `producto_terminado.ver` | Existencias: matriz referencia × color × talla, con las celdas en cero resaltadas |
+| `/producto-terminado/ajuste` | `producto_terminado.ver` | Ajuste manual: conteo físico contra el sistema con motivo (ajustar exige `producto_terminado.ajustar`) e historial |
 | `/producto-terminado/movimientos` | `producto_terminado.ver` | Movimientos: libro de solo lectura con saldo antes y después |
+| `/lavanderia/remisiones` | `lavanderia.ver` | Remisión a lavado: lotes, proveedor y receta, guía de remisión e historial |
+| `/lavanderia/recepcion` | `lavanderia.ver` | Recepción de lavandería: cotejo de lo enviado y lo recibido, mermas, daños y pérdidas |
+| `/ventas/panel` | `ventas.ver` | Resumen del día y últimas facturas |
+| `/ventas/nueva` | `ventas.gestionar` | Nueva venta (punto de venta): cliente, matriz talla × color, descuentos y totales |
+| `/ventas/cartera` | `ventas.ver` | Gestión de cartera: por cobrar, pagadas y devueltas (confirmar recaudo o devolución exige `ventas.gestionar`) |
+| `/ventas/facturas` | `ventas.ver` | Facturas POS internas: filtros, detalle, PDF y anulación (`ventas.anular`) |
+| `/ventas/clientes` | `ventas.ver` | Clientes (crear y modificar exige `ventas.gestionar`) |
+| `/ventas/precios` | `ventas.ver` | Costo de fábrica y precios por referencia (modificar exige `ventas.precios`) |
+| `/envios/panel` | `envios.ver` | Semáforo de guías, facturas sin guía, novedades y devoluciones |
+| `/envios/guias` | `envios.ver` | Guías con filtros y detalle (estado, flete y rastreo exigen `envios.gestionar`) |
+| `/envios/pendientes` | `envios.ver` | Facturas por despachar sin guía (anotar la guía exige `envios.anotar`) |
+| `/envios/relaciones` | `envios.ver` | Relaciones de despacho con PDF (crear exige `envios.gestionar`) |
+| `/reportes` | `reportes.ver` | Tablero gerencial con filtros avanzados y exportación a Excel/CSV |
 | `/produccion/planificar` | — | Redirige a `/produccion/ordenes` (la planificación se unió a esa pantalla) |
 | cualquier otra | — | Redirige a `/dashboard` |
 
@@ -130,7 +154,11 @@ La lógica que no necesita React vive en módulos `.js` con pruebas, para probar
 | `Production/resources.js` | Validación y cuerpo de operarios y máquinas, etiquetas y avisos de ocupación |
 | `Production/costSettlement.js` | Lectura del resultado de `/costos/` y estado de la liquidación (completa o parcial) |
 | `Quality/quality.js` | Desglose de marras, suma de aptas + marras contra lo recibido, validaciones y cuerpos de la inspección y del defecto |
-| `Finished/finished.js` | Matriz de variantes por talla y color, suma del reparto contra las aptas, validaciones, cuerpo y confirmación del ingreso, diferencia contra lo planificado e ingresos recientes del inicio |
+| `Finished/finished.js` | Matriz de variantes por talla y color, suma del reparto contra las aptas, validaciones, cuerpo y confirmación del ingreso y del ajuste manual, diferencia contra lo planificado e ingresos recientes del inicio |
+| `Laundry/laundryReception.js` | Cotejo de cantidades por lote (conforme, merma, dañado), valoración de pérdidas y totales de la recepción |
+| `Sales/sales.js` | Montos de línea con IVA y descuento (igual que el servidor), carrito, validaciones, cuerpo de la venta, resumen de cartera y filtros |
+| `Shipping/shipping.js` | Semáforo y urgencia de guías, validación de notas y estados, cuerpo de la guía y de la relación de despacho, cuota de rastreo |
+| `Reports/reports.js` | Filtros del tablero, filas por pestaña y matriz de exportación a CSV y Excel |
 | `Purchasing/purchasing.js` | Estados y acciones de la orden de compra, filas de la recepción y sus validaciones |
 | `References/variants.js`, `fichaRows.js` | Combinaciones de talla y color; filas de la ficha técnica |
 
@@ -138,7 +166,11 @@ La lógica que no necesita React vive en módulos `.js` con pruebas, para probar
 
 | Variable       | Por defecto             | Descripción |
 |----------------|--------------------------|-------------|
-| `VITE_API_URL` | `http://localhost:8000` | URL base del backend. |
+| `VITE_API_URL` | `http://localhost:8000` | URL base del backend. Es la única variable `VITE_*` que lee el código (`src/api/client.js`). |
+
+- **Contra el backend local:** deja `VITE_API_URL=http://localhost:8000` (el valor de `.env.example`) y levanta el backend en ese puerto.
+- **Contra producción:** `VITE_API_URL=https://texcore-api.onrender.com` en `.env.local` prueba tu interfaz con la API desplegada
+  (son datos reales del entorno: úsalo con cuidado). El frontend publicado, <https://texcore-web.onrender.com>, se compila con la URL de esa API.
 
 Todo lo que empieza por `VITE_` queda visible en el navegador: nunca pongas
 secretos aquí. El acceso a la base de datos lo hace **solo** el backend.
@@ -161,7 +193,29 @@ Sirve también en cualquier hosting estático (Vercel, Netlify, Nginx, ...).
 
 ## Convenciones
 
-- Ramas: el trabajo sale de `pruebas` y vuelve por pull request; `main` solo recibe lo aprobado y se despliega solo.
+- Ramas: el trabajo sale de `pruebas` y vuelve por pull request; `main` solo recibe lo aprobado y se despliega solo. El flujo es
+  rama → `pruebas` → `main`.
+- Commits y pull requests de una historia de usuario llevan la clave del Jira (`TE-xxx`) de lo que implementan, para que Jira los vincule;
+  el pull request a `main` lleva título y descripción.
 - Los textos de la interfaz van en español. Los errores de la API llegan como `{campo: [mensaje]}` y se muestran junto al campo.
 - Un componente nuevo lleva sobre su declaración un comentario JSDoc o `//` que diga para qué sirve y qué props recibe; la lógica
   que se pueda separar de React va a un `.js` con su `.test.js`.
+
+## Módulos del Sprint 3
+
+| Módulo (menú) | Carpeta | Historias de Jira |
+|---------------|---------|-------------------|
+| Procesos Externos (Lavandería) | `src/components/Laundry/` | TE-57 (remisión a lavado), TE-58 (recepción de lavandería) |
+| Control de Calidad | `src/components/Quality/` | TE-59 |
+| Producto Terminado | `src/components/Finished/` | TE-60 (ingreso, existencias y movimientos), TE-61 (ajuste manual) |
+| Ventas y Despachos | `src/components/Sales/` | TE-62 (facturación), TE-64 (gestión de cartera) |
+| Envíos | `src/components/Shipping/` | TE-63 (guías de envío) |
+| Reportes | `src/components/Reports/` | TE-65 (tablero gerencial) |
+
+Los módulos de sprints anteriores (Seguridad, Inventario, Compras, Referencias y Producción) conservan sus carpetas descritas arriba.
+
+### Límites conocidos (se tratan en el Sprint 4)
+
+- **Lavandería:** las pantallas de remisión y recepción caen a datos de demostración (`mockLaundryData.js`) si la API no responde, y proponen valores por defecto (número de factura externa, costo por prenda). Está registrado como HU 5.4 (TE-172); mientras tanto, confirma que la API esté despierta antes de usarlas.
+- **Cartera:** la lista, las pestañas y los contadores salen de las últimas 200 facturas que carga la pantalla; el saldo financiero viene de `/api/ventas/cartera/resumen/`.
+- **Reportes:** los filtros se envían al servidor (`/api/reportes/gerencial/`) y la exportación a Excel y CSV se arma en el navegador con lo que devolvió.

@@ -14,8 +14,10 @@ const TYPES = [
 
 const formatMoment = (value) => new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 
-// Producto terminado · Movimientos: el libro del inventario. Solo se agregan filas: cada una muestra de cuánto a cuánto pasó el
-// saldo de una talla y por qué. Es de solo lectura.
+/**
+ * Producto terminado · Movimientos, ruta `/producto-terminado/movimientos` (`producto_terminado.ver`): el libro del inventario, de solo lectura. Cada fila
+ * muestra de cuánto a cuánto pasó el saldo de una talla y por qué. Lee `GET /api/terminado/movimientos/`.
+ */
 export default function MovementsPage() {
   const [rows, setRows] = useState(null)
   const [type, setType] = useState('')

@@ -17,11 +17,21 @@ import { useToast } from '../ui/toastContext'
 import { apiGet, apiRequest } from '../../api/client'
 import styles from './Laundry.module.css'
 
+/**
+ * Da formato de pesos colombianos sin decimales.
+ * @param {number|string} val Valor numérico (lo no numérico cuenta como cero).
+ * @returns {string} Por ejemplo `$ 35.000`.
+ */
 const formatCOP = (val) => {
   const num = Number(val) || 0
   return `$ ${num.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
 }
 
+/**
+ * Procesos Externos · Recepción de Lavandería (TE-58), ruta `/lavanderia/recepcion` (`lavanderia.ver`): cotejo de lo enviado contra lo recibido por lote (conforme,
+ * merma y dañado), pérdidas valoradas y acta de reingreso; la lógica de cálculo está en `laundryReception.js`. Endpoints: `GET /api/lavanderia/remisiones-pendientes/`,
+ * `GET` y `POST /api/lavanderia/recepciones/`. Si una consulta falla, usa los datos de demostración de `mockLaundryData.js`.
+ */
 export default function LaundryReceptionPage() {
   const notify = useToast()
   const [tab, setTab] = useState('cotejo') // 'cotejo' | 'historial'

@@ -9,8 +9,14 @@ import {
   addDefectRow, availableDefects, balance, confirmationText, defectKindLabel, inspectionBody, inspectionProblems, removeDefectRow,
 } from './quality'
 
-// Inspección de un lote que volvió de lavandería: cuántas prendas son aptas y cuántas marras, con el desglose por defecto.
-// La suma debe cuadrar exacto con lo recibido (el botón espera a que cuadre) y no se puede editar después de guardar.
+/**
+ * Inspección de un lote que volvió de lavandería: cuántas prendas son aptas y cuántas marras, con el desglose por defecto. La suma debe cuadrar exacto
+ * con lo recibido (el botón espera a que cuadre) y no se edita después de guardar. Usa `GET /api/calidad/defectos/` y `POST /api/calidad/inspecciones/`.
+ * @param {object} props
+ * @param {object} props.lot Lote pendiente (de `/api/calidad/pendientes/`).
+ * @param {function(object)} props.onSaved Recibe la inspección registrada.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 export default function InspectionForm({ lot, onSaved, onClose }) {
   const notify = useToast()
   const [defects, setDefects] = useState([])

@@ -7,7 +7,15 @@ import styles from '../Inventory/Inventory.module.css'
 
 const EMPTY = { tipo_documento: 'NIT', documento: '', dv: '', nombre: '', tipo: 'DETAL', ciudad: '', direccion: '', telefono: '', correo: '' }
 
-// Formulario de un cliente (crear o modificar). El tipo decide el precio de lista y el descuento máximo; el código lo asigna el sistema.
+/**
+ * Formulario (en modal) para crear o modificar un cliente. El tipo decide el precio de lista y el descuento máximo; el código lo asigna el sistema.
+ * Usa `POST /api/ventas/clientes/` o `PATCH /api/ventas/clientes/:id/`.
+ * @param {object} props
+ * @param {object} [props.client] Cliente a modificar; sin él, crea uno nuevo.
+ * @param {object} props.meta Metadatos de `/api/ventas/metadatos/` (tipos de documento y de cliente).
+ * @param {function(object)} props.onSaved Recibe el cliente guardado.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 export default function ClientForm({ client, meta, onSaved, onClose }) {
   const notify = useToast()
   const [form, setForm] = useState(() => (client ? { ...EMPTY, ...client } : EMPTY))

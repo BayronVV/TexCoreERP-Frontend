@@ -1,6 +1,13 @@
 import React from 'react'
 import styles from './Laundry.module.css'
 
+/**
+ * Modal con la guía de remisión de una salida a lavandería (solo lectura, sin llamadas a la API).
+ * @param {object} props
+ * @param {object|null} props.remission Remisión a mostrar; con `null` no dibuja nada.
+ * @param {function()} props.onClose Cierra el modal.
+ * @param {function()} props.onPrint Imprime la guía.
+ */
 export default function RemissionDocModal({ remission, onClose, onPrint }) {
   if (!remission) return null
 

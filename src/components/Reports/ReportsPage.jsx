@@ -27,6 +27,11 @@ function statusPillClass(code) {
   return `${reportStyles.statusPill} ${reportStyles.pillOpen}`
 }
 
+/**
+ * Reportes · Tablero gerencial, ruta `/reportes` (`reportes.ver`): cuatro pestañas (consolidado por tipo de jean, órdenes de producción, ventas por
+ * referencia y detalle de ventas) con filtros avanzados, actualización de las vistas analíticas y exportación a Excel (.xlsx) o CSV, generadas en el navegador.
+ * Endpoints: `GET /api/reportes/metadatos/`, `GET /api/reportes/gerencial/` (con los filtros como query) y `POST /api/reportes/refrescar/`.
+ */
 const ReportsPage = () => {
   const notify = useToast()
   const [meta, setMeta] = useState({

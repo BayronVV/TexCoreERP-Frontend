@@ -7,7 +7,14 @@ import { fieldErrors } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import { marginLabel, money } from './sales'
 
-// Edición de los precios de una referencia: costo de fábrica (el piso de toda venta) y precios mayorista y detal, antes de IVA.
+/**
+ * Edición de los precios de una referencia: costo de fábrica (el piso de toda venta) y precios mayorista y detal, antes de IVA.
+ * Usa `PUT /api/ventas/precios/:referencia/`.
+ * @param {object} props
+ * @param {object} props.item Fila de precios de la referencia.
+ * @param {function()} props.onSaved Se llama al guardar.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 function PriceForm({ item, onSaved, onClose }) {
   const notify = useToast()
   const [form, setForm] = useState({
@@ -62,8 +69,10 @@ function PriceForm({ item, onSaved, onClose }) {
   )
 }
 
-// Ventas · Precios: costo de fábrica y precios de venta por referencia. Los ve quien tiene `ventas.ver`; solo `ventas.precios`
-// (Gerente y Administrador) los modifica. Una referencia sin precio no se puede vender.
+/**
+ * Ventas · Precios, ruta `/ventas/precios` (`ventas.ver`): costo de fábrica y precios de venta por referencia. Solo `ventas.precios`
+ * (Gerente y Administrador) los modifica. Una referencia sin precio no se puede vender. Lee `GET /api/ventas/precios/`.
+ */
 export default function PricesPage() {
   const { can } = useAuth()
   const canEdit = can('ventas.precios')

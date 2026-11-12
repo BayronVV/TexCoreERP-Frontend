@@ -3,6 +3,7 @@
 
 import { money } from '../Sales/sales.js'
 
+/** Formato de dinero compartido con Ventas (`Sales/sales.js`). */
 export { money }
 
 /** Colores de semáforo que entrega el servidor; cualquier otro se muestra como gris. */
