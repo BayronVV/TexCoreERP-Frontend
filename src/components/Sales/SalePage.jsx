@@ -12,9 +12,12 @@ import {
   cartRows, cartTotals, INVOICE_NOTICE, maxDiscountFor, money, saleBody, saleConfirmation, saleProblems, variantIndex,
 } from './sales'
 
-// Ventas · Nueva venta: el punto de venta. Se elige el cliente y, por referencia, cuántas prendas de cada talla y color (la matriz
-// muestra lo disponible). Cada línea lleva el descuento que decide el vendedor, hasta el máximo del tipo de cliente y sin bajar
-// del costo de fábrica. Los totales se calculan igual que en el servidor, que es quien valida y descuenta el inventario.
+/**
+ * Ventas · Nueva venta (punto de venta), ruta `/ventas/nueva` (`ventas.gestionar`). Se elige el cliente y, por referencia, las prendas de cada
+ * talla y color (la matriz muestra lo disponible); cada línea lleva el descuento del vendedor, hasta el máximo del tipo de cliente y sin bajar del
+ * costo de fábrica. Los totales se calculan igual que en el servidor, que valida y descuenta el inventario.
+ * Endpoints: `GET /api/terminado/existencias/`, `/api/ventas/clientes/`, `/api/ventas/metadatos/`, `/api/ventas/precios/` y `POST /api/ventas/facturas/`.
+ */
 export default function SalePage() {
   const notify = useToast()
   const [meta, setMeta] = useState(null)

@@ -18,8 +18,17 @@ const formatMoment = (value) => (value ? new Date(value).toLocaleString('es-CO',
 
 const ORIGINS = { MANUAL: 'Manual', TRACK123: 'Rastreo', SISTEMA: 'Sistema' }
 
-// Detalle de una guía: datos, historial propio, línea de tiempo de la transportadora (ya guardada: verla no llama a la API de rastreo)
-// y las acciones. Consultar a la transportadora gasta cuota, por eso solo ocurre cuando el usuario pulsa «Consultar estado».
+/**
+ * Detalle de una guía: datos, historial propio, línea de tiempo de la transportadora (ya guardada: verla no llama a la API de rastreo) y las
+ * acciones (con `envios.gestionar`: cambiar estado, ajustar flete, rastrear; con `envios.devolucion`: registrar la devolución). Consultar a la
+ * transportadora gasta cuota, por eso solo ocurre cuando el usuario pulsa «Consultar estado».
+ * Endpoints: `/api/envios/guias/:id/` (y `estado/`, `flete/`, `devolucion/`, `rastrear/`) y `GET /api/envios/rastreo/estado/`.
+ * @param {object} props
+ * @param {number} props.guideId Id de la guía.
+ * @param {object} props.meta Metadatos de `/api/envios/metadatos/`.
+ * @param {function()} props.onChanged Se llama cuando la guía cambió, para recargar la lista.
+ * @param {function()} props.onClose Cierra el detalle.
+ */
 function GuideDetail({ guideId, meta, onChanged, onClose }) {
   const { can } = useAuth()
   const notify = useToast()
@@ -279,7 +288,10 @@ function GuideDetail({ guideId, meta, onChanged, onClose }) {
   )
 }
 
-// Envíos · Guías: todas las guías con su semáforo, filtros y el detalle de cada una.
+/**
+ * Envíos · Guías, ruta `/envios/guias` (`envios.ver`): todas las guías con su semáforo, filtros y el detalle de cada una.
+ * Endpoints: `GET /api/envios/guias/` y `GET /api/envios/metadatos/`.
+ */
 export default function GuidesPage() {
   const [params] = useSearchParams()
   const [meta, setMeta] = useState(null)

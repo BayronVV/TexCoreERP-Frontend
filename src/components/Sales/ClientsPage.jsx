@@ -5,8 +5,11 @@ import { useToast } from '../ui/toastContext'
 import styles from '../Inventory/Inventory.module.css'
 import ClientForm from './ClientForm'
 
-// Ventas · Clientes: a quién se le vende. Registrar y modificar exige `ventas.gestionar` (Vendedor y Administrador); un cliente
-// no se borra, se desactiva. Su tipo decide el precio de lista y el descuento máximo.
+/**
+ * Ventas · Clientes, ruta `/ventas/clientes` (`ventas.ver`). Registrar, modificar y activar/desactivar exige `ventas.gestionar`;
+ * un cliente no se borra, se desactiva. Su tipo decide el precio de lista y el descuento máximo.
+ * Endpoints: `GET /api/ventas/clientes/`, `GET /api/ventas/metadatos/` y `PATCH /api/ventas/clientes/:id/`.
+ */
 export default function ClientsPage() {
   const { can } = useAuth()
   const notify = useToast()

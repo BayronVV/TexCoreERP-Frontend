@@ -11,7 +11,15 @@ import { downloadInvoicePdf } from './invoiceFile'
 import GuideBadge from '../Shipping/GuideBadge'
 import { INVOICE_NOTICE, money } from './sales'
 
-// Anulación con motivo: las unidades vuelven al inventario y el número de la factura no se reutiliza.
+/**
+ * Formulario de anulación con motivo: las unidades vuelven al inventario y el número de la factura no se reutiliza.
+ * Usa `POST /api/ventas/facturas/:id/anular/`.
+ * @param {object} props
+ * @param {object} props.invoice Factura a anular.
+ * @param {number} props.minimum Largo mínimo del motivo.
+ * @param {function(object)} props.onDone Recibe la factura anulada.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 function CancelForm({ invoice, minimum, onDone, onClose }) {
   const notify = useToast()
   const [reason, setReason] = useState('')
@@ -50,7 +58,15 @@ function CancelForm({ invoice, minimum, onDone, onClose }) {
   )
 }
 
-// Detalle de una factura (solo lectura): líneas con su precio, descuento e IVA del momento, PDF y, con permiso, anulación.
+/**
+ * Detalle de una factura (solo lectura): líneas con su precio, descuento e IVA del momento, PDF y, con permiso, anulación.
+ * @param {object} props
+ * @param {object} props.invoice Factura mostrada.
+ * @param {boolean} props.canCancel Si el usuario tiene `ventas.anular`.
+ * @param {object} props.meta Metadatos de `/api/ventas/metadatos/`.
+ * @param {function(object)} props.onChanged Recibe la factura tras anularla.
+ * @param {function()} props.onClose Cierra el detalle.
+ */
 function InvoiceDetail({ invoice, canCancel, meta, onChanged, onClose }) {
   const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState('')
@@ -130,7 +146,10 @@ function InvoiceDetail({ invoice, canCancel, meta, onChanged, onClose }) {
   )
 }
 
-// Ventas · Facturas: las facturas POS internas emitidas, con filtros básicos, detalle, PDF y anulación (`ventas.anular`).
+/**
+ * Ventas · Facturas, ruta `/ventas/facturas` (`ventas.ver`): las facturas POS internas emitidas, con filtros básicos, detalle, PDF y
+ * anulación (`ventas.anular`). Endpoints: `GET /api/ventas/facturas/` y `GET /api/ventas/metadatos/`.
+ */
 export default function InvoicesPage() {
   const { can } = useAuth()
   const [invoices, setInvoices] = useState(null)

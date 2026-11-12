@@ -8,7 +8,10 @@ import qualityStyles from './Quality.module.css'
 import InspectionForm from './InspectionForm'
 import { flawedPercent } from './quality'
 
-// Detalle de una inspección registrada: resumen y marras por defecto (solo lectura: no se edita ni se borra).
+/**
+ * Detalle de una inspección registrada: resumen y marras por defecto (solo lectura: no se edita ni se borra).
+ * @param {{inspection: object, onClose: function()}} props
+ */
 function InspectionDetail({ inspection, onClose }) {
   return (
     <Modal title={`Inspección ${inspection.codigo}`} onClose={onClose} wide>
@@ -46,8 +49,10 @@ function InspectionDetail({ inspection, onClose }) {
   )
 }
 
-// Control de calidad: los lotes que volvieron de lavandería se inspeccionan una sola vez (aptas y marras por defecto) y el
-// historial queda de solo lectura. Registrar exige `calidad.gestionar`; consultar, `calidad.ver`.
+/**
+ * Control de calidad · Inspecciones (TE-59), ruta `/calidad/inspecciones` (`calidad.ver`): los lotes que volvieron de lavandería se inspeccionan una sola vez
+ * (aptas y marras por defecto) y el historial queda de solo lectura. Registrar exige `calidad.gestionar`. Endpoints: `GET /api/calidad/pendientes/` y `/api/calidad/inspecciones/`.
+ */
 export default function InspectionsPage() {
   const { can } = useAuth()
   const canManage = can('calidad.gestionar')

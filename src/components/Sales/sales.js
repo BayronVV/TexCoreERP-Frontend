@@ -2,6 +2,7 @@
 // es quien decide (stock, precios, tope de descuento, piso del costo de fábrica, montos y numeración); aquí se calcula lo mismo para
 // mostrar los totales en vivo y avisar antes de enviar, y debe dar exactamente lo que devuelve el servidor.
 
+/** Aviso que acompaña a toda factura: es un comprobante interno, no una factura electrónica. */
 export const INVOICE_NOTICE = 'Factura POS interna. No es factura electrónica.'
 
 const isWhole = (text, minimum = 0) => /^\d+$/.test(String(text ?? '').trim()) && Number(String(text).trim()) >= minimum

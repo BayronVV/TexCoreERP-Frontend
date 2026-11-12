@@ -12,7 +12,11 @@ import { downloadInvoicePdf } from './invoiceFile'
 import GuideBadge from '../Shipping/GuideBadge'
 import { deliveredAwaitingPayment } from '../Shipping/shipping'
 
-// Modal de acción rápida: Confirmar Recaudo (PAGADO) y actualizar saldo financiero de la empresa
+/**
+ * Modal de acción rápida: confirma el recaudo de una factura (`estado_cobro: PAGADO`) y suma su valor al saldo financiero.
+ * Usa `POST /api/ventas/facturas/:id/conciliar/`.
+ * @param {{invoice: object, onDone: function(object), onClose: function()}} props `onDone` recibe la factura actualizada.
+ */
 function ConfirmPayModal({ invoice, onDone, onClose }) {
   const notify = useToast()
   const [notes, setNotes] = useState('')
@@ -79,7 +83,11 @@ function ConfirmPayModal({ invoice, onDone, onClose }) {
   )
 }
 
-// Modal de acción rápida: Registrar Devolución y reingresar prendas a producto terminado
+/**
+ * Modal de acción rápida: registra la devolución de una factura (`estado_cobro: DEVOLUCION`, con motivo); las prendas vuelven a producto terminado.
+ * Usa `POST /api/ventas/facturas/:id/conciliar/`.
+ * @param {{invoice: object, onDone: function(object), onClose: function()}} props `onDone` recibe la factura actualizada.
+ */
 function ConfirmReturnModal({ invoice, onDone, onClose }) {
   const notify = useToast()
   const [reason, setReason] = useState('')
@@ -149,7 +157,10 @@ function ConfirmReturnModal({ invoice, onDone, onClose }) {
   )
 }
 
-// Modal de detalle de factura para consulta rápida y descarga de PDF
+/**
+ * Modal de consulta rápida de una factura, con descarga del PDF (`downloadInvoicePdf`, `GET /api/ventas/facturas/:id/pdf/`).
+ * @param {{invoice: object, onClose: function()}} props
+ */
 function QuickInvoiceModal({ invoice, onClose }) {
   const [error, setError] = useState('')
 
@@ -228,7 +239,11 @@ function QuickInvoiceModal({ invoice, onClose }) {
   )
 }
 
-// Tablero para gestión de cartera (HU 7.3 / TE-64)
+/**
+ * Ventas · Gestión de cartera (HU 7.3 / TE-64), ruta `/ventas/cartera` (`ventas.ver`): tablero de facturas por cobrar, pagadas y devueltas,
+ * con filtros y resumen. Confirmar recaudo o registrar devolución exige `ventas.gestionar`.
+ * Endpoints: `GET /api/ventas/facturas/` y `GET /api/ventas/cartera/resumen/`; las acciones usan `POST /api/ventas/facturas/:id/conciliar/`.
+ */
 export default function CarteraPage() {
   const { can } = useAuth()
   const canManage = can('ventas.gestionar')

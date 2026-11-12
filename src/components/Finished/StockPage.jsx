@@ -5,8 +5,11 @@ import { useAuth } from '../../auth/session'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 
-// Producto terminado · Existencias: la matriz referencia × talla de las prendas de primera calidad. Las celdas en cero se
-// resaltan; el saldo lo calcula el servidor (el navegador solo lo muestra).
+/**
+ * Producto terminado · Existencias, ruta `/producto-terminado/existencias` (`producto_terminado.ver`): la matriz referencia × color × talla de las
+ * prendas de primera calidad; las celdas en cero se resaltan y el saldo lo calcula el servidor. Con `producto_terminado.ajustar` enlaza a «Ajustar».
+ * Lee `GET /api/terminado/existencias/`.
+ */
 export default function StockPage() {
   const { can } = useAuth()
   const [matrix, setMatrix] = useState(null)

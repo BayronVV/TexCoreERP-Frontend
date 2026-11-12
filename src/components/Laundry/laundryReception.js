@@ -2,8 +2,10 @@
  * Lógica pura de negocio para Recepción de Lavandería, Cotejo de Cantidades y Pérdidas (TE-58).
  */
 
+/** Costo unitario por prenda (COP) con el que se valoran las pérdidas cuando la fila no trae uno. */
 export const DEFAULT_GARMENT_UNIT_COST = 35000
 
+/** Motivos de merma (prendas perdidas) que ofrece la lista desplegable de la recepción. */
 export const STANDARD_MERMA_REASONS = [
   'Extravío en tinas o centrifugado industrial',
   'Encogimiento térmico excesivo fuera de tolerancia',
@@ -12,6 +14,7 @@ export const STANDARD_MERMA_REASONS = [
   'Otro motivo de merma',
 ]
 
+/** Tipos de daño de lavado que ofrece la lista desplegable de la recepción. */
 export const STANDARD_DAMAGE_TYPES = [
   'Decoloración irregular o veteado químico',
   'Rotura, desgarro o abrasión excesiva de tela denim',

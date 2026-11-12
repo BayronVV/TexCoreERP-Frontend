@@ -12,7 +12,10 @@ import {
   summaryText, variantLabel, variantMatrix,
 } from './finished'
 
-// Detalle de un ajuste registrado (solo lectura: el comprobante es inalterable).
+/**
+ * Detalle de un ajuste registrado (solo lectura: el comprobante es inalterable).
+ * @param {{adjustment: object, onClose: function()}} props
+ */
 function AdjustmentDetail({ adjustment, onClose }) {
   return (
     <Modal title={`Ajuste ${adjustment.codigo}`} onClose={onClose} wide>
@@ -44,7 +47,14 @@ function AdjustmentDetail({ adjustment, onClose }) {
   )
 }
 
-// Formulario del conteo: la matriz de una referencia con el saldo del sistema precargado; se digita lo que hay en la bodega.
+/**
+ * Formulario del conteo: la matriz de una referencia con el saldo del sistema precargado; se digita lo que hay en la bodega. Usa `POST /api/terminado/ajustes/`.
+ * @param {object} props
+ * @param {Array} props.references Existencias de `/api/terminado/existencias/`.
+ * @param {string} [props.initialReference] Referencia preseleccionada.
+ * @param {object} props.meta Metadatos de `/api/terminado/metadatos/` (motivos).
+ * @param {function(object)} props.onSaved Recibe el ajuste registrado.
+ */
 function AdjustmentForm({ references, initialReference, meta, onSaved }) {
   const notify = useToast()
   const [referenceId, setReferenceId] = useState(initialReference)
@@ -184,8 +194,10 @@ function AdjustmentForm({ references, initialReference, meta, onSaved }) {
   )
 }
 
-// Producto terminado · Ajuste manual (RF22): corrige descuadres entre el conteo físico y el sistema. Ajustar exige
-// `producto_terminado.ajustar` (Secretaria y Administrador); el historial lo ven quienes tienen `producto_terminado.ver`.
+/**
+ * Producto terminado · Ajuste manual (RF22), ruta `/producto-terminado/ajuste` (`producto_terminado.ver`): corrige descuadres entre el conteo físico y el
+ * sistema. Ajustar exige `producto_terminado.ajustar` (Secretaria y Administrador). Endpoints: `GET /api/terminado/{existencias,ajustes,metadatos}/`.
+ */
 export default function AdjustmentPage() {
   const { can } = useAuth()
   const canAdjust = can('producto_terminado.ajustar')

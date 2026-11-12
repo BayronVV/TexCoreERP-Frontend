@@ -25,6 +25,12 @@ export function addDefectRow(rows, defect, quantity, note = '') {
   }
 }
 
+/**
+ * Quita del desglose la fila de un defecto.
+ * @param {Array<{defecto: number}>} rows Desglose actual.
+ * @param {number} defectId Id del defecto a quitar.
+ * @returns {Array} Desglose sin esa fila.
+ */
 export const removeDefectRow = (rows, defectId) => rows.filter((row) => row.defecto !== defectId)
 
 /** Suma de las marras del desglose (las filas con cantidad mal escrita cuentan como cero). */
@@ -93,6 +99,8 @@ export const defectBody = (form) => ({
   corregible: form.corregible === 'si',
 })
 
+/** Formulario de defecto vacío (nuevo defecto corregible por defecto). */
 export const emptyDefectForm = () => ({ nombre: '', descripcion: '', corregible: 'si' })
 
+/** Formulario de edición precargado con los datos de un defecto del catálogo. */
 export const defectForm = (defect) => ({ nombre: defect.nombre, descripcion: defect.descripcion ?? '', corregible: defect.corregible ? 'si' : 'no' })

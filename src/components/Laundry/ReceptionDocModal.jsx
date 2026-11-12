@@ -1,11 +1,23 @@
 import React from 'react'
 import styles from './Laundry.module.css'
 
+/**
+ * Da formato de pesos colombianos sin decimales.
+ * @param {number|string} val Valor numérico (lo no numérico cuenta como cero).
+ * @returns {string} Por ejemplo `$ 35.000`.
+ */
 const formatCOP = (val) => {
   const num = Number(val) || 0
   return `$ ${num.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
 }
 
+/**
+ * Modal con el acta de cotejo y reingreso de una recepción de lavandería (solo lectura, sin llamadas a la API).
+ * @param {object} props
+ * @param {object|null} props.reception Recepción a mostrar; con `null` no dibuja nada.
+ * @param {function()} props.onClose Cierra el modal.
+ * @param {function()} props.onPrint Imprime el acta.
+ */
 export default function ReceptionDocModal({ reception, onClose, onPrint }) {
   if (!reception) return null
 

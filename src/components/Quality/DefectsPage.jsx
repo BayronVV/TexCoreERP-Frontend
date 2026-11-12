@@ -8,7 +8,14 @@ import styles from '../Inventory/Inventory.module.css'
 import qualityStyles from './Quality.module.css'
 import { defectBody, defectForm, defectKindLabel, defectNameProblem, emptyDefectForm } from './quality'
 
-// Crear o editar un defecto del catálogo. Los defectos no se borran: se desactivan, para no romper las inspecciones ya hechas.
+/**
+ * Crear o editar un defecto del catálogo. Los defectos no se borran: se desactivan, para no romper las inspecciones ya hechas.
+ * Usa `POST /api/calidad/defectos/` o `PATCH /api/calidad/defectos/:id/`.
+ * @param {object} props
+ * @param {object|null} props.defect Defecto a editar; con `null`, crea uno nuevo.
+ * @param {function(object)} props.onSaved Recibe el defecto guardado.
+ * @param {function()} props.onClose Cierra el formulario.
+ */
 function DefectForm({ defect, onSaved, onClose }) {
   const notify = useToast()
   const editing = Boolean(defect)
@@ -67,7 +74,10 @@ function DefectForm({ defect, onSaved, onClose }) {
   )
 }
 
-// Catálogo de defectos de calidad (RF19): qué se puede encontrar en una prenda y si se puede corregir o es marra definitiva.
+/**
+ * Control de calidad · Defectos (RF19), ruta `/calidad/defectos` (`calidad.ver`): qué se puede encontrar en una prenda y si se puede corregir o es marra
+ * definitiva. Crear, editar y desactivar exige `calidad.gestionar`. Endpoints: `GET /api/calidad/defectos/` y `PATCH /api/calidad/defectos/:id/`.
+ */
 export default function DefectsPage() {
   const { can } = useAuth()
   const notify = useToast()
