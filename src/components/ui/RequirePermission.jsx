@@ -1,3 +1,4 @@
+import { hasAccess } from '../../auth/permissions'
 import { useAuth } from '../../auth/session'
 import styles from './ui.module.css'
 
@@ -5,12 +6,11 @@ import styles from './ui.module.css'
  * Muestra a sus hijos solo si el rol del usuario tiene el permiso; si no, un aviso de acceso denegado.
  * La decisión real la toma el backend (403); esto solo evita mostrar pantallas vacías.
  *
- * @param {{code: string, children: import('react').ReactNode}} props `code` p. ej. `inventario.ver`.
+ * @param {{code: string|string[], children: import('react').ReactNode}} props `code` p. ej. `inventario.ver`.
  */
 export default function RequirePermission({ code, children }) {
   const { can } = useAuth()
-  const allowed = Array.isArray(code) ? code.some((c) => can(c)) : can(code)
-  if (allowed) return children
+  if (hasAccess(can, code)) return children
   return (
     <section className={styles.forbidden}>
       <h2>No tienes acceso a esta sección</h2>
