@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  COLUMN_STATES, alertInfo, alertSummary, ageLabel, boardQuery, boardTotal, canDrop, cardButtons, dropOutcome, hiddenCount, moveLot, refreshLabel,
+  COLUMN_STATES, alertInfo, alertSummary, ageLabel, applyLotTransition, boardQuery, boardTotal, canDrop, cardButtons, dropOutcome, hiddenCount, moveLot, refreshLabel,
   targetOfAction,
 } from './monitorBoard.js'
 
@@ -169,4 +169,49 @@ test('boardQuery incluye las canceladas solo si se piden', () => {
   assert.equal(boardQuery({ canceladas: true }), '?canceladas=1')
   assert.equal(boardQuery({ canceladas: false }), '')
   assert.equal(boardQuery({ orden: '4', canceladas: true }), '?orden=4&canceladas=1')
+})
+
+test('H03: si la API rechaza la transición del lote, la tarjeta se revierte a su columna y muestra el motivo', async () => {
+  const card = { id: 1, codigo: 'OP-0001-L01', estado: 'EN_PROCESO', acciones: ['completar'], termina_el_lote: true }
+  let state = {
+    columnas: [
+      { estado: 'PLANEADA', total: 0, lotes: [] },
+      { estado: 'EN_PROCESO', total: 1, lotes: [card] },
+      { estado: 'EN_PAUSA', total: 0, lotes: [] },
+      { estado: 'TERMINADA', total: 0, lotes: [] },
+    ],
+  }
+  let notice = ''
+  let reloaded = 0
+
+  const result = await applyLotTransition({
+    lot: card,
+    action: 'completar',
+    sendAction: async () => {
+      throw { message: 'Error 400', body: { accion: ['Faltan etapas por completar.'] } }
+    },
+    setBoard: (updater) => {
+      state = updater(state)
+    },
+    setNotice: (msg) => {
+      notice = msg
+    },
+    reload: () => {
+      reloaded += 1
+    },
+    extractErrorMessage: (err) => err.body?.accion?.[0] ?? err.message,
+  })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'Faltan etapas por completar.')
+  assert.equal(notice, 'OP-0001-L01: Faltan etapas por completar.')
+  assert.equal(reloaded, 1)
+  // La tarjeta volvió a EN_PROCESO y TERMINADA quedó vacía
+  assert.deepEqual(state.columnas.map((c) => [c.estado, c.total]), [
+    ['PLANEADA', 0],
+    ['EN_PROCESO', 1],
+    ['EN_PAUSA', 0],
+    ['TERMINADA', 0],
+  ])
+  assert.deepEqual(state.columnas[1].lotes.map((l) => l.id), [1])
 })

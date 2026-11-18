@@ -1,0 +1,43 @@
+name: Calidad continua (Frontend)
+
+# Verifica lint, pruebas unitarias, compilación de producción y auditoría de dependencias
+# en cada push o pull request hacia pruebas y main.
+on:
+  push:
+    branches: [main, pruebas]
+  pull_request:
+    branches: [main, pruebas]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad-frontend:
+    name: Lint, pruebas, build y auditoría
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Verificar linter (oxlint)
+        run: npm run lint
+      - name: Ejecutar pruebas unitarias
+        run: npm test
+      - name: Compilar bundle de producción (Vite)
+        run: npm run build
+      - name: Auditoría de vulnerabilidades críticas en producción
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Resumen informativo de auditoría completa
+        if: always()
+        continue-on-error: true
+        run: npm audit --omit=dev

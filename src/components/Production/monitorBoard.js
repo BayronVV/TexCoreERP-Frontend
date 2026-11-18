@@ -139,3 +139,42 @@ export function alertSummary(alertas) {
   if (attention) parts.push(`${attention} ${critical ? '' : `lote${attention === 1 ? '' : 's'} `}con atención`)
   return parts.join(' · ')
 }
+
+/**
+ * Aplica una transición sobre una tarjeta del tablero: mueve la tarjeta de forma optimista si hay
+ * columna destino y, si la API rechaza la transición, revierte el tablero al estado previo, publica
+ * el motivo del rechazo y dispara la recarga desde el servidor.
+ */
+export async function applyLotTransition({
+  lot,
+  action,
+  sendAction,
+  setBoard,
+  setNotice,
+  reload,
+  extractErrorMessage,
+}) {
+  const target = targetOfAction(lot, action)
+  let previousColumns = null
+  if (target) {
+    setBoard((current) => {
+      if (!current) return current
+      previousColumns = current.columnas
+      return { ...current, columnas: moveLot(current.columnas, lot.id, target) }
+    })
+  }
+  try {
+    await sendAction(lot, action)
+    setNotice(`${lot.codigo}: hecho.`)
+    return { ok: true }
+  } catch (failure) {
+    if (previousColumns) {
+      setBoard((current) => (current ? { ...current, columnas: previousColumns } : current))
+    }
+    const reason = extractErrorMessage ? extractErrorMessage(failure) : failure.message
+    setNotice(`${lot.codigo}: ${reason}`)
+    return { ok: false, reason }
+  } finally {
+    reload()
+  }
+}
