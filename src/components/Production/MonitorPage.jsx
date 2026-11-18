@@ -7,7 +7,7 @@ import styles from '../Inventory/Inventory.module.css'
 import boardStyles from './Monitor.module.css'
 import { formatDuration, liveSeconds } from './lotTracking'
 import {
-  REFRESH_MS, ageLabel, alertInfo, alertSummary, boardQuery, boardTotal, canDrop, cardButtons, dropOutcome, hiddenCount, moveLot, refreshLabel, targetOfAction,
+  REFRESH_MS, ageLabel, alertInfo, alertSummary, applyLotTransition, boardQuery, boardTotal, canDrop, cardButtons, dropOutcome, hiddenCount, refreshLabel,
 } from './monitorBoard'
 
 const COLUMN_HINT = {
@@ -80,19 +80,23 @@ export default function MonitorPage() {
   }, [orders])
 
   const act = async (lot, action) => {
-    const target = targetOfAction(lot, action)
     setBusy(true)
     setNotice('')
-    if (target) setBoard((current) => ({ ...current, columnas: moveLot(current.columnas, lot.id, target) })) // al instante
     try {
-      await apiRequest(`/api/produccion/lotes/${lot.id}/${action}/`, { method: 'POST', body: {} })
-      setNotice(`${lot.codigo}: hecho.`)
-    } catch (failure) {
-      const fields = fieldErrors(failure)
-      setNotice(`${lot.codigo}: ${fields.accion ?? fields.orden ?? failure.message}`)
+      await applyLotTransition({
+        lot,
+        action,
+        sendAction: (card, actName) => apiRequest(`/api/produccion/lotes/${card.id}/${actName}/`, { method: 'POST', body: {} }),
+        setBoard,
+        setNotice,
+        reload,
+        extractErrorMessage: (failure) => {
+          const fields = fieldErrors(failure)
+          return fields.accion ?? fields.orden ?? failure.message
+        },
+      })
     } finally {
       setBusy(false)
-      reload() // con la respuesta del servidor la tarjeta queda donde corresponde, o vuelve a su sitio si fue rechazada
     }
   }
 

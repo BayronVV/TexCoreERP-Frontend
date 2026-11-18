@@ -2,13 +2,13 @@
 // todavía usan axios directamente.
 // La URL base viene de VITE_API_URL (ver .env.example).
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
 /**
  * Error de una respuesta de la API.
  * `status` es el código HTTP (0 si no hubo conexión) y `body` el cuerpo JSON, p. ej. `{campo: [mensaje]}`.
  */
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(status, body) {
     super(firstErrorMessage(body) || `Error ${status}`)
     this.status = status
@@ -17,7 +17,7 @@ class ApiError extends Error {
 }
 
 // DRF devuelve errores como {detail}, {campo: [msg]} o [msg]; nos quedamos con el primero legible.
-function firstErrorMessage(body) {
+export function firstErrorMessage(body) {
   if (!body) return null
   if (typeof body === 'string') return body
   if (Array.isArray(body)) return firstErrorMessage(body[0])
