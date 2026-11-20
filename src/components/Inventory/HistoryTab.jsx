@@ -90,7 +90,14 @@ function OrderDetail({ order, canManage, onClose, onCancelled }) {
       <h3 className={styles.subhead}>Evidencias</h3>
       <EvidenceLinks items={order.evidencias} />
 
-      {canManage && order.estado === 'EN_PROCESO' && (
+      {order.tipo === 'LAVANDERIA' && (
+        <p className={styles.muted} style={{ marginTop: '1rem' }}>
+          Orden provisional histórica en solo lectura (HU 5.3). Los envíos a lavandería ahora se registran desde{' '}
+          <Link to="/lavanderia/remisiones" className={styles.textLink}>Producción → Lavandería</Link>.
+        </p>
+      )}
+
+      {canManage && order.estado === 'EN_PROCESO' && order.tipo !== 'LAVANDERIA' && (
         asking ? (
           <form className={styles.form} onSubmit={cancel} style={{ marginTop: '1rem' }}>
             <label className={styles.field}>
@@ -136,7 +143,7 @@ function OrdersList({ canManage, refreshKey, onChanged }) {
         <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de orden">
           <option value="">Todos los tipos</option>
           <option value="PRODUCCION">Producción (OP)</option>
-          <option value="LAVANDERIA">Lavandería (LV)</option>
+          <option value="LAVANDERIA">Lavandería (LV · histórico)</option>
         </select>
         <select value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Estado">
           <option value="">Todos los estados</option>

@@ -1,5 +1,5 @@
-// Lógica pura de la cesta de una orden de salida (hoy, la salida a lavandería). Va aparte del formulario para poder
-// probarla sin navegador. El consumo de las órdenes de producción lo calcula el servidor con la ficha técnica.
+// Lógica pura de órdenes de producción en inventario y partición de lotes. El consumo de materiales lo calcula
+// el servidor con la ficha técnica; las órdenes provisionales LV fueron retiradas en HU 5.3 (TE-171).
 
 /** Unidades que no admiten decimales (deben coincidir con `WHOLE_UNITS` del backend). */
 export const WHOLE = ['rollo', 'caja', 'unidad']
@@ -10,10 +10,7 @@ export const stepFor = (unit) => (WHOLE.includes(unit) ? '1' : '0.01')
 /** ¿El texto es un entero positivo (`'12'`)? Rechaza decimales, vacíos, ceros y negativos. */
 export const isPositiveInteger = (text) => /^\d+$/.test(String(text ?? '').trim()) && Number(text) > 0
 
-/**
- * Cuerpo del POST de una orden. En producción la cantidad de prendas es obligatoria y en lavandería no se envía
- * (el servidor la toma del pantalón genérico que se manda a lavar).
- */
+/** Cuerpo del POST de una orden de producción (`PRODUCCION`). */
 export function buildOrderBody({ form, tipo, basket }) {
   return {
     tipo,
@@ -35,13 +32,16 @@ export const isShort = (line, product) => Number(line.cantidad) > Number(product
  * Motivos por los que todavía no se puede registrar la orden (vacío si está lista).
  *
  * @param {object} state
- * @param {'PRODUCCION'|'LAVANDERIA'} state.tipo
+ * @param {'PRODUCCION'} state.tipo
  * @param {object} state.form Campos del formulario.
  * @param {{producto: number, cantidad: string}[]} state.basket
  * @param {(id: number) => object|undefined} state.productOf
  * @param {{tiene_ficha: boolean}|undefined} state.reference La referencia elegida.
  */
 export function orderProblems({ tipo, form, basket, productOf, reference }) {
+  if (tipo === 'LAVANDERIA') {
+    return ['El envío a lavandería se hace desde Producción → Lavandería.']
+  }
   const problems = []
   if (!reference) problems.push('Elige la referencia.')
   else if (tipo === 'PRODUCCION' && !reference.tiene_ficha) problems.push('La referencia no tiene ficha técnica.')
@@ -50,8 +50,5 @@ export function orderProblems({ tipo, form, basket, productOf, reference }) {
   if (basket.length === 0) problems.push('La cesta está vacía.')
   if (basket.some((line) => !(Number(line.cantidad) > 0))) problems.push('Hay cantidades en cero.')
   if (basket.some((line) => isShort(line, productOf(line.producto)))) problems.push('Falta stock de algún material.')
-  if (tipo === 'LAVANDERIA' && !basket.some((line) => productOf(line.producto)?.tipo === 'GENERICO')) {
-    problems.push('Agrega los pantalones genéricos que se envían.')
-  }
   return problems
 }
