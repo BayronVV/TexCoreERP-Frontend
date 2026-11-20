@@ -1,4 +1,6 @@
-// Pruebas unitarias de la lógica pura de la cesta de una orden. Se ejecutan con `npm test`.
+// Pruebas unitarias de la lógica pura y contrato del módulo de Inventario (TE-171). Se ejecutan con `npm test`.
+import fs from 'node:fs'
+import path from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
@@ -79,13 +81,12 @@ test('orderProblems exige referencia, y en producción que tenga ficha', () => {
   assert.ok(orderProblems({ ...READY, reference: { tiene_ficha: false } }).includes('La referencia no tiene ficha técnica.'))
 })
 
-test('orderProblems: lavandería no necesita ficha pero sí un pantalón genérico', () => {
+test('orderProblems: rechaza órdenes provisionales LAVANDERIA y dirige a Producción → Lavandería (TE-171)', () => {
   const laundry = {
     ...READY, tipo: 'LAVANDERIA', form: { producto_resultado: '8' }, reference: { tiene_ficha: false },
     basket: [{ producto: 3, cantidad: '20' }],
   }
-  assert.deepEqual(orderProblems(laundry), [])
-  assert.ok(orderProblems({ ...laundry, basket: [{ producto: 2, cantidad: '5' }] }).includes('Agrega los pantalones genéricos que se envían.'))
+  assert.deepEqual(orderProblems(laundry), ['El envío a lavandería se hace desde Producción → Lavandería.'])
 })
 
 test('orderProblems exige la cantidad de prendas solo en producción', () => {
@@ -102,4 +103,25 @@ test('orderProblems detecta cesta vacía, cantidades en cero y faltantes', () =>
 
 test('orderProblems exige el producto resultante', () => {
   assert.ok(orderProblems({ ...READY, form: { ...READY.form, producto_resultado: '' } }).includes('Elige el producto resultante.'))
+})
+
+test('UI de Inventario retira Salida a lavandería e ingreso de producto terminado pero conserva historial LV solo lectura (TE-171)', () => {
+  const dir = import.meta.dirname
+  const inventoryPage = fs.readFileSync(path.join(dir, 'InventoryPage.jsx'), 'utf8')
+  const entryForm = fs.readFileSync(path.join(dir, 'EntryForm.jsx'), 'utf8')
+  const historyTab = fs.readFileSync(path.join(dir, 'HistoryTab.jsx'), 'utf8')
+
+  assert.equal(fs.existsSync(path.join(dir, 'ExitForm.jsx')), false)
+  assert.match(inventoryPage, /Existencias/)
+  assert.match(inventoryPage, /Ingreso/)
+  assert.match(inventoryPage, /Historial/)
+  assert.doesNotMatch(inventoryPage, /Salida a lavandería/)
+  assert.doesNotMatch(inventoryPage, /ExitForm/)
+
+  assert.match(entryForm, /type\.value !== 'TERMINADO'/)
+  assert.match(entryForm, /tipo=PRODUCCION/)
+  assert.doesNotMatch(entryForm, /orden de lavandería/)
+
+  assert.match(historyTab, /value="LAVANDERIA"/)
+  assert.match(historyTab, /order\.tipo !== 'LAVANDERIA'/)
 })

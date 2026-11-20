@@ -19,7 +19,7 @@ const byName = (a, b) => a.razon_social.localeCompare(b.razon_social, 'es')
 
 /**
  * Formulario de ingreso al almacén: compra a proveedor (con costo unitario opcional, que actualiza el costo promedio) o retorno de
- * una orden para pantalones. Permite adjuntar evidencias (foto o PDF).
+ * una orden de producción para pantalones genéricos (HU 2.3 / HU 5.3 TE-171). Permite adjuntar evidencias (foto o PDF).
  */
 export default function EntryForm({ products, onChanged }) {
   const notify = useToast()
@@ -48,11 +48,11 @@ export default function EntryForm({ products, onChanged }) {
       .finally(() => setSuppliersLoaded(true))
   }, [])
 
-  // Un pantalón solo entra cerrando la orden que lo fabricó: se buscan las que siguen abiertas.
+  // Un pantalón genérico solo entra cerrando la orden OP que lo fabricó.
   useEffect(() => {
     if (!madeInHouse) return
     let cancelled = false
-    apiGet(`/api/inventario/ordenes/?estado=EN_PROCESO&producto_resultado=${product.id}`)
+    apiGet(`/api/inventario/ordenes/?estado=EN_PROCESO&tipo=PRODUCCION&producto_resultado=${product.id}`)
       .then((data) => !cancelled && (setOrders(data), setOrdersLoaded(true)))
       .catch(() => !cancelled && (setOrders([]), setOrdersLoaded(true)))
     return () => {
@@ -103,7 +103,7 @@ export default function EntryForm({ products, onChanged }) {
   }
 
   const err = (name) => errors[name] && <span className={styles.fieldError}>{errors[name]}</span>
-  const madeLabel = product?.tipo === 'GENERICO' ? 'orden de producción' : 'orden de lavandería'
+  const entryProductTypes = PRODUCT_TYPES.filter((type) => type.value !== 'TERMINADO')
   // Primero los proveedores de la categoría del producto; el resto, por si hace falta otro.
   const sameCategory = suppliers.filter((s) => s.categoria === product?.categoria).sort(byName)
   const otherSuppliers = suppliers.filter((s) => s.categoria !== product?.categoria).sort(byName)
@@ -119,7 +119,7 @@ export default function EntryForm({ products, onChanged }) {
           <div className={styles.inline}>
             <select id="ing-producto" value={form.producto} onChange={pickProduct} required>
               <option value="">Selecciona un producto</option>
-              {PRODUCT_TYPES.map((type) => {
+              {entryProductTypes.map((type) => {
                 const group = products.filter((p) => p.tipo === type.value)
                 return (
                   group.length > 0 && (
@@ -184,7 +184,7 @@ export default function EntryForm({ products, onChanged }) {
             <label htmlFor="ing-orden">Orden de origen</label>
             <select id="ing-orden" value={form.orden} onChange={set('orden')} required disabled={!ordersLoaded || orders.length === 0}>
               <option value="">
-                {!ordersLoaded ? 'Buscando órdenes…' : orders.length ? `Selecciona la ${madeLabel}` : `No hay ${madeLabel} en proceso`}
+                {!ordersLoaded ? 'Buscando órdenes…' : orders.length ? 'Selecciona la orden de producción' : 'No hay orden de producción en proceso'}
               </option>
               {orders.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -193,9 +193,14 @@ export default function EntryForm({ products, onChanged }) {
               ))}
             </select>
             <span className={styles.hint}>
-              {ordersLoaded && orders.length === 0
-                ? `Solo entra lo que sale de una orden. Registra primero la salida en la pestaña Salida.`
-                : 'Al recibirlo la orden se cierra.'}
+              {ordersLoaded && orders.length === 0 ? (
+                <>
+                  Solo entra lo que sale de una orden de producción. Créala primero en{' '}
+                  <Link to="/produccion/ordenes" className={styles.textLink}>Producción → Órdenes de producción</Link>.
+                </>
+              ) : (
+                'Al recibirlo la orden se cierra.'
+              )}
             </span>
             {err('orden')}
           </div>
@@ -209,9 +214,6 @@ export default function EntryForm({ products, onChanged }) {
                 type="number" min="0" step={stepFor(product.unidad)}
                 value={form.cantidad} onChange={set('cantidad')} required
               />
-              {order?.tipo === 'LAVANDERIA' && (
-                <span className={styles.hint}>Se enviaron {formatQty(order.cantidad_prendas, product.unidad)}; no pueden volver más.</span>
-              )}
               {err('cantidad')}
             </label>
             <div className={styles.field}>

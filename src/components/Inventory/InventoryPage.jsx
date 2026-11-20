@@ -3,14 +3,13 @@ import { useSearchParams } from 'react-router-dom'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import EntryForm from './EntryForm'
-import ExitForm from './ExitForm'
 import HistoryTab from './HistoryTab'
 import StockTab from './StockTab'
 import styles from './Inventory.module.css'
 
 /**
- * Movimientos de inventario (HU 2.3): pestañas Existencias, Ingreso, Salida a lavandería (estas dos con `inventario.gestionar`)
- * e Historial. Las salidas de producción se crean en `/produccion/ordenes`, no aquí.
+ * Movimientos de inventario (HU 2.3 / HU 5.3 TE-171): pestañas Existencias, Ingreso (con `inventario.gestionar`)
+ * e Historial. El envío a lavandería se realiza en Producción → Lavandería (`/lavanderia/remisiones`).
  */
 export default function InventoryPage() {
   const { can } = useAuth()
@@ -33,7 +32,7 @@ export default function InventoryPage() {
 
   const tabs = [
     { id: 'existencias', label: 'Existencias' },
-    ...(canManage ? [{ id: 'ingreso', label: 'Ingreso' }, { id: 'salida', label: 'Salida a lavandería' }] : []),
+    ...(canManage ? [{ id: 'ingreso', label: 'Ingreso' }] : []),
     { id: 'historial', label: 'Historial' },
   ]
 
@@ -43,7 +42,7 @@ export default function InventoryPage() {
         <p className={styles.eyebrow}>Inventario</p>
         <h1>Movimientos de almacén</h1>
         <p className={styles.subtitle}>
-          Existencias, ingresos, salidas por orden y su trazabilidad.
+          Existencias, ingresos de almacén y trazabilidad histórica de órdenes y kardex.
         </p>
       </header>
 
@@ -63,7 +62,6 @@ export default function InventoryPage() {
 
       {tab === 'existencias' && <StockTab products={products} canManage={canManage} />}
       {tab === 'ingreso' && canManage && <EntryForm products={products} onChanged={reload} />}
-      {tab === 'salida' && canManage && <ExitForm products={products} onChanged={reload} />}
       {tab === 'historial' && (
         <HistoryTab products={products} canManage={canManage} refreshKey={refreshKey} onChanged={reload} />
       )}
