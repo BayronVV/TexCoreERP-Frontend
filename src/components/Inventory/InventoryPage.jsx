@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import EntryForm from './EntryForm'
@@ -13,8 +14,11 @@ import styles from './Inventory.module.css'
  */
 export default function InventoryPage() {
   const { can } = useAuth()
+  const [searchParams] = useSearchParams()
   const canManage = can('inventario.gestionar')
-  const [tab, setTab] = useState('existencias')
+  const [tab, setTab] = useState(() =>
+    searchParams.get('tab') === 'historial' || searchParams.get('orden_compra') ? 'historial' : 'existencias',
+  )
   const [products, setProducts] = useState([])
   const [loadError, setLoadError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
