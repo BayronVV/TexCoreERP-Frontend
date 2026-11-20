@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useToast } from '../ui/toastContext'
 import Modal from '../ui/Modal'
@@ -179,20 +180,22 @@ function OrdersList({ canManage, refreshKey, onChanged }) {
   )
 }
 
-function Kardex({ products, refreshKey }) {
+function Kardex({ products, refreshKey, initialOrderCode = '' }) {
   const [rows, setRows] = useState(null)
   const [error, setError] = useState('')
   const [tipo, setTipo] = useState('')
   const [producto, setProducto] = useState('')
+  const [ordenCompra, setOrdenCompra] = useState(initialOrderCode)
 
   useEffect(() => {
     const params = new URLSearchParams()
     if (tipo) params.set('tipo', tipo)
     if (producto) params.set('producto', producto)
+    if (ordenCompra.trim()) params.set('orden_compra', ordenCompra.trim())
     apiGet(`/api/inventario/movimientos/?${params}`)
       .then((data) => (setRows(data), setError('')))
       .catch((e) => setError(e.message))
-  }, [tipo, producto, refreshKey])
+  }, [tipo, producto, ordenCompra, refreshKey])
 
   return (
     <>
@@ -208,6 +211,13 @@ function Kardex({ products, refreshKey }) {
             <option key={p.id} value={p.id}>{p.nombre}</option>
           ))}
         </select>
+        <input
+          type="search"
+          placeholder="Orden de compra (ej. OC-0001)"
+          value={ordenCompra}
+          onChange={(e) => setOrdenCompra(e.target.value)}
+          aria-label="Filtrar por orden de compra"
+        />
       </div>
       {error && <p className={styles.formError}>{error}</p>}
       {rows && rows.length === 0 && <p className={styles.empty}>Todavía no hay movimientos.</p>}
@@ -221,27 +231,46 @@ function Kardex({ products, refreshKey }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{formatDate(row.fecha)}</td>
-                  <td>{row.producto_nombre}</td>
-                  <td>
-                    <span className={`${styles.badge} ${row.tipo === 'INGRESO' ? styles.badgeOk : styles.badgeWarn}`}>
-                      {row.tipo === 'INGRESO' ? 'Ingreso' : 'Salida'}
-                    </span>
-                    <span className={styles.muted}> {REASONS[row.motivo]}</span>
-                  </td>
-                  <td className={styles.num}>{row.tipo === 'INGRESO' ? '+' : '−'}{formatQty(row.cantidad, row.unidad)}</td>
-                  <td className={styles.num}>{row.costo_unitario ? formatMoney(row.costo_unitario) : '—'}</td>
-                  <td className={styles.num}>{formatQty(row.stock_despues, row.unidad)}</td>
-                  <td>
-                    {[row.orden_codigo, row.proveedor_nombre, row.orden_compra, row.lote && `Lote ${row.lote}`]
-                      .filter(Boolean).join(' · ') || '—'}
-                  </td>
-                  <td>{row.registrado_por_nombre || '—'}</td>
-                  <td><EvidenceLinks items={row.evidencias} /></td>
-                </tr>
-              ))}
+              {rows.map((row) => {
+                const detailParts = [
+                  row.orden_codigo,
+                  row.proveedor_nombre,
+                  row.recepcion_codigo,
+                  row.lote && `Lote ${row.lote}`,
+                ].filter(Boolean)
+                return (
+                  <tr key={row.id}>
+                    <td>{formatDate(row.fecha)}</td>
+                    <td>{row.producto_nombre}</td>
+                    <td>
+                      <span className={`${styles.badge} ${row.tipo === 'INGRESO' ? styles.badgeOk : styles.badgeWarn}`}>
+                        {row.tipo === 'INGRESO' ? 'Ingreso' : 'Salida'}
+                      </span>
+                      <span className={styles.muted}> {REASONS[row.motivo]}</span>
+                    </td>
+                    <td className={styles.num}>{row.tipo === 'INGRESO' ? '+' : '−'}{formatQty(row.cantidad, row.unidad)}</td>
+                    <td className={styles.num}>{row.costo_unitario ? formatMoney(row.costo_unitario) : '—'}</td>
+                    <td className={styles.num}>{formatQty(row.stock_despues, row.unidad)}</td>
+                    <td>
+                      {row.orden_compra ? (
+                        <>
+                          <Link
+                            className={styles.textLink}
+                            to={`/compras/ordenes?orden=${encodeURIComponent(row.orden_compra_id ?? row.orden_compra)}`}
+                          >
+                            {row.orden_compra}
+                          </Link>
+                          {detailParts.length > 0 && ` · ${detailParts.join(' · ')}`}
+                        </>
+                      ) : (
+                        detailParts.join(' · ') || '—'
+                      )}
+                    </td>
+                    <td>{row.registrado_por_nombre || '—'}</td>
+                    <td><EvidenceLinks items={row.evidencias} /></td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -252,7 +281,11 @@ function Kardex({ products, refreshKey }) {
 
 /** Historial de inventario: kardex de movimientos y lista de órdenes de salida, con la anulación de las que están en proceso. */
 export default function HistoryTab({ products, canManage, refreshKey, onChanged }) {
-  const [view, setView] = useState('ordenes')
+  const [searchParams] = useSearchParams()
+  const initialOrderCode = searchParams.get('orden_compra') ?? ''
+  const [view, setView] = useState(() =>
+    searchParams.get('vista') === 'kardex' || initialOrderCode ? 'kardex' : 'ordenes',
+  )
   return (
     <section className={styles.card}>
       <div className={styles.cardHead}>
@@ -271,7 +304,7 @@ export default function HistoryTab({ products, canManage, refreshKey, onChanged 
       {view === 'ordenes' ? (
         <OrdersList canManage={canManage} refreshKey={refreshKey} onChanged={onChanged} />
       ) : (
-        <Kardex products={products} refreshKey={refreshKey} />
+        <Kardex key={initialOrderCode} products={products} refreshKey={refreshKey} initialOrderCode={initialOrderCode} />
       )}
     </section>
   )

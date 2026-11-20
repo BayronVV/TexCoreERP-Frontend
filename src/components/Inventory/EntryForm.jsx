@@ -170,7 +170,10 @@ export default function EntryForm({ products, onChanged }) {
             <label className={styles.field}>
               Orden de compra (opcional)
               <input value={form.orden_compra} onChange={set('orden_compra')} maxLength={40} placeholder="OC-00123" />
-              <span className={styles.hint}>Referencia de la compra. Cuando exista el módulo de compras se enlazará.</span>
+              <span className={styles.hint}>
+                Para recibir contra una orden aprobada usa{' '}
+                <Link to="/compras/recepcion" className={styles.textLink}>Recepción de mercancía</Link>.
+              </span>
               {err('orden_compra')}
             </label>
           </>
