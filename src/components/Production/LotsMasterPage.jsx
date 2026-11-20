@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
+import { draftFromShortages } from '../Purchasing/purchasing'
 import { fieldErrors, formatDate, formatQty } from '../Inventory/labels'
 import { isPositiveInteger } from '../Inventory/orderLines'
 import styles from '../Inventory/Inventory.module.css'
@@ -20,7 +22,9 @@ const NO_PLAN = { data: null, loading: false, error: '' }
 // que pide la ficha, lo disponible, el máximo producible y hasta qué lote alcanza el stock.
 export default function LotsMasterPage() {
   const { can } = useAuth()
+  const navigate = useNavigate()
   const canManage = can('produccion.gestionar')
+  const canPurchase = can('compras.gestionar')
 
   const [references, setReferences] = useState(null)
   const [products, setProducts] = useState(null)
@@ -171,6 +175,17 @@ export default function LotsMasterPage() {
     } catch (error) {
       setCancelError(fieldErrors(error).motivo ?? error.message)
     }
+  }
+
+  const goToPurchaseShortages = (targetRef, qty, missing) => {
+    navigate('/compras/ordenes', {
+      state: {
+        prefillShortages: draftFromShortages(
+          { referencia: targetRef, cantidad: qty, faltantes: missing },
+          products ?? [],
+        ),
+      },
+    })
   }
 
   const err = (name) => errors[name] && <span className={styles.fieldError}>{errors[name]}</span>
@@ -390,6 +405,17 @@ export default function LotsMasterPage() {
             <div>
               <strong>No hay material suficiente:</strong>{' '}
               {shortages.map((s) => `${s.nombre} (hay ${Number(s.disponible)}, se piden ${Number(s.solicitado)} ${s.unidad})`).join('; ')}.
+              {canPurchase && (
+                <>
+                  {' '}
+                  <button
+                    type="button" className={styles.linkBtn}
+                    onClick={() => goToPurchaseShortages(reference, total, shortages)}
+                  >
+                    Solicitar compra de los faltantes
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -429,6 +455,17 @@ export default function LotsMasterPage() {
                   {' '}
                   <button type="button" className={styles.linkBtn} onClick={() => applyMaximum(data.maximo_producible)}>
                     Usar {data.maximo_producible}
+                  </button>
+                </>
+              )}
+              {!data.viable && canPurchase && data.faltantes?.length > 0 && (
+                <>
+                  {' '}
+                  <button
+                    type="button" className={styles.linkBtn}
+                    onClick={() => goToPurchaseShortages(data.referencia, data.cantidad, data.faltantes)}
+                  >
+                    Solicitar compra de los faltantes
                   </button>
                 </>
               )}

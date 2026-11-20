@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
@@ -51,16 +51,25 @@ function ReasonModal({ title, help, confirmLabel, onConfirm, onClose }) {
 // Órdenes de compra de materiales: la crea Producción, la aprueba el Gerente y el almacenista recibe la mercancía. Cada
 // botón aparece solo si el rol puede usarlo en ese estado; el servidor valida igual.
 export default function OrdersPage() {
-  const { can } = useAuth()
+  const { user, can } = useAuth()
   const notify = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [orders, setOrders] = useState(null)
   const [states, setStates] = useState([])
   const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [state, setState] = useState('')
-  const [editing, setEditing] = useState(null) // null | 'new' | orden
+  const [prefill, setPrefill] = useState(() => location.state?.prefillShortages ?? null)
+  const [editing, setEditing] = useState(() => (location.state?.prefillShortages ? 'new' : null)) // null | 'new' | orden
   const [viewing, setViewing] = useState(null)
   const [reasoning, setReasoning] = useState(null) // { order, kind: 'cancelar' | 'cerrar' }
+
+  useEffect(() => {
+    if (!location.state?.prefillShortages) return
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [location, navigate])
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -81,8 +90,41 @@ export default function OrdersPage() {
     apiGet('/api/compras/metadatos/').then((meta) => setStates(meta.estados)).catch(() => {})
   }, [])
 
+  const targetOrderParam = searchParams.get('orden')
+  const [fetchedViewing, setFetchedViewing] = useState(null)
+  const matchedViewing = targetOrderParam
+    ? (orders ?? []).find(
+        (item) => String(item.id) === targetOrderParam || item.codigo.toUpperCase() === targetOrderParam.toUpperCase(),
+      ) ?? fetchedViewing
+    : null
+  const activeViewing = viewing ?? matchedViewing
+
+  useEffect(() => {
+    if (!targetOrderParam || !/^\d+$/.test(targetOrderParam)) return
+    const alreadyInList = (orders ?? []).some((item) => String(item.id) === targetOrderParam)
+    if (alreadyInList) return
+    let alive = true
+    apiGet(`/api/compras/ordenes/${targetOrderParam}/`)
+      .then((data) => alive && setFetchedViewing(data))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [orders, targetOrderParam])
+
+  const closeDetail = () => {
+    setViewing(null)
+    setFetchedViewing(null)
+    if (targetOrderParam) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('orden')
+      setSearchParams(next, { replace: true })
+    }
+  }
+
   const approve = async (order) => {
-    if (!window.confirm(`¿Aprobar la orden ${order.codigo}? Después ya no se podrá editar y el almacén podrá recibir contra ella.`)) return
+    const isCreator = Boolean(user?.id && order.creado_por === user.id)
+    if (!isCreator && !window.confirm(`¿Aprobar la orden ${order.codigo}? Después ya no se podrá editar y el almacén podrá recibir contra ella.`)) return
     try {
       await apiRequest(`/api/compras/ordenes/${order.id}/aprobar/`, { method: 'POST', body: {} })
       notify(`Orden ${order.codigo} aprobada.`)
@@ -165,9 +207,14 @@ export default function OrdersPage() {
       </section>
 
       {editing && (
-        <OrderForm order={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />
+        <OrderForm
+          order={editing === 'new' ? null : editing}
+          prefill={editing === 'new' ? prefill : null}
+          onClose={() => { setEditing(null); setPrefill(null) }}
+          onSaved={() => { setEditing(null); setPrefill(null); load() }}
+        />
       )}
-      {viewing && <OrderDetail order={viewing} onClose={() => setViewing(null)} />}
+      {activeViewing && <OrderDetail order={activeViewing} onClose={closeDetail} />}
       {reasoning && (
         <ReasonModal
           title={reasoning.kind === 'cancelar' ? `Cancelar la orden ${reasoning.order.codigo}` : `Cerrar la orden ${reasoning.order.codigo}`}

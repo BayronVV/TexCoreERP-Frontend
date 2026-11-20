@@ -119,6 +119,89 @@ export function allowedActions(order, can) {
   }
 }
 
+/** Historial cronológico de la orden: quién la creó, aprobó, recibió o canceló/cerró, y cuándo. */
+export function buildOrderHistory(order) {
+  if (!order) return []
+  if (Array.isArray(order.historial) && order.historial.length > 0) return order.historial
+  const events = [
+    {
+      evento: 'CREADA',
+      titulo: 'Orden creada en borrador',
+      usuario: order.creado_por_nombre || '',
+      fecha: order.created_at || order.fecha || '',
+      detalle: order.fecha ? `Fecha de orden ${order.fecha}` : '',
+    },
+  ]
+  if (order.aprobada_at || order.aprobado_por_nombre) {
+    events.push({
+      evento: 'APROBADA',
+      titulo: 'Orden aprobada',
+      usuario: order.aprobado_por_nombre || '',
+      fecha: order.aprobada_at || order.fecha || '',
+      detalle: '',
+    })
+  }
+  for (const receipt of order.recepciones ?? []) {
+    events.push({
+      evento: 'RECEPCION',
+      titulo: `Recepción ${receipt.codigo}`,
+      usuario: receipt.recibido_por_nombre || '',
+      fecha: receipt.created_at || receipt.fecha || '',
+      detalle: receipt.documento ? `Documento ${receipt.documento}` : '',
+    })
+  }
+  if (order.cerrada_at || order.estado === 'CANCELADA' || order.estado === 'CERRADA') {
+    events.push({
+      evento: order.estado,
+      titulo: order.estado === 'CANCELADA' ? 'Orden cancelada' : 'Orden cerrada',
+      usuario: order.cerrado_por_nombre || '',
+      fecha: order.cerrada_at || order.fecha || '',
+      detalle: order.motivo_cierre || '',
+    })
+  }
+  return events
+}
+
+/** Convierte los faltantes de una simulación/orden de producción en borrador prellenado de orden de compra. */
+export function draftFromShortages({ referencia, cantidad, faltantes }, products = [], suppliers = []) {
+  const byProduct = new Map((products ?? []).map((product) => [Number(product.id), product]))
+  const lines = (faltantes ?? [])
+    .map((item) => {
+      const productId = Number(item.producto)
+      const catalogProduct = byProduct.get(productId)
+      const rawShortage = item.falta ?? (Number(item.solicitado ?? 0) - Number(item.disponible ?? 0))
+      const shortage = Number(rawShortage)
+      if (!productId || !(shortage > 0)) return null
+      return {
+        producto: productId,
+        nombre: item.nombre ?? catalogProduct?.nombre ?? '',
+        unidad: item.unidad ?? catalogProduct?.unidad ?? '',
+        cantidad: String(shortage),
+        precio: '',
+      }
+    })
+    .filter(Boolean)
+
+  const firstProduct = lines.length > 0 ? byProduct.get(lines[0].producto) : null
+  const matchingSupplier = firstProduct?.categoria
+    ? (suppliers ?? []).find((supplier) => supplier.categoria === firstProduct.categoria)
+    : null
+  const refCode = referencia?.codigo ? `${referencia.codigo}${referencia.nombre ? ` · ${referencia.nombre}` : ''}` : ''
+  const notes = refCode
+    ? `Faltantes para producir ${cantidad || ''} prendas (${refCode})`.replace(/\s+/g, ' ').trim()
+    : 'Compra por faltantes de producción'
+
+  return {
+    firstProductId: lines[0]?.producto ?? null,
+    form: {
+      ...emptyOrderForm(),
+      proveedor: matchingSupplier ? String(matchingSupplier.id) : '',
+      notas: notes.slice(0, 500),
+    },
+    lines,
+  }
+}
+
 // --- Recepción de mercancía ---
 
 /** Filas de recepción de una orden: una por línea con algo por recibir. La cantidad sugerida es lo pendiente y el costo, el precio pactado. */

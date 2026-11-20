@@ -12,11 +12,11 @@ import {
 
 // Crear o editar (mientras es borrador) una orden de compra de materia prima o insumos. El precio pactado es opcional; el
 // costo real se escribe al recibir la mercancía.
-export default function OrderForm({ order, onSaved, onClose }) {
+export default function OrderForm({ order, prefill = null, onSaved, onClose }) {
   const notify = useToast()
   const editing = Boolean(order)
-  const [form, setForm] = useState(editing ? orderForm(order) : emptyOrderForm())
-  const [lines, setLines] = useState(editing ? orderLinesOf(order) : [])
+  const [form, setForm] = useState(editing ? orderForm(order) : (prefill?.form ?? emptyOrderForm()))
+  const [lines, setLines] = useState(editing ? orderLinesOf(order) : (prefill?.lines ?? []))
   const [suppliers, setSuppliers] = useState([])
   const [products, setProducts] = useState([])
   const [pick, setPick] = useState({ producto: '', cantidad: '', precio: '' })
@@ -27,11 +27,20 @@ export default function OrderForm({ order, onSaved, onClose }) {
   useEffect(() => {
     Promise.all([apiGet('/api/inventario/proveedores/'), apiGet('/api/inventario/productos/')])
       .then(([supplierList, productList]) => {
+        const purchasable = purchasableProducts(productList)
         setSuppliers(supplierList)
-        setProducts(purchasableProducts(productList))
+        setProducts(purchasable)
+        if (!editing && prefill?.firstProductId) {
+          const target = purchasable.find((product) => product.id === Number(prefill.firstProductId))
+          const match = target?.categoria ? supplierList.find((supplier) => supplier.categoria === target.categoria) : null
+          const fallback = match ?? supplierList[0]
+          if (fallback) {
+            setForm((current) => (current.proveedor ? current : { ...current, proveedor: String(fallback.id) }))
+          }
+        }
       })
       .catch((error) => setErrors({ detail: error.message }))
-  }, [])
+  }, [editing, prefill?.firstProductId])
 
   const byId = useMemo(() => new Map(products.map((product) => [String(product.id), product])), [products])
   const picked = byId.get(pick.producto)

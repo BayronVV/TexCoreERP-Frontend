@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import {
   addLine,
   allowedActions,
+  buildOrderHistory,
+  draftFromShortages,
   emptyOrderForm,
   hasQuantity,
   lineValue,
@@ -173,4 +175,58 @@ test('receiptBody: con orden lleva la línea; suelta, el producto y el proveedor
   assert.deepEqual(receiptBody({ supplier: '4', rows: loose, documento: 'FAC-1', fecha: '2026-10-18' }), {
     proveedor: 4, documento: 'FAC-1', fecha: '2026-10-18', observaciones: '', lineas: [{ producto: 1, cantidad: '20', lote: 'L-2', costo_unitario: null }],
   })
+})
+
+test('buildOrderHistory: muestra creación, aprobación, recepciones y cierre en orden', () => {
+  const sample = order({
+    created_at: '2026-11-18T10:00:00Z',
+    fecha: '2026-11-18',
+    creado_por_nombre: 'Jefe Producción',
+    aprobado_por_nombre: 'Gerente General',
+    aprobada_at: '2026-11-18T11:30:00Z',
+    estado: 'CERRADA',
+    cerrado_por_nombre: 'Jefe Producción',
+    cerrada_at: '2026-11-19T09:00:00Z',
+    motivo_cierre: 'El proveedor descontinuó el lote',
+    recepciones: [
+      { id: 3, codigo: 'RC-0001', fecha: '2026-11-18', created_at: '2026-11-18T15:00:00Z', documento: 'REM-44', recibido_por_nombre: 'Almacenista' },
+    ],
+  })
+  const history = buildOrderHistory(sample)
+  assert.deepEqual(
+    history.map((item) => [item.evento, item.usuario]),
+    [
+      ['CREADA', 'Jefe Producción'],
+      ['APROBADA', 'Gerente General'],
+      ['RECEPCION', 'Almacenista'],
+      ['CERRADA', 'Jefe Producción'],
+    ],
+  )
+  assert.equal(history[3].detalle, 'El proveedor descontinuó el lote')
+})
+
+test('draftFromShortages: arma borrador de orden de compra con los faltantes de producción', () => {
+  const products = [
+    { id: 1, nombre: 'Tela denim', unidad: 'm', tipo: 'MATERIA_PRIMA', categoria: 'TELA' },
+    { id: 2, nombre: 'Cierre', unidad: 'unidad', tipo: 'INSUMO', categoria: 'CIERRE' },
+  ]
+  const suppliers = [
+    { id: 9, razon_social: 'Insumos Varios', categoria: 'INSUMO' },
+    { id: 4, razon_social: 'Textiles SA', categoria: 'TELA' },
+  ]
+  const draft = draftFromShortages(
+    {
+      referencia: { codigo: 'REF-0001', nombre: 'Mom Clásico' },
+      cantidad: 100,
+      faltantes: [
+        { producto: 1, nombre: 'Tela denim', unidad: 'm', falta: '45.50' },
+        { producto: 2, solicitado: '100', disponible: '100', falta: '0' },
+      ],
+    },
+    products,
+    suppliers,
+  )
+  assert.equal(draft.form.proveedor, '4')
+  assert.ok(draft.form.notas.includes('REF-0001'))
+  assert.deepEqual(draft.lines, [{ producto: 1, nombre: 'Tela denim', unidad: 'm', cantidad: '45.5', precio: '' }])
 })
