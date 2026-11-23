@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/session'
-import { MODULES } from '../../config/modules'
+import { isVisible, MODULES } from '../../config/modules'
 import styles from './Sidebar.module.css'
 
 const linkClass = ({ isActive }) => `${styles.item} ${isActive ? styles.itemActive : ''}`
@@ -19,7 +19,7 @@ const Sidebar = () => {
       </NavLink>
 
       <ul className={styles.list}>
-        {MODULES.filter((module) => !module.hidden && can(`${module.id}.ver`)).map((module) => {
+        {MODULES.filter((module) => !module.hidden && isVisible(module, can)).map((module) => {
           // Lo que el rol no puede ver no se muestra: ni el nombre ni un candado.
           // Un módulo permitido pero sin pantalla todavía sí aparece, como "Próximamente".
           if (!module.path && !module.children) {
@@ -38,7 +38,7 @@ const Sidebar = () => {
               <li key={module.id}>
                 <span className={styles.groupLabel}>{module.label}</span>
                 <ul className={styles.subList}>
-                  {module.children.map((child) => (
+                  {module.children.filter((child) => !child.permission || can(child.permission)).map((child) => (
                     <li key={child.path}>
                       <NavLink to={child.path} end className={linkClass}>
                         {child.label}

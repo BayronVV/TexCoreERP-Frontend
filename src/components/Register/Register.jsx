@@ -176,6 +176,11 @@ const Register = () => {
           </div>
           {mismatch && <p className={styles.fieldHint}>Las contraseñas no coinciden.</p>}
 
+          <p className={styles.fieldHint}>
+            Al registrarte aceptas el tratamiento de tus datos personales (nombre, correo y cédula) para administrar tu
+            cuenta. Registramos tus accesos (fecha, IP y resultado) por seguridad y los conservamos 12 meses.
+          </p>
+
           <button type="submit" className={styles.loginBtn} disabled={!canSubmit}>
             {loading ? 'Registrando...' : 'Registrarse'}
             <span className={styles.btnArrow} aria-hidden="true">→</span>

@@ -7,8 +7,11 @@ export const MODULES = [
     id: 'seguridad',
     label: 'Seguridad y Usuarios',
     children: [
-      { label: 'Usuarios', path: '/seguridad/usuarios' },
-      { label: 'Roles y permisos', path: '/seguridad/roles' },
+      { label: 'Usuarios', path: '/seguridad/usuarios', permission: 'seguridad.ver' },
+      { label: 'Roles y permisos', path: '/seguridad/roles', permission: 'seguridad.ver' },
+      // `permission`: la opción solo aparece si el rol tiene ese permiso (el módulo se ve con "<id>.ver").
+      { label: 'Accesos', path: '/seguridad/accesos', permission: 'seguridad.accesos' },
+      { label: 'Auditoría', path: '/seguridad/auditoria', permission: 'seguridad.auditoria' },
     ],
   },
   {
@@ -99,3 +102,14 @@ export const MODULES = [
     children: [{ label: 'Tablero gerencial', path: '/reportes' }],
   },
 ]
+
+/**
+ * ¿El menú muestra este módulo? Con `<id>.ver`, o porque el rol tiene el permiso de alguna de sus opciones
+ * (p. ej. el Gerente consulta la auditoría sin poder ver usuarios).
+ *
+ * @param {{id: string, children?: Array<{permission?: string}>}} module
+ * @param {(code: string) => boolean} can
+ */
+export function isVisible(module, can) {
+  return can(`${module.id}.ver`) || Boolean(module.children?.some((child) => child.permission && can(child.permission)))
+}
