@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { MODULES } from './modules.js'
+import { isVisible, MODULES } from './modules.js'
 
 const appSource = fs.readFileSync(path.resolve(import.meta.dirname, '../App.jsx'), 'utf8')
 const sidebarSource = fs.readFileSync(path.resolve(import.meta.dirname, '../components/Sidebar/Sidebar.jsx'), 'utf8')
@@ -51,6 +51,21 @@ test('todas las rutas declaradas en el menú lateral (MODULES) existen en App.js
   }
 })
 
-test('Sidebar filtra módulos con `<module.id>.ver` y omite los marcados como hidden', () => {
-  assert.match(sidebarSource, /!module\.hidden && can\(`\$\{module\.id\}\.ver`\)/)
+test('Sidebar filtra módulos con `<module.id>.ver` (o el permiso de una de sus opciones) y omite los hidden', () => {
+  assert.match(sidebarSource, /!module\.hidden && isVisible\(module, can\)/)
+  const security = MODULES.find((m) => m.id === 'seguridad')
+  assert.equal(isVisible(security, (code) => code === 'seguridad.ver'), true)
+  assert.equal(isVisible(security, (code) => code === 'seguridad.auditoria'), true)
+  assert.equal(isVisible(security, (code) => code === 'inventario.ver'), false)
+})
+
+test('las opciones con `permission` exigen en App.jsx ese mismo permiso', () => {
+  const routes = extractRoutes(appSource)
+  for (const mod of MODULES) {
+    for (const child of mod.children ?? []) {
+      if (child.permission) {
+        assert.ok(routes.get(child.path)?.includes(child.permission), `${child.path} debe exigir ${child.permission}`)
+      }
+    }
+  }
 })
