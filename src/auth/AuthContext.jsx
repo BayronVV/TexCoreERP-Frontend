@@ -23,24 +23,6 @@ export function AuthProvider({ children }) {
 
   const reloadUser = useCallback(async () => {
     try {
-      if (localStorage.getItem('access_token') === 'mock_dev_token') {
-        setUser({
-          id: 1,
-          full_name: 'Carlos Restrepo',
-          role: 'PRODUCCION',
-          role_name: 'Jefe de Producción',
-          permissions: [
-            'produccion.ver',
-            'produccion.gestionar',
-            'inventario.ver',
-            'inventario.gestionar',
-            'fichas_tecnicas.ver',
-            'fichas_tecnicas.gestionar',
-          ],
-        })
-        setLoadError(null)
-        return
-      }
       setUser(await apiGet('/api/auth/me/'))
       setLoadError(null)
     } catch (error) {

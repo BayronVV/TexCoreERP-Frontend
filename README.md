@@ -166,7 +166,7 @@ La lógica que no necesita React vive en módulos `.js` con pruebas, para probar
 
 | Variable       | Por defecto             | Descripción |
 |----------------|--------------------------|-------------|
-| `VITE_API_URL` | `http://localhost:8000` | URL base del backend. Es la única variable `VITE_*` que lee el código (`src/api/client.js`). |
+| `VITE_API_URL` | `http://localhost:8000` (solo en desarrollo) | URL base del backend. Es la única variable `VITE_*` que lee el código (`src/api/client.js`). **El build de producción (`npm run build`) falla si no está definida**, para que la web publicada nunca apunte a `localhost` en silencio. |
 
 - **Contra el backend local:** deja `VITE_API_URL=http://localhost:8000` (el valor de `.env.example`) y levanta el backend en ese puerto.
 - **Contra producción:** `VITE_API_URL=https://texcore-api.onrender.com` en `.env.local` prueba tu interfaz con la API desplegada
