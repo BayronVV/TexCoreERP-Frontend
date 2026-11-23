@@ -3,6 +3,7 @@ import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
 import Modal from '../ui/Modal'
+import { isLocked } from './lock'
 import styles from './Security.module.css'
 
 const EMPTY_FORM = { first_name: '', last_name: '', email: '', document_id: '', role: '' }
@@ -12,6 +13,7 @@ const formatDate = (value) =>
 
 function statusOf(user) {
   if (!user.is_active) return { label: 'Inactivo', className: styles.badgeOff }
+  if (isLocked(user)) return { label: 'Bloqueada', className: styles.badgeOff }
   if (user.role === 'PENDING') return { label: 'Pendiente', className: styles.badgeWarn }
   return { label: 'Activo', className: styles.badgeOn }
 }
@@ -182,6 +184,13 @@ export default function UsersPage() {
       notify(response.detail)
     })
 
+  const unlock = (user) =>
+    run(user.id, async () => {
+      const response = await apiRequest(`/api/users/${user.id}/unlock/`, { method: 'POST' })
+      replaceUser({ ...user, locked_until: null })
+      notify(response.detail)
+    })
+
   // Dar o quitar el rol de Administrador pide confirmación: es el cambio con más impacto.
   const requestRoleChange = (user, role) => {
     if (role !== 'ADMIN' && user.role !== 'ADMIN') {
@@ -333,6 +342,7 @@ export default function UsersPage() {
             <option>Activo</option>
             <option>Pendiente</option>
             <option>Inactivo</option>
+            <option>Bloqueada</option>
           </select>
         </div>
 
@@ -392,6 +402,11 @@ export default function UsersPage() {
                     </td>
                     {canManage && (
                       <td className={styles.rowActions}>
+                        {isLocked(user) && (
+                          <button type="button" className={styles.linkBtn} disabled={busy} onClick={() => unlock(user)}>
+                            Desbloquear
+                          </button>
+                        )}
                         {!isMe && (
                           <>
                             {!user.has_password && user.is_active && (

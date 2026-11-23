@@ -33,6 +33,8 @@ import DispatchPage from './components/Shipping/DispatchPage'
 import ResourcesPage from './components/Production/ResourcesPage'
 import UsersPage from './components/Security/UsersPage'
 import RolesPage from './components/Security/RolesPage'
+import AccessLogPage from './components/Security/AccessLogPage'
+import AuditPage from './components/Security/AuditPage'
 import LaundryRemissionPage from './components/Laundry/LaundryRemissionPage'
 import LaundryReceptionPage from './components/Laundry/LaundryReceptionPage'
 import ReportsPage from './components/Reports/ReportsPage'
@@ -276,6 +278,22 @@ function App() {
             element={
               <RequirePermission code="seguridad.ver">
                 <RolesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/seguridad/accesos"
+            element={
+              <RequirePermission code="seguridad.accesos">
+                <AccessLogPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/seguridad/auditoria"
+            element={
+              <RequirePermission code="seguridad.auditoria">
+                <AuditPage />
               </RequirePermission>
             }
           />
