@@ -1,8 +1,10 @@
 // Cliente HTTP para las pantallas nuevas (sesión, seguridad). Login y Register
 // todavía usan axios directamente.
-// La URL base viene de VITE_API_URL (ver .env.example).
+// La URL base viene de VITE_API_URL (ver .env.example). Solo en desarrollo, si falta, se usa
+// el backend local; el build de producción se niega a compilar sin ella (vite.config.js), para
+// que una web publicada nunca apunte en silencio a localhost.
 
-const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const API_URL = (import.meta.env?.VITE_API_URL || (import.meta.env?.PROD ? '' : 'http://localhost:8000')).replace(/\/$/, '')
 
 /**
  * Error de una respuesta de la API.
@@ -45,7 +47,7 @@ async function send(path, { method, body, token }) {
 
 // El access token dura poco; si vence a mitad de la sesión se renueva una vez
 // con el refresh token. Si eso también falla, la sesión terminó.
-async function renewAccessToken() {
+async function requestNewAccessToken() {
   const refresh = localStorage.getItem('refresh_token')
   if (!refresh) return null
   const response = await send('/api/token/refresh/', { method: 'POST', body: { refresh } })
@@ -55,6 +57,28 @@ async function renewAccessToken() {
   localStorage.setItem('access_token', access)
   if (rotated) localStorage.setItem('refresh_token', rotated)
   return access
+}
+
+// Con varias peticiones a la vez y el access token vencido, solo una renueva: como el refresh
+// token rota, una segunda renovación con el refresh ya usado fallaría y cerraría la sesión por error.
+let renewalInFlight = null
+
+/**
+ * Devuelve un access token vigente tras un 401. Si otra petición ya renovó la sesión usa su token;
+ * si hay una renovación en curso espera la misma promesa; si no, inicia una.
+ *
+ * @param {string} rejectedToken El token con el que la petición recibió el 401.
+ * @returns {Promise<string|null>} El token nuevo, o `null` si la sesión terminó.
+ */
+function renewAccessToken(rejectedToken) {
+  const current = localStorage.getItem('access_token')
+  if (current && current !== rejectedToken) return Promise.resolve(current)
+  if (!renewalInFlight) {
+    renewalInFlight = requestNewAccessToken().finally(() => {
+      renewalInFlight = null
+    })
+  }
+  return renewalInFlight
 }
 
 /**
@@ -75,7 +99,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true, blob
   let response = await send(path, { method, body, token })
 
   if (response.status === 401 && token) {
-    const renewed = await renewAccessToken()
+    const renewed = await renewAccessToken(token)
     if (renewed) {
       response = await send(path, { method, body, token: renewed })
     } else {

@@ -35,6 +35,9 @@ jobs:
         run: npm test
       - name: Compilar bundle de producción (Vite)
         run: npm run build
+        env:
+          # El build de producción exige la dirección del backend (vite.config.js); esta es la pública.
+          VITE_API_URL: https://texcore-api.onrender.com
       - name: Auditoría de vulnerabilidades críticas en producción
         run: npm audit --omit=dev --audit-level=critical
       - name: Resumen informativo de auditoría completa

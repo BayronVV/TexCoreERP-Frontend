@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiGet, apiRequest } from '../../api/client'
+import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
 import { formatDate, todayISO } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
@@ -34,6 +35,7 @@ function statusPillClass(code) {
  */
 const ReportsPage = () => {
   const notify = useToast()
+  const { can } = useAuth()
   const [meta, setMeta] = useState({
     tipos_jean: [],
     estados_orden: [],
@@ -150,14 +152,16 @@ const ReportsPage = () => {
           </p>
         </div>
         <div className={reportStyles.exportBar}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={handleRefreshViews}
-            disabled={refreshing || loading}
-          >
-            {refreshing ? 'Actualizando…' : 'Actualizar datos'}
-          </button>
+          {can('reportes.gestionar') && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleRefreshViews}
+              disabled={refreshing || loading}
+            >
+              {refreshing ? 'Actualizando…' : 'Actualizar datos'}
+            </button>
+          )}
           <button
             type="button"
             className={reportStyles.exportExcelBtn}

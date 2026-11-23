@@ -152,3 +152,87 @@ test('apiRequest propaga errores 400 con el primer mensaje de validación', asyn
     env.restore()
   }
 })
+
+test('varias peticiones con el token vencido renuevan la sesión una sola vez (el refresh rota y solo sirve una vez)', async () => {
+  const calls = []
+  let refreshUses = 0
+  const env = mockEnvironment({
+    initialStorage: { access_token: 'vencido', refresh_token: 'ref-1' },
+    fetchImpl: async (url, init) => {
+      calls.push(url)
+      if (url.endsWith('/api/token/refresh/')) {
+        refreshUses += 1
+        // El servidor invalida el refresh en cuanto se usa: una segunda renovación con 'ref-1' falla.
+        if (refreshUses > 1) return jsonResponse(401, { detail: 'Token en lista negra' })
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        return jsonResponse(200, { access: 'nuevo-access', refresh: 'ref-2' })
+      }
+      if (init.headers.Authorization === 'Bearer vencido') return jsonResponse(401, { detail: 'Token vencido' })
+      return jsonResponse(200, { ok: url })
+    },
+  })
+
+  try {
+    const results = await Promise.all([
+      apiGet('/api/uno/'),
+      apiGet('/api/dos/'),
+      apiGet('/api/tres/'),
+    ])
+    assert.equal(results.length, 3)
+    assert.ok(results.every((item) => item.ok))
+    assert.equal(calls.filter((url) => url.endsWith('/api/token/refresh/')).length, 1)
+    assert.equal(env.store.get('access_token'), 'nuevo-access')
+    assert.equal(env.store.get('refresh_token'), 'ref-2')
+    assert.deepEqual(env.dispatched, [])
+  } finally {
+    env.restore()
+  }
+})
+
+test('una petición cuyo token ya fue reemplazado por otra renovación usa el nuevo sin volver a renovar', async () => {
+  const calls = []
+  const env = mockEnvironment({
+    initialStorage: { access_token: 'vencido', refresh_token: 'ref-1' },
+    fetchImpl: async (url, init) => {
+      calls.push({ url, auth: init.headers.Authorization })
+      if (init.headers.Authorization === 'Bearer vencido') {
+        env.store.set('access_token', 'ya-renovado') // otra petición renovó mientras esta esperaba
+        return jsonResponse(401, { detail: 'Token vencido' })
+      }
+      return jsonResponse(200, { ok: true })
+    },
+  })
+
+  try {
+    assert.deepEqual(await apiGet('/api/uno/'), { ok: true })
+    assert.equal(calls.some((call) => call.url.endsWith('/api/token/refresh/')), false)
+    assert.equal(calls[1].auth, 'Bearer ya-renovado')
+  } finally {
+    env.restore()
+  }
+})
+
+test('si la renovación falla, todas las peticiones simultáneas terminan la sesión y una petición posterior puede intentarlo de nuevo', async () => {
+  let refreshCalls = 0
+  const env = mockEnvironment({
+    initialStorage: { access_token: 'vencido', refresh_token: 'ref-malo' },
+    fetchImpl: async (url) => {
+      if (url.endsWith('/api/token/refresh/')) {
+        refreshCalls += 1
+        return jsonResponse(401, { detail: 'Refresh inválido' })
+      }
+      return jsonResponse(401, { detail: 'Token vencido' })
+    },
+  })
+
+  try {
+    const outcomes = await Promise.allSettled([apiGet('/api/uno/'), apiGet('/api/dos/')])
+    assert.ok(outcomes.every((item) => item.status === 'rejected' && item.reason.status === 401))
+    assert.equal(refreshCalls, 1)
+    assert.ok(env.dispatched.includes('texcore:session-expired'))
+    await assert.rejects(() => apiGet('/api/tres/'))
+    assert.equal(refreshCalls, 2) // la promesa en vuelo se liberó: no queda atascada
+  } finally {
+    env.restore()
+  }
+})
