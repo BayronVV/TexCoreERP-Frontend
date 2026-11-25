@@ -1,11 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  MOCK_AVAILABLE_LOTS,
-  MOCK_LAUNDRY_PROVIDERS,
-  MOCK_WASH_RECIPES,
-  MOCK_PAST_REMISSIONS,
-} from './mockLaundryData'
 import RemissionDocModal from './RemissionDocModal'
 import { useToast } from '../ui/toastContext'
 import { apiGet, apiRequest } from '../../api/client'
@@ -22,9 +16,9 @@ const formatCOP = (val) => {
 }
 
 /**
- * Procesos Externos · Remisión a Lavado (TE-57), ruta `/lavanderia/remisiones` (`lavanderia.ver`): se eligen los lotes, el proveedor y la receta de lavado,
- * se genera la remisión de salida y se consulta el historial. Endpoints: `GET /api/lavanderia/{lotes-disponibles,proveedores,recetas,remisiones}/` y
- * `POST /api/lavanderia/remisiones/`. Si una consulta falla, la pantalla se llena con los datos de demostración de `mockLaundryData.js`.
+ * Procesos Externos · Remisión a Lavado (TE-57 / TE-172), ruta `/lavanderia/remisiones` (`lavanderia.ver`):
+ * permite seleccionar lotes completos en planta interna, un proveedor categoría LAVANDERIA y receta opcional,
+ * generar la remisión oficial y consultar el historial. Si la API falla, muestra el error explícito sin datos simulados.
  */
 export default function LaundryRemissionPage() {
   const notify = useToast()
@@ -36,6 +30,7 @@ export default function LaundryRemissionPage() {
   const [washRecipes, setWashRecipes] = useState([])
   const [remissionsList, setRemissionsList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   // Estado del formulario de remisión
@@ -44,64 +39,47 @@ export default function LaundryRemissionPage() {
   // Datos generales del despacho
   const [selectedProviderId, setSelectedProviderId] = useState('')
   const [fechaEmision, setFechaEmision] = useState(() => new Date().toISOString().slice(0, 10))
-  const [fechaEntrega, setFechaEntrega] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() + 3)
-    return d.toISOString().slice(0, 10)
-  })
-  const [transportador, setTransportador] = useState('Carlos Mario Pineda (Conductor TexCore)')
-  const [placaVehiculo, setPlacaVehiculo] = useState('WXY-789')
-  const [tulasBultos, setTulasBultos] = useState('10')
-  const [pesoKg, setPesoKg] = useState('320')
-  const [observaciones, setObservaciones] = useState('Lotes ensamblados entregados en tulas numeradas de 50 prendas.')
+  const [fechaEntrega, setFechaEntrega] = useState('')
+  const [transportador, setTransportador] = useState('')
+  const [placaVehiculo, setPlacaVehiculo] = useState('')
+  const [tulasBultos, setTulasBultos] = useState('1')
+  const [pesoKg, setPesoKg] = useState('')
+  const [observaciones, setObservaciones] = useState('')
 
   // Modal de documento generado
   const [activePreviewDoc, setActivePreviewDoc] = useState(null)
 
-  // Carga inicial de datos desde la API
+  // Carga inicial de datos reales desde la API
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const [lotsRes, provsRes, recipesRes, remsRes] = await Promise.allSettled([
+      setLoadError('')
+      const [lotsRes, provsRes, recipesRes, remsRes] = await Promise.all([
         apiGet('/api/lavanderia/lotes-disponibles/'),
         apiGet('/api/lavanderia/proveedores/'),
         apiGet('/api/lavanderia/recetas/'),
         apiGet('/api/lavanderia/remisiones/'),
       ])
 
-      const realLots = lotsRes.status === 'fulfilled' && Array.isArray(lotsRes.value) ? lotsRes.value : MOCK_AVAILABLE_LOTS
-      const realProvs = provsRes.status === 'fulfilled' && Array.isArray(provsRes.value) ? provsRes.value : MOCK_LAUNDRY_PROVIDERS
-      const realRecipes = recipesRes.status === 'fulfilled' && Array.isArray(recipesRes.value) ? recipesRes.value : MOCK_WASH_RECIPES
-      const realRems = remsRes.status === 'fulfilled' && Array.isArray(remsRes.value) ? remsRes.value : MOCK_PAST_REMISSIONS
+      const realLots = Array.isArray(lotsRes) ? lotsRes : []
+      const realProvs = Array.isArray(provsRes) ? provsRes : []
+      const realRecipes = Array.isArray(recipesRes) ? recipesRes : []
+      const realRems = Array.isArray(remsRes) ? remsRes : []
 
       setAvailableLots(realLots)
       setLaundryProviders(realProvs)
       setWashRecipes(realRecipes)
       setRemissionsList(realRems)
-
-      if (realProvs.length > 0) {
-        setSelectedProviderId(realProvs[0].id)
-      }
-
-      // Preseleccionar el primer lote si hay disponibles
-      if (realLots.length > 0) {
-        const first = realLots[0]
-        setSelectedLots({
-          [first.id]: {
-            selected: true,
-            qty: first.unidades_disponibles,
-            receta_id: first.receta_sugerida || realRecipes[0]?.id || 'REC-SW-01',
-            instrucciones: 'Conservar muestra física de tono entregada #2. Cuidado con remaches de relojera.',
-          },
-        })
-      }
-    } catch {
-      // Fallback a mock data
-      setAvailableLots(MOCK_AVAILABLE_LOTS)
-      setLaundryProviders(MOCK_LAUNDRY_PROVIDERS)
-      setWashRecipes(MOCK_WASH_RECIPES)
-      setRemissionsList(MOCK_PAST_REMISSIONS)
-      setSelectedProviderId(MOCK_LAUNDRY_PROVIDERS[0].id)
+      setSelectedProviderId(realProvs.length > 0 ? realProvs[0].id : '')
+      setSelectedLots({})
+    } catch (err) {
+      setAvailableLots([])
+      setLaundryProviders([])
+      setWashRecipes([])
+      setRemissionsList([])
+      setSelectedProviderId('')
+      setSelectedLots({})
+      setLoadError(err?.message || 'Error al cargar los datos de remisiones a lavandería.')
     } finally {
       setLoading(false)
     }
@@ -112,39 +90,27 @@ export default function LaundryRemissionPage() {
   }, [loadData])
 
   const activeProvider = useMemo(() => {
-    if (!laundryProviders || laundryProviders.length === 0) return MOCK_LAUNDRY_PROVIDERS[0]
+    if (!laundryProviders || laundryProviders.length === 0) return null
     return (
       laundryProviders.find((p) => String(p.id) === String(selectedProviderId)) ||
-      laundryProviders[0]
+      laundryProviders[0] ||
+      null
     )
   }, [laundryProviders, selectedProviderId])
 
-  // Manejo de selección de lote
-  const handleToggleLot = (lotId, defaultQty, defaultReceta) => {
+  // Manejo de selección de lote (siempre envío del lote completo)
+  const handleToggleLot = (lotId, fullQty) => {
     setSelectedLots((prev) => {
-      const current = prev[lotId] || { selected: false, qty: defaultQty, receta_id: defaultReceta, instrucciones: '' }
+      const current = prev[lotId] || { selected: false, qty: fullQty, receta_id: '', instrucciones: '' }
       return {
         ...prev,
         [lotId]: {
           ...current,
           selected: !current.selected,
-          qty: current.qty || defaultQty,
-          receta_id: current.receta_id || defaultReceta,
+          qty: fullQty,
         },
       }
     })
-  }
-
-  const handleUpdateQty = (lotId, maxQty, value) => {
-    const parsed = parseInt(value, 10)
-    const validQty = isNaN(parsed) ? 0 : Math.max(0, Math.min(parsed, maxQty))
-    setSelectedLots((prev) => ({
-      ...prev,
-      [lotId]: {
-        ...prev[lotId],
-        qty: validQty,
-      },
-    }))
   }
 
   const handleUpdateLotReceta = (lotId, recetaId) => {
@@ -167,19 +133,20 @@ export default function LaundryRemissionPage() {
     }))
   }
 
-  // Lotes que actualmente están seleccionados
+  // Lotes que actualmente están seleccionados (siempre lote completo)
   const chosenLotsData = useMemo(() => {
     return availableLots
-      .filter((lot) => selectedLots[lot.id]?.selected && selectedLots[lot.id]?.qty > 0)
+      .filter((lot) => selectedLots[lot.id]?.selected && Number(lot.unidades_disponibles) > 0)
       .map((lot) => {
         const lotState = selectedLots[lot.id]
         const recetaObj = washRecipes.find((r) => r.id === lotState.receta_id || r.codigo === lotState.receta_id)
         return {
           ...lot,
-          cantidad_a_enviar: lotState.qty,
-          receta_id: lotState.receta_id,
-          receta_nombre: recetaObj?.nombre || 'Lavado Industrial Estándar',
-          instrucciones_especiales: lotState.instrucciones,
+          cantidad_a_enviar: Number(lot.unidades_disponibles),
+          receta_id: lotState.receta_id || '',
+          receta_nombre: recetaObj?.nombre || '',
+          receta_tarifa: Number(recetaObj?.tarifa_sugerida) || 0,
+          instrucciones_especiales: lotState.instrucciones || '',
         }
       })
   }, [availableLots, selectedLots, washRecipes])
@@ -189,15 +156,18 @@ export default function LaundryRemissionPage() {
   }, [chosenLotsData])
 
   const costoEstimadoTotal = useMemo(() => {
-    const tarifa = Number(activeProvider.tarifa_base_unidad) || 3500
-    return totalPrendas * tarifa
-  }, [totalPrendas, activeProvider])
+    return chosenLotsData.reduce((acc, lot) => acc + lot.cantidad_a_enviar * lot.receta_tarifa, 0)
+  }, [chosenLotsData])
 
   // Despacho de la remisión con llamada a la API
   const handleGenerateRemission = async (e) => {
     e.preventDefault()
+    if (!activeProvider) {
+      if (notify) notify('No hay un proveedor de categoría lavandería seleccionado.', 'error')
+      return
+    }
     if (chosenLotsData.length === 0 || totalPrendas === 0) {
-      if (notify) notify('Debes seleccionar al menos un lote ensamblado con cantidad mayor a 0.', 'error')
+      if (notify) notify('Debes seleccionar al menos un lote ensamblado para remitir.', 'error')
       return
     }
 
@@ -302,8 +272,36 @@ export default function LaundryRemissionPage() {
         </button>
       </nav>
 
+      {loadError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.9rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            color: '#991b1b',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <span>{loadError}</span>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            style={{ width: 'auto' }}
+            onClick={loadData}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* PESTAÑA 1: NUEVA REMISIÓN */}
-      {tab === 'nueva' && (
+      {tab === 'nueva' && !loadError && (
         <form onSubmit={handleGenerateRemission} className={styles.formLayout}>
           {/* Columna Izquierda: Selección de Lotes y Datos del Envío */}
           <div>
@@ -315,7 +313,7 @@ export default function LaundryRemissionPage() {
                     1. Seleccionar Lotes Ensamblados a Lavar
                   </h2>
                   <p className={styles.cardSubtitle}>
-                    Lotes en planta interna listos para salir a lavandería. Al generar la remisión pasarán a estado "En Tránsito / Externo".
+                    Lotes en planta interna listos para salir completos a lavandería. Al generar la remisión pasarán a estado &quot;En Tránsito / Externo&quot;.
                   </p>
                 </div>
                 <span className={`${styles.statusPill} ${styles.pillInLaundry}`}>
@@ -337,7 +335,7 @@ export default function LaundryRemissionPage() {
                   const lotState = selectedLots[lot.id] || {
                     selected: false,
                     qty: lot.unidades_disponibles,
-                    receta_id: lot.receta_sugerida,
+                    receta_id: '',
                     instrucciones: '',
                   }
                   const isSelected = lotState.selected
@@ -346,7 +344,7 @@ export default function LaundryRemissionPage() {
                     <article
                       key={lot.id}
                       className={`${styles.lotCard} ${isSelected ? styles.lotCardSelected : ''}`}
-                      onClick={() => handleToggleLot(lot.id, lot.unidades_disponibles, lot.receta_sugerida)}
+                      onClick={() => handleToggleLot(lot.id, lot.unidades_disponibles)}
                     >
                       <div className={styles.lotCardHeader}>
                         <div className={styles.lotTitleGroup}>
@@ -374,9 +372,8 @@ export default function LaundryRemissionPage() {
                       </div>
 
                       <div className={styles.lotMetaRow}>
-                        <span>Ficha: <strong>{lot.ficha_tecnica}</strong></span>
-                        <span>Tela: <strong>{lot.tela}</strong></span>
-                        <span>Color: <strong>{lot.color_crudo}</strong></span>
+                        <span>Ficha: <strong>{lot.ficha_tecnica || '—'}</strong></span>
+                        <span>Color: <strong>{lot.color_crudo || '—'}</strong></span>
                         <span>Ubicación: <strong>Planta Interna</strong></span>
                       </div>
 
@@ -394,22 +391,16 @@ export default function LaundryRemissionPage() {
                         </div>
                       )}
 
-                      {/* Controles activos cuando el lote está seleccionado */}
+                      {/* Controles activos cuando el lote está seleccionado (lote siempre completo) */}
                       {isSelected && (
                         <div className={styles.lotSendControls} onClick={(e) => e.stopPropagation()}>
                           <div className={styles.sendInputGroup}>
-                            <label htmlFor={`qty-${lot.id}`}>Prendas a Enviar:</label>
-                            <input
-                              id={`qty-${lot.id}`}
-                              type="number"
-                              min="1"
-                              max={lot.unidades_disponibles}
-                              value={lotState.qty}
-                              onChange={(e) => handleUpdateQty(lot.id, lot.unidades_disponibles, e.target.value)}
-                              className={styles.sendQtyInput}
-                            />
+                            <span>Prendas a Enviar:</span>
+                            <strong style={{ color: '#0284c7', fontSize: '0.95rem' }}>
+                              {lot.unidades_disponibles} und
+                            </strong>
                             <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                              de {lot.unidades_disponibles} und
+                              (el lote se envía completo)
                             </span>
                           </div>
 
@@ -418,10 +409,11 @@ export default function LaundryRemissionPage() {
                               Proceso de Lavado:
                             </label>
                             <select
-                              value={lotState.receta_id || lot.receta_sugerida}
+                              value={lotState.receta_id || ''}
                               onChange={(e) => handleUpdateLotReceta(lot.id, e.target.value)}
                               style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1.5px solid #0284c7', fontSize: '0.85rem', width: '100%', background: 'white' }}
                             >
+                              <option value="">-- Sin receta seleccionada ($ 0/und) --</option>
                               {washRecipes.map((recipe) => (
                                 <option key={recipe.id || recipe.codigo} value={recipe.id || recipe.codigo}>
                                   {recipe.nombre} ({formatCOP(recipe.tarifa_sugerida)}/und)
@@ -451,9 +443,6 @@ export default function LaundryRemissionPage() {
             <section className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardTitle}>2. Destino de Lavandería y Datos Logísticos</h2>
-                <span className={`${styles.statusPill} ${styles.pillInLaundry}`}>
-                  Tiempo entrega: ~{activeProvider.tiempo_promedio_dias || 3} días
-                </span>
               </div>
 
               <div className={styles.formGrid}>
@@ -464,16 +453,25 @@ export default function LaundryRemissionPage() {
                     id="laundrySelect"
                     value={selectedProviderId}
                     onChange={(e) => setSelectedProviderId(e.target.value)}
+                    disabled={laundryProviders.length === 0}
                   >
-                    {laundryProviders.map((prov) => (
-                      <option key={prov.id} value={prov.id}>
-                        {prov.razon_social} (Tarifa: {formatCOP(prov.tarifa_base_unidad)}/und)
-                      </option>
-                    ))}
+                    {laundryProviders.length === 0 ? (
+                      <option value="">No hay proveedores de categoría Lavandería registrados</option>
+                    ) : (
+                      laundryProviders.map((prov) => (
+                        <option key={prov.id} value={prov.id}>
+                          {prov.razon_social} ({prov.nit})
+                        </option>
+                      ))
+                    )}
                   </select>
-                  <span className={styles.hint}>
-                    {activeProvider.direccion} • {activeProvider.telefono} • Contacto: {activeProvider.contacto}
-                  </span>
+                  {activeProvider && (
+                    <span className={styles.hint}>
+                      {[activeProvider.direccion, activeProvider.ciudad, activeProvider.telefono, activeProvider.contacto ? `Contacto: ${activeProvider.contacto}` : '']
+                        .filter(Boolean)
+                        .join(' • ') || 'Proveedor registrado'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Fecha de Emisión y Retorno */}
@@ -489,15 +487,14 @@ export default function LaundryRemissionPage() {
                 </div>
 
                 <div className={styles.field}>
-                  <label htmlFor="fechaEntrega">Fecha Estimada de Retorno *</label>
+                  <label htmlFor="fechaEntrega">Fecha Estimada de Retorno</label>
                   <input
                     id="fechaEntrega"
                     type="date"
-                    required
                     value={fechaEntrega}
                     onChange={(e) => setFechaEntrega(e.target.value)}
                   />
-                  <span className={styles.hint}>Plazo acordado con el jefe de planta</span>
+                  <span className={styles.hint}>Opcional si aún no se acuerda fecha de retorno</span>
                 </div>
 
                 {/* Logística de Transporte */}
@@ -569,16 +566,8 @@ export default function LaundryRemissionPage() {
               <div className={styles.summaryStatRow}>
                 <span className={styles.summaryStatLabel}>Lavandería destino:</span>
                 <span className={styles.summaryStatValue} style={{ fontSize: '0.8rem', textAlign: 'right' }}>
-                  {activeProvider.razon_social}
+                  {activeProvider?.razon_social || '—'}
                 </span>
-              </div>
-              <div className={styles.summaryStatRow}>
-                <span className={styles.summaryStatLabel}>Tiempo estimado:</span>
-                <span className={styles.summaryStatValue}>{activeProvider.tiempo_promedio_dias || 3} días hábiles</span>
-              </div>
-              <div className={styles.summaryStatRow}>
-                <span className={styles.summaryStatLabel}>Tarifa base / prenda:</span>
-                <span className={styles.summaryStatValue}>{formatCOP(activeProvider.tarifa_base_unidad)}</span>
               </div>
             </div>
 
@@ -609,7 +598,7 @@ export default function LaundryRemissionPage() {
             <div className={styles.actionButtons}>
               <button
                 type="submit"
-                disabled={chosenLotsData.length === 0 || submitting}
+                disabled={!activeProvider || chosenLotsData.length === 0 || submitting}
                 className={`${styles.btn} ${styles.btnPrimary}`}
               >
                 {submitting ? 'Generando remisión...' : 'Generar Remisión de Lavado'}
@@ -628,7 +617,7 @@ export default function LaundryRemissionPage() {
       )}
 
       {/* PESTAÑA 2: HISTORIAL DE REMISIONES */}
-      {tab === 'historial' && (
+      {tab === 'historial' && !loadError && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <div>

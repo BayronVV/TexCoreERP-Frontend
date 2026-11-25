@@ -43,13 +43,13 @@ export default function RemissionDocModal({ remission, onClose, onPrint }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
               <div>
                 <p style={{ color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: 700 }}>Destino / Proveedor Lavandería</p>
-                <p style={{ fontWeight: 800, color: '#0a1038' }}>{remission.lavanderia_nombre}</p>
-                <p style={{ color: '#475569' }}>Contacto: {remission.contacto_lavanderia || 'Jefe de Planta'}</p>
+                <p style={{ fontWeight: 800, color: '#0a1038' }}>{remission.lavanderia_nombre || '—'}</p>
+                <p style={{ color: '#475569' }}>Contacto: {remission.contacto_lavanderia || '—'}</p>
               </div>
               <div>
                 <p style={{ color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: 700 }}>Logística & Transporte</p>
-                <p style={{ fontWeight: 700, color: '#0a1038' }}>{remission.transportador_nombre || 'Conductor asignado'}</p>
-                <p style={{ color: '#475569' }}>Vehículo: {remission.vehiculo_placa || 'Placa N/A'} • {remission.tulas_bultos} Tulas ({remission.peso_kg || 0} kg)</p>
+                <p style={{ fontWeight: 700, color: '#0a1038' }}>{remission.transportador_nombre || '—'}</p>
+                <p style={{ color: '#475569' }}>Vehículo: {remission.vehiculo_placa || '—'} • {remission.tulas_bultos} Tulas ({remission.peso_kg || 0} kg)</p>
               </div>
             </div>
 

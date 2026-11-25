@@ -1,16 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  MOCK_PENDING_RECEPTIONS,
-  MOCK_PAST_RECEPTIONS,
-} from './mockLaundryData'
-import {
   calculateLotReconciliation,
   calculateReceptionTotals,
   validateLotReconciliationRow,
+  validateReceptionForm,
   STANDARD_MERMA_REASONS,
   STANDARD_DAMAGE_TYPES,
-  DEFAULT_GARMENT_UNIT_COST,
 } from './laundryReception'
 import ReceptionDocModal from './ReceptionDocModal'
 import { useToast } from '../ui/toastContext'
@@ -28,9 +24,9 @@ const formatCOP = (val) => {
 }
 
 /**
- * Procesos Externos · Recepción de Lavandería (TE-58), ruta `/lavanderia/recepcion` (`lavanderia.ver`): cotejo de lo enviado contra lo recibido por lote (conforme,
- * merma y dañado), pérdidas valoradas y acta de reingreso; la lógica de cálculo está en `laundryReception.js`. Endpoints: `GET /api/lavanderia/remisiones-pendientes/`,
- * `GET` y `POST /api/lavanderia/recepciones/`. Si una consulta falla, usa los datos de demostración de `mockLaundryData.js`.
+ * Procesos Externos · Recepción de Lavandería (TE-58 / TE-172), ruta `/lavanderia/recepcion` (`lavanderia.ver`):
+ * cotejo de lo enviado contra lo recibido por lote (incluyendo 0 conformes con pérdida), factura externa obligatoria,
+ * costo unitario real de la orden y acta de reingreso. Si la API falla, muestra el error explícito sin datos simulados.
  */
 export default function LaundryReceptionPage() {
   const notify = useToast()
@@ -40,6 +36,7 @@ export default function LaundryReceptionPage() {
   const [pendingRemissions, setPendingRemissions] = useState([])
   const [pastReceptions, setPastReceptions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   // Remisión seleccionada para cotejo
@@ -50,7 +47,7 @@ export default function LaundryReceptionPage() {
   const [facturaExterna, setFacturaExterna] = useState('')
   const [observaciones, setObservaciones] = useState('')
 
-  // Estado del cotejo por lote: { [remision_lote_id]: { conforme, merma, danada, motivo_merma, tipo_dano, unit_cost, obs } }
+  // Estado del cotejo por lote: { [remision_lote_id]: { conforme, merma, danada, motivo_merma, tipo_dano, costo_unitario_prenda, obs } }
   const [reconciliationData, setReconciliationData] = useState({})
 
   // Modal de documento generado
@@ -62,20 +59,24 @@ export default function LaundryReceptionPage() {
   // Seleccionar remisión a recibir y prellenar cotejo en balance 100%
   const selectRemission = useCallback((rem) => {
     setSelectedRemissionId(rem.remision_id || rem.codigo)
-    setFacturaExterna(rem.factura_remision_externa || 'FAC-LAV-' + Math.floor(1000 + Math.random() * 9000))
+    setFacturaExterna('')
 
     const initialRecon = {}
     if (rem.lotes && rem.lotes.length > 0) {
       rem.lotes.forEach((lote) => {
         const key = lote.remision_lote_id || lote.lote_id
+        const hasRealCost =
+          lote.costo_unitario_estimado !== null &&
+          lote.costo_unitario_estimado !== undefined &&
+          Number(lote.costo_unitario_estimado) > 0
         initialRecon[key] = {
           remision_lote_id: lote.remision_lote_id,
           lote_id: lote.lote_id,
           codigo_lote: lote.codigo_lote,
           op_codigo: lote.op_codigo,
           referencia: lote.referencia,
-          receta_nombre: lote.receta_nombre,
-          tarifa_lavado: lote.tarifa_lavado || 3500,
+          receta_nombre: lote.receta_nombre || '',
+          tarifa_lavado: Number(lote.tarifa_lavado) || 0,
           cantidad_enviada: lote.cantidad_enviada,
           // Por defecto arranca en balance con todo conforme
           cantidad_recibida_conforme: lote.cantidad_enviada,
@@ -83,7 +84,8 @@ export default function LaundryReceptionPage() {
           motivo_merma: '',
           cantidad_danada: 0,
           tipo_dano: '',
-          costo_unitario_prenda: lote.costo_unitario_estimado || DEFAULT_GARMENT_UNIT_COST,
+          costo_estimado_sistema: hasRealCost ? Number(lote.costo_unitario_estimado) : null,
+          costo_unitario_prenda: hasRealCost ? String(lote.costo_unitario_estimado) : '',
           observaciones: '',
         }
       })
@@ -91,36 +93,34 @@ export default function LaundryReceptionPage() {
     setReconciliationData(initialRecon)
   }, [])
 
-  // Cargar datos iniciales
+  // Cargar datos reales iniciales
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const [pendingRes, historyRes] = await Promise.allSettled([
+      setLoadError('')
+      const [pendingRes, historyRes] = await Promise.all([
         apiGet('/api/lavanderia/remisiones-pendientes/'),
         apiGet('/api/lavanderia/recepciones/'),
       ])
 
-      const realPending =
-        pendingRes.status === 'fulfilled' && Array.isArray(pendingRes.value)
-          ? pendingRes.value
-          : MOCK_PENDING_RECEPTIONS
-      const realHistory =
-        historyRes.status === 'fulfilled' && Array.isArray(historyRes.value)
-          ? historyRes.value
-          : MOCK_PAST_RECEPTIONS
+      const realPending = Array.isArray(pendingRes) ? pendingRes : []
+      const realHistory = Array.isArray(historyRes) ? historyRes : []
 
       setPendingRemissions(realPending)
       setPastReceptions(realHistory)
 
       if (realPending.length > 0) {
         selectRemission(realPending[0])
+      } else {
+        setSelectedRemissionId('')
+        setReconciliationData({})
       }
-    } catch {
-      setPendingRemissions(MOCK_PENDING_RECEPTIONS)
-      setPastReceptions(MOCK_PAST_RECEPTIONS)
-      if (MOCK_PENDING_RECEPTIONS.length > 0) {
-        selectRemission(MOCK_PENDING_RECEPTIONS[0])
-      }
+    } catch (err) {
+      setPendingRemissions([])
+      setPastReceptions([])
+      setSelectedRemissionId('')
+      setReconciliationData({})
+      setLoadError(err?.message || 'Error al cargar las remisiones y recepciones de lavandería.')
     } finally {
       setLoading(false)
     }
@@ -164,31 +164,23 @@ export default function LaundryReceptionPage() {
   // Validaciones en tiempo real
   const validationErrors = useMemo(() => {
     const errors = []
-    if (!activeRemission) {
-      errors.push('Selecciona una remisión despachada para cotejar.')
-      return errors
-    }
-
-    if (reconLotsList.length === 0) {
-      errors.push('No hay lotes en la remisión seleccionada.')
-      return errors
-    }
-
-    for (const lot of reconLotsList) {
-      const err = validateLotReconciliationRow(lot)
-      if (err) {
-        errors.push(err)
-      }
+    const formError = validateReceptionForm({
+      activeRemission,
+      facturaExterna,
+      lots: reconLotsList,
+    })
+    if (formError) {
+      errors.push(formError)
     }
     return errors
-  }, [activeRemission, reconLotsList])
+  }, [activeRemission, facturaExterna, reconLotsList])
 
   // Enviar y asentar recepción
   const handleSubmitReception = async (e) => {
     e.preventDefault()
 
     if (validationErrors.length > 0) {
-      notify.error(validationErrors[0])
+      notify(validationErrors[0], 'error')
       return
     }
 
@@ -200,17 +192,20 @@ export default function LaundryReceptionPage() {
         fecha_recepcion: fechaRecepcion,
         factura_remision_externa: facturaExterna.trim(),
         observaciones: observaciones.trim(),
-        lotes: reconLotsList.map((lot) => ({
-          remision_lote_id: lot.remision_lote_id,
-          lote_id: lot.lote_id,
-          cantidad_recibida_conforme: Number(lot.cantidad_recibida_conforme) || 0,
-          cantidad_merma: Number(lot.cantidad_merma) || 0,
-          motivo_merma: (lot.motivo_merma || '').trim(),
-          cantidad_danada: Number(lot.cantidad_danada) || 0,
-          tipo_dano: (lot.tipo_dano || '').trim(),
-          costo_unitario_prenda: Number(lot.costo_unitario_prenda) || DEFAULT_GARMENT_UNIT_COST,
-          observaciones: (lot.observaciones || '').trim(),
-        })),
+        lotes: reconLotsList.map((lot) => {
+          const parsedCost = Number(lot.costo_unitario_prenda)
+          return {
+            remision_lote_id: lot.remision_lote_id,
+            lote_id: lot.lote_id,
+            cantidad_recibida_conforme: Number(lot.cantidad_recibida_conforme) || 0,
+            cantidad_merma: Number(lot.cantidad_merma) || 0,
+            motivo_merma: (lot.motivo_merma || '').trim(),
+            cantidad_danada: Number(lot.cantidad_danada) || 0,
+            tipo_dano: (lot.tipo_dano || '').trim(),
+            costo_unitario_prenda: Number.isFinite(parsedCost) && parsedCost > 0 ? parsedCost : null,
+            observaciones: (lot.observaciones || '').trim(),
+          }
+        }),
       }
 
       const created = await apiRequest('/api/lavanderia/recepciones/', {
@@ -218,8 +213,9 @@ export default function LaundryReceptionPage() {
         body: payload,
       })
 
-      notify.success(
-        `Recepción ${created.codigo} asentada. Se devolvieron ${created.total_recibido_conforme} prendas a planta y se asentaron ${formatCOP(created.costo_total_perdida)} en pérdidas.`,
+      notify(
+        `Recepción ${created.codigo} asentada. Se devolvieron ${created.total_recibido_conforme} prendas conformes y se asentaron ${formatCOP(created.costo_total_perdida)} en pérdidas.`,
+        'success',
       )
 
       // Abrir modal de comprobante generado
@@ -239,7 +235,7 @@ export default function LaundryReceptionPage() {
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Error al asentar la recepción de lavandería.'
-      notify.error(msg)
+      notify(msg, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -323,8 +319,36 @@ export default function LaundryReceptionPage() {
         </button>
       </div>
 
+      {loadError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.9rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            color: '#991b1b',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <span>{loadError}</span>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            style={{ width: 'auto' }}
+            onClick={loadData}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* ---------------- PESTAÑA 1: NUEVA RECEPCIÓN & COTEJO ---------------- */}
-      {tab === 'cotejo' && (
+      {tab === 'cotejo' && !loadError && (
         <>
           {loading ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
@@ -417,7 +441,7 @@ export default function LaundryReceptionPage() {
                         Vehículo / Entrega:
                       </span>
                       <p style={{ margin: 0, color: '#475569' }}>
-                        {activeRemission.transportador_nombre || 'Conductor asignado'} • Placa: {activeRemission.vehiculo_placa || 'N/A'}
+                        {activeRemission.transportador_nombre || '—'} • Placa: {activeRemission.vehiculo_placa || '—'}
                       </p>
                     </div>
                     <div>
@@ -459,7 +483,8 @@ export default function LaundryReceptionPage() {
                         lot.cantidad_merma,
                         lot.cantidad_danada,
                       )
-                      const lotLoss = (recon.merma + recon.danada) * (lot.costo_unitario_prenda || DEFAULT_GARMENT_UNIT_COST)
+                      const unitCostNum = Number(lot.costo_unitario_prenda) > 0 ? Number(lot.costo_unitario_prenda) : 0
+                      const lotLoss = (recon.merma + recon.danada) * unitCostNum
 
                       return (
                         <div key={key} className={styles.reconLotCard}>
@@ -470,9 +495,11 @@ export default function LaundryReceptionPage() {
                               <span style={{ fontSize: '0.85rem', color: '#64748b', marginLeft: '0.5rem' }}>
                                 OP: {lot.op_codigo} • {lot.referencia}
                               </span>
-                              <div style={{ fontSize: '0.78rem', color: '#0284c7', marginTop: '0.2rem' }}>
-                                Receta: <strong>{lot.receta_nombre}</strong>
-                              </div>
+                              {lot.receta_nombre && (
+                                <div style={{ fontSize: '0.78rem', color: '#0284c7', marginTop: '0.2rem' }}>
+                                  Receta: <strong>{lot.receta_nombre}</strong>
+                                </div>
+                              )}
                             </div>
 
                             <div style={{ textAlign: 'right' }}>
@@ -637,10 +664,33 @@ export default function LaundryReceptionPage() {
                             </div>
                           )}
 
+                          {recon.merma + recon.danada > 0 && lot.costo_estimado_sistema == null && (
+                            <div style={{ marginTop: '0.75rem', padding: '0.65rem', borderRadius: '6px', border: '1px solid #fed7aa', background: '#fff7ed' }}>
+                              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#9a3412', display: 'block', marginBottom: '0.25rem' }}>
+                                Costo unitario real de la prenda (COP) * — la orden aún no tiene costos registrados
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                className={styles.formInput}
+                                placeholder="Ingresa el costo real por prenda en COP"
+                                value={lot.costo_unitario_prenda}
+                                onChange={(e) => handleLotChange(key, 'costo_unitario_prenda', e.target.value)}
+                                required
+                              />
+                            </div>
+                          )}
+
                           {/* Subtotal de pérdida financiera por lote */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
                             <span>
-                              Costo estimado prenda: <strong>{formatCOP(lot.costo_unitario_prenda || DEFAULT_GARMENT_UNIT_COST)}</strong>
+                              Costo unitario prenda:{' '}
+                              <strong>
+                                {Number(lot.costo_unitario_prenda) > 0
+                                  ? formatCOP(lot.costo_unitario_prenda)
+                                  : 'Sin costo calculado en la orden'}
+                              </strong>
                             </span>
                             <span style={{ fontWeight: 700, color: lotLoss > 0 ? '#b91c1c' : '#059669' }}>
                               Pérdida por defectos/mermas en este lote: {formatCOP(lotLoss)}
@@ -662,12 +712,12 @@ export default function LaundryReceptionPage() {
 
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>
-                        Factura / Remisión Externa del Proveedor
+                        Factura / Remisión Externa del Proveedor *
                       </label>
                       <input
                         type="text"
                         className={styles.formInput}
-                        placeholder="Ej: FAC-LAV-8841 o GUIA-9021"
+                        placeholder="Ej: FAC-8841 o GUIA-9021"
                         value={facturaExterna}
                         onChange={(e) => setFacturaExterna(e.target.value)}
                         required
@@ -780,7 +830,7 @@ export default function LaundryReceptionPage() {
       )}
 
       {/* ---------------- PESTAÑA 2: HISTORIAL DE RECEPCIONES ---------------- */}
-      {tab === 'historial' && (
+      {tab === 'historial' && !loadError && (
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <div>
