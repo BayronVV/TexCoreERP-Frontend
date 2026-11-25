@@ -1,9 +1,6 @@
 /**
- * Lógica pura de negocio para Recepción de Lavandería, Cotejo de Cantidades y Pérdidas (TE-58).
+ * Lógica pura de negocio para Recepción de Lavandería, Cotejo de Cantidades y Pérdidas (TE-58 / TE-172).
  */
-
-/** Costo unitario por prenda (COP) con el que se valoran las pérdidas cuando la fila no trae uno. */
-export const DEFAULT_GARMENT_UNIT_COST = 35000
 
 /** Motivos de merma (prendas perdidas) que ofrece la lista desplegable de la recepción. */
 export const STANDARD_MERMA_REASONS = [
@@ -57,9 +54,10 @@ export function calculateLotReconciliation(enviada = 0, conforme = 0, merma = 0,
 /**
  * Calcula la pérdida financiera de un lote por procesos de terceros.
  */
-export function calculateLotLoss(merma = 0, danada = 0, unitCost = DEFAULT_GARMENT_UNIT_COST) {
+export function calculateLotLoss(merma = 0, danada = 0, unitCost = 0) {
   const lostUnits = (Math.max(0, Number(merma) || 0)) + (Math.max(0, Number(danada) || 0))
-  const cost = Number(unitCost) || DEFAULT_GARMENT_UNIT_COST
+  const parsed = Number(unitCost)
+  const cost = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
   return lostUnits * cost
 }
 
@@ -70,6 +68,7 @@ export function calculateLotLoss(merma = 0, danada = 0, unitCost = DEFAULT_GARME
 export function validateLotReconciliationRow(row) {
   if (!row) return 'Fila de lote no válida.'
 
+  const label = row.codigo_lote || row.lote_codigo || ''
   const recon = calculateLotReconciliation(
     row.cantidad_enviada,
     row.cantidad_recibida_conforme,
@@ -78,21 +77,49 @@ export function validateLotReconciliationRow(row) {
   )
 
   if (recon.diff > 0) {
-    return `Lote ${row.codigo_lote || row.lote_codigo || ''}: faltan ${recon.diff} prendas por conciliar (deben sumar ${recon.enviada}).`
+    return `Lote ${label}: faltan ${recon.diff} prendas por conciliar (deben sumar ${recon.enviada}).`
   }
   if (recon.diff < 0) {
-    return `Lote ${row.codigo_lote || row.lote_codigo || ''}: sobran ${Math.abs(recon.diff)} prendas (reportadas ${recon.totalReported} vs enviadas ${recon.enviada}).`
+    return `Lote ${label}: sobran ${Math.abs(recon.diff)} prendas (reportadas ${recon.totalReported} vs enviadas ${recon.enviada}).`
   }
 
   // Validación de campos obligatorios para mermas o daños
   if (recon.merma > 0 && (!row.motivo_merma || !row.motivo_merma.trim())) {
-    return `Lote ${row.codigo_lote || row.lote_codigo || ''}: el motivo de merma es obligatorio al registrar ${recon.merma} prendas de extravío.`
+    return `Lote ${label}: el motivo de merma es obligatorio al registrar ${recon.merma} prendas de extravío.`
   }
 
   if (recon.danada > 0 && (!row.tipo_dano || !row.tipo_dano.trim())) {
-    return `Lote ${row.codigo_lote || row.lote_codigo || ''}: el tipo de daño es obligatorio al registrar ${recon.danada} prendas dañadas por la lavandería.`
+    return `Lote ${label}: el tipo de daño es obligatorio al registrar ${recon.danada} prendas dañadas por la lavandería.`
   }
 
+  if (recon.merma + recon.danada > 0) {
+    const unitCost = Number(row.costo_unitario_prenda)
+    if (!Number.isFinite(unitCost) || unitCost <= 0) {
+      return `Lote ${label}: el costo unitario real de la prenda es obligatorio cuando hay mermas o daños.`
+    }
+  }
+
+  return null
+}
+
+/**
+ * Valida los datos generales del formulario de recepción de lavandería antes de enviarlo al servidor.
+ * @returns {string|null} Mensaje de error o null si es válido.
+ */
+export function validateReceptionForm({ activeRemission, facturaExterna, lots = [] } = {}) {
+  if (!activeRemission) {
+    return 'Debes seleccionar una remisión pendiente de recepción.'
+  }
+  if (!facturaExterna || !String(facturaExterna).trim()) {
+    return 'El número de factura o remisión externa de la lavandería es obligatorio.'
+  }
+  if (!Array.isArray(lots) || lots.length === 0) {
+    return 'La remisión no contiene lotes para cotejar.'
+  }
+  for (const row of lots) {
+    const rowError = validateLotReconciliationRow(row)
+    if (rowError) return rowError
+  }
   return null
 }
 
@@ -112,8 +139,10 @@ export function calculateReceptionTotals(lots = []) {
     const conf = Number(lot.cantidad_recibida_conforme) || 0
     const mer = Number(lot.cantidad_merma) || 0
     const dan = Number(lot.cantidad_danada) || 0
-    const unitCost = Number(lot.costo_unitario_prenda) || DEFAULT_GARMENT_UNIT_COST
-    const washRate = Number(lot.tarifa_lavado) || 3500
+    const rawCost = Number(lot.costo_unitario_prenda)
+    const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0
+    const rawRate = Number(lot.tarifa_lavado)
+    const washRate = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 0
 
     totalEnviado += env
     totalConforme += conf
