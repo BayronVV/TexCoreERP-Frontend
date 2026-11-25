@@ -183,3 +183,32 @@ export function filterCartera(invoices, { tab = 'POR_COBRAR', search = '', carri
 export function canReconcile(invoice) {
   return Boolean(invoice && invoice.estado === 'EMITIDA' && invoice.estado_cobro === 'POR_COBRAR')
 }
+
+/** Diferencia con signo entre el costo calculado desde producción y el costo de fábrica vigente. */
+export function costDifferenceLabel(calculated, current) {
+  if (calculated == null || current == null) return '—'
+  const diff = Math.round(Number(calculated) - Number(current))
+  if (diff === 0) return '$0'
+  return diff > 0 ? `+${money(diff)}` : `-${money(Math.abs(diff))}`
+}
+
+/** Estado del costo de fábrica respecto al cálculo real de producción para una fila de `Precios`. */
+export function priceCostStatus(item) {
+  if (!item) {
+    return { kind: 'sin_ordenes', label: 'Sin órdenes', canQuickApply: false, needsPriceIncrease: false }
+  }
+  if (item.precio_bajo_costo) {
+    return { kind: 'bajo_costo', label: 'Precio bajo costo', canQuickApply: false, needsPriceIncrease: true }
+  }
+  if (item.costo_desactualizado) {
+    const hasPrices = item.precio_mayorista != null
+    return { kind: 'desactualizado', label: 'Costo desactualizado', canQuickApply: hasPrices, needsPriceIncrease: !hasPrices }
+  }
+  if (item.calculo_produccion?.estado === 'INCOMPLETO') {
+    return { kind: 'incompleto', label: 'Costo incompleto', canQuickApply: false, needsPriceIncrease: false }
+  }
+  if (item.costo_calculado != null) {
+    return { kind: 'al_dia', label: 'Costo al día', canQuickApply: false, needsPriceIncrease: false }
+  }
+  return { kind: 'sin_ordenes', label: 'Sin órdenes (90 d)', canQuickApply: false, needsPriceIncrease: false }
+}
