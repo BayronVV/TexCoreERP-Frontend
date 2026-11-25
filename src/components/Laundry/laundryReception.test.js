@@ -1,11 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   calculateLotReconciliation,
   calculateLotLoss,
   validateLotReconciliationRow,
+  validateReceptionForm,
   calculateReceptionTotals,
 } from './laundryReception.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 test('calculateLotReconciliation: balance exacto cuando conformes + mermas + danadas suman enviadas', () => {
   const recon = calculateLotReconciliation(100, 95, 3, 2)
@@ -14,6 +20,14 @@ test('calculateLotReconciliation: balance exacto cuando conformes + mermas + dan
   assert.equal(recon.totalReported, 100)
   assert.equal(recon.hasDeficit, false)
   assert.equal(recon.hasSurplus, false)
+})
+
+test('calculateLotReconciliation: acepta 0 conformes y 40 merma cuando suman el total enviado', () => {
+  const recon = calculateLotReconciliation(40, 0, 40, 0)
+  assert.equal(recon.isBalanced, true)
+  assert.equal(recon.diff, 0)
+  assert.equal(recon.conforme, 0)
+  assert.equal(recon.merma, 40)
 })
 
 test('calculateLotReconciliation: detecta faltante (déficit de prendas sin conciliar)', () => {
@@ -31,27 +45,24 @@ test('calculateLotReconciliation: detecta sobrante de prendas', () => {
   assert.equal(recon.hasSurplus, true)
 })
 
-test('calculateLotLoss: calcula costo financiero exacto de mermas y daños', () => {
-  // 4 mermas + 2 dañadas = 6 prendas * $35.000 = $210.000
-  const loss = calculateLotLoss(4, 2, 35000)
-  assert.equal(loss, 210000)
-
-  // Sin mermas ni daños = $0
-  assert.equal(calculateLotLoss(0, 0, 35000), 0)
+test('calculateLotLoss: calcula costo financiero exacto sin valor por defecto inventado', () => {
+  assert.equal(calculateLotLoss(4, 2, 32000), 192000)
+  assert.equal(calculateLotLoss(4, 2, 0), 0)
+  assert.equal(calculateLotLoss(0, 0, 32000), 0)
 })
 
-test('validateLotReconciliationRow: valida cuando todo cuadra con motivos indicados', () => {
+test('validateLotReconciliationRow: valida cuando hay 0 conformes y 40 mermas con motivo y costo real', () => {
   const row = {
     codigo_lote: 'LOTE-01',
-    cantidad_enviada: 60,
-    cantidad_recibida_conforme: 55,
-    cantidad_merma: 3,
-    motivo_merma: 'Extravío en tina de centrifugado',
-    cantidad_danada: 2,
-    tipo_dano: 'Decoloración química irregular',
+    cantidad_enviada: 40,
+    cantidad_recibida_conforme: 0,
+    cantidad_merma: 40,
+    motivo_merma: 'Pérdida total en tina de lavado',
+    cantidad_danada: 0,
+    tipo_dano: '',
+    costo_unitario_prenda: 29500,
   }
-  const error = validateLotReconciliationRow(row)
-  assert.equal(error, null)
+  assert.equal(validateLotReconciliationRow(row), null)
 })
 
 test('validateLotReconciliationRow: exige motivo obligatorio cuando hay merma', () => {
@@ -60,9 +71,10 @@ test('validateLotReconciliationRow: exige motivo obligatorio cuando hay merma', 
     cantidad_enviada: 50,
     cantidad_recibida_conforme: 48,
     cantidad_merma: 2,
-    motivo_merma: '', // Falta motivo obligatorio
+    motivo_merma: '',
     cantidad_danada: 0,
     tipo_dano: '',
+    costo_unitario_prenda: 25000,
   }
   const error = validateLotReconciliationRow(row)
   assert.match(error, /motivo de merma es obligatorio/)
@@ -76,40 +88,90 @@ test('validateLotReconciliationRow: exige tipo de daño obligatorio cuando hay p
     cantidad_merma: 0,
     motivo_merma: '',
     cantidad_danada: 3,
-    tipo_dano: '   ', // Falta tipo de daño obligatorio
+    tipo_dano: '   ',
+    costo_unitario_prenda: 25000,
   }
   const error = validateLotReconciliationRow(row)
   assert.match(error, /tipo de daño es obligatorio/)
 })
 
-test('calculateReceptionTotals: acumula totales y pérdidas entre múltiples lotes', () => {
+test('validateLotReconciliationRow: exige costo unitario real cuando hay pérdidas y no viene del sistema', () => {
+  const row = {
+    codigo_lote: 'LOTE-04',
+    cantidad_enviada: 40,
+    cantidad_recibida_conforme: 38,
+    cantidad_merma: 2,
+    motivo_merma: 'Extravío',
+    cantidad_danada: 0,
+    tipo_dano: '',
+    costo_unitario_prenda: '',
+  }
+  const error = validateLotReconciliationRow(row)
+  assert.match(error, /costo unitario real/i)
+})
+
+test('validateReceptionForm: exige factura externa obligatoria y filas válidas', () => {
+  const validLot = {
+    codigo_lote: 'LOTE-05',
+    cantidad_enviada: 60,
+    cantidad_recibida_conforme: 60,
+    cantidad_merma: 0,
+    cantidad_danada: 0,
+  }
+  assert.match(
+    validateReceptionForm({ activeRemission: { id: 1 }, facturaExterna: '  ', lots: [validLot] }),
+    /factura o remisión externa/i,
+  )
+  assert.equal(
+    validateReceptionForm({ activeRemission: { id: 1 }, facturaExterna: 'FAC-100', lots: [validLot] }),
+    null,
+  )
+})
+
+test('calculateReceptionTotals: acumula totales y usa 0 cuando faltan costos o tarifas', () => {
   const lots = [
     {
       cantidad_enviada: 60,
       cantidad_recibida_conforme: 55,
       cantidad_merma: 3,
       cantidad_danada: 2,
-      costo_unitario_prenda: 35000,
+      costo_unitario_prenda: 31000,
       tarifa_lavado: 3500,
     },
     {
       cantidad_enviada: 40,
-      cantidad_recibida_conforme: 38,
-      cantidad_merma: 1,
-      cantidad_danada: 1,
-      costo_unitario_prenda: 40000,
-      tarifa_lavado: 4000,
+      cantidad_recibida_conforme: 40,
+      cantidad_merma: 0,
+      cantidad_danada: 0,
+      costo_unitario_prenda: null,
+      tarifa_lavado: 0,
     },
   ]
-
   const totals = calculateReceptionTotals(lots)
   assert.equal(totals.totalEnviado, 100)
-  assert.equal(totals.totalConforme, 93)
-  assert.equal(totals.totalMerma, 4)
-  assert.equal(totals.totalDanada, 3)
-  // Lote 1: (3+2)*35000 = 175.000. Lote 2: (1+1)*40000 = 80.000. Total = 255.000
-  assert.equal(totals.totalPerdidaFinanciera, 255000)
-  // Servicio lavado: 55*3500 (192.500) + 38*4000 (152.000) = 344.500
-  assert.equal(totals.totalServicioLavado, 344500)
+  assert.equal(totals.totalConforme, 95)
+  assert.equal(totals.totalMerma, 3)
+  assert.equal(totals.totalDanada, 2)
+  assert.equal(totals.totalPerdidaFinanciera, 5 * 31000)
+  assert.equal(totals.totalServicioLavado, 55 * 3500)
   assert.equal(totals.allBalanced, true)
+})
+
+test('TE-172: sin archivos mock ni valores inventados y manejo explícito de error en lavandería', () => {
+  assert.equal(fs.existsSync(path.join(__dirname, 'mockLaundryData.js')), false)
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'Production', 'mockSettlementData.js')), false)
+
+  const remissionSrc = fs.readFileSync(path.join(__dirname, 'LaundryRemissionPage.jsx'), 'utf8')
+  const receptionSrc = fs.readFileSync(path.join(__dirname, 'LaundryReceptionPage.jsx'), 'utf8')
+
+  for (const src of [remissionSrc, receptionSrc]) {
+    assert.doesNotMatch(src, /mockLaundryData/)
+    assert.doesNotMatch(src, /DEFAULT_GARMENT_UNIT_COST/)
+    assert.match(src, /loadError/)
+    assert.match(src, /role="alert"/)
+    assert.doesNotMatch(src, /notify\.error|notify\.success/)
+  }
+
+  assert.doesNotMatch(remissionSrc, /REC-SW-01|Conductor TexCore|WXY-789/)
+  assert.doesNotMatch(receptionSrc, /FAC-LAV-/)
 })

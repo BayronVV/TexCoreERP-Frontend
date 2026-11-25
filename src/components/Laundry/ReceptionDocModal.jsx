@@ -51,7 +51,7 @@ export default function ReceptionDocModal({ reception, onClose, onPrint }) {
                 <h4 style={{ color: '#0284c7' }}>{reception.codigo}</h4>
                 <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>Fecha Recepción: {reception.fecha_recepcion}</p>
                 <p style={{ fontSize: '0.82rem', color: '#475569' }}>
-                  Remisión Externa / Factura: <strong>{reception.factura_remision_externa || 'N/A'}</strong>
+                  Remisión Externa / Factura: <strong>{reception.factura_remision_externa || '—'}</strong>
                 </p>
               </div>
             </div>
@@ -74,9 +74,9 @@ export default function ReceptionDocModal({ reception, onClose, onPrint }) {
                 <p style={{ color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: 700 }}>
                   Proveedor de Lavandería Externa
                 </p>
-                <p style={{ fontWeight: 800, color: '#0a1038' }}>{reception.lavanderia_nombre}</p>
+                <p style={{ fontWeight: 800, color: '#0a1038' }}>{reception.lavanderia_nombre || '—'}</p>
                 <p style={{ color: '#475569' }}>
-                  NIT: {reception.lavanderia_nit || 'No registrado'} • Contacto: {reception.lavanderia_contacto || 'Jefe de Planta'}
+                  NIT: {reception.lavanderia_nit || '—'} • Contacto: {reception.lavanderia_contacto || '—'}
                 </p>
               </div>
               <div>
