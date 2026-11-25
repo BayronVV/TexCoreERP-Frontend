@@ -1,17 +1,22 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import {
   canReconcile,
   cartRows,
   cartTotals,
   carteraResume,
+  costDifferenceLabel,
   dayResume,
   filterCartera,
   lineAmounts,
   marginLabel,
   maxDiscountFor,
   money,
+  priceCostStatus,
   roundHalfUp,
   saleBody,
   saleConfirmation,
@@ -19,6 +24,8 @@ import {
   unitPriceFor,
   variantIndex,
 } from './sales.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const meta = {
   iva_tarifa: 19,
@@ -182,4 +189,37 @@ test('canReconcile: solo facturas emitidas en estado por cobrar', () => {
   assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'DEVOLUCION' }), false)
   assert.equal(canReconcile({ estado: 'ANULADA', estado_cobro: 'POR_COBRAR' }), false)
   assert.equal(canReconcile(null), false)
+})
+
+test('costDifferenceLabel y priceCostStatus: sugieren, alertan desfase y bloquean si supera mayorista', () => {
+  assert.equal(costDifferenceLabel(46000, 40000), '+$6.000')
+  assert.equal(costDifferenceLabel(38000, 40000), '-$2.000')
+  assert.equal(costDifferenceLabel(40000, 40000), '$0')
+  assert.equal(costDifferenceLabel(null, 40000), '—')
+
+  assert.deepEqual(
+    priceCostStatus({ costo_calculado: 50000, precio_mayorista: 45000, precio_bajo_costo: true, costo_desactualizado: true }),
+    { kind: 'bajo_costo', label: 'Precio bajo costo', canQuickApply: false, needsPriceIncrease: true },
+  )
+  assert.deepEqual(
+    priceCostStatus({ costo_calculado: 46000, precio_mayorista: 68000, costo_desactualizado: true, precio_bajo_costo: false }),
+    { kind: 'desactualizado', label: 'Costo desactualizado', canQuickApply: true, needsPriceIncrease: false },
+  )
+  assert.deepEqual(
+    priceCostStatus({ costo_calculado: null, calculo_produccion: { estado: 'INCOMPLETO' } }),
+    { kind: 'incompleto', label: 'Costo incompleto', canQuickApply: false, needsPriceIncrease: false },
+  )
+  assert.deepEqual(
+    priceCostStatus({ costo_calculado: 42000, precio_mayorista: 68000, costo_desactualizado: false }),
+    { kind: 'al_dia', label: 'Costo al día', canQuickApply: false, needsPriceIncrease: false },
+  )
+  assert.equal(priceCostStatus({ costo_calculado: null }).kind, 'sin_ordenes')
+})
+
+test('TE-174: PricesPage oculta costo calculado y acciones al Vendedor y usa endpoints reales', () => {
+  const src = fs.readFileSync(path.join(__dirname, 'PricesPage.jsx'), 'utf8')
+  assert.match(src, /can\('ventas\.precios'\)/)
+  assert.match(src, /canEdit && <th className=\{styles\.num\}>Costo calculado<\/th>/)
+  assert.match(src, /\/aplicar-costo\//)
+  assert.match(src, /\/historial\//)
 })
