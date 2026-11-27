@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useToast } from '../ui/toastContext'
+import ListPager from '../ui/ListPager'
 import Modal from '../ui/Modal'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { openEvidence } from './evidence'
 import { fieldErrors, formatDate, formatQty } from './labels'
 import { formatMoney } from './money'
@@ -187,47 +189,109 @@ function OrdersList({ canManage, refreshKey, onChanged }) {
   )
 }
 
+const KARDEX_FILTERS = {
+  q: '',
+  tipo: '',
+  producto: '',
+  referencia: '',
+  lote: '',
+  orden_compra: '',
+  estado: '',
+  responsable: '',
+  desde: '',
+  hasta: '',
+}
+
 function Kardex({ products, refreshKey, initialOrderCode = '' }) {
-  const [rows, setRows] = useState(null)
+  const [pageData, setPageData] = useState(null)
+  const [references, setReferences] = useState([])
   const [error, setError] = useState('')
-  const [tipo, setTipo] = useState('')
-  const [producto, setProducto] = useState('')
-  const [ordenCompra, setOrdenCompra] = useState(initialOrderCode)
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_kardex', { ...KARDEX_FILTERS, orden_compra: initialOrderCode }, { preserveParams: ['vista'] })
 
   useEffect(() => {
-    const params = new URLSearchParams()
-    if (tipo) params.set('tipo', tipo)
-    if (producto) params.set('producto', producto)
-    if (ordenCompra.trim()) params.set('orden_compra', ordenCompra.trim())
-    apiGet(`/api/inventario/movimientos/?${params}`)
-      .then((data) => (setRows(data), setError('')))
-      .catch((e) => setError(e.message))
-  }, [tipo, producto, ordenCompra, refreshKey])
+    apiGet('/api/referencias/?limit=200').then(setReferences).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.q.trim()) params.set('q', filters.q.trim())
+    if (filters.tipo) params.set('tipo', filters.tipo)
+    if (filters.producto) params.set('producto', filters.producto)
+    if (filters.referencia) params.set('referencia', filters.referencia)
+    if (filters.lote.trim()) params.set('lote', filters.lote.trim())
+    if (filters.orden_compra.trim()) params.set('orden_compra', filters.orden_compra.trim())
+    if (filters.estado) params.set('estado', filters.estado)
+    if (filters.responsable.trim()) params.set('responsable', filters.responsable.trim())
+    if (filters.desde) params.set('desde', filters.desde)
+    if (filters.hasta) params.set('hasta', filters.hasta)
+    const timer = setTimeout(() => {
+      apiGet(`/api/inventario/movimientos/?${params}`)
+        .then((data) => (setPageData(data), setError('')))
+        .catch((e) => setError(e.message))
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [filters, page, pageSize, refreshKey])
+
+  const rows = pageData?.results ?? null
 
   return (
     <>
       <div className={styles.filters}>
-        <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de movimiento">
+        <input type="search" placeholder="Producto, lote, orden, proveedor o nota" value={filters.q} onChange={(e) => setFilter('q', e.target.value)} aria-label="Buscar movimientos" />
+        <select value={filters.tipo} onChange={(e) => setFilter('tipo', e.target.value)} aria-label="Tipo de movimiento">
           <option value="">Ingresos y salidas</option>
           <option value="INGRESO">Solo ingresos</option>
           <option value="SALIDA">Solo salidas</option>
         </select>
-        <select value={producto} onChange={(e) => setProducto(e.target.value)} aria-label="Producto">
+        <select value={filters.producto} onChange={(e) => setFilter('producto', e.target.value)} aria-label="Producto">
           <option value="">Todos los productos</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>{p.nombre}</option>
           ))}
         </select>
+        <select value={filters.referencia} onChange={(e) => setFilter('referencia', e.target.value)} aria-label="Referencia de la orden">
+          <option value="">Todas las referencias</option>
+          {references.map((r) => (
+            <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>
+          ))}
+        </select>
+        <select value={filters.estado} onChange={(e) => setFilter('estado', e.target.value)} aria-label="Estado de la orden">
+          <option value="">Todos los estados de orden</option>
+          <option value="EN_PROCESO">En proceso</option>
+          <option value="COMPLETADA">Completadas</option>
+          <option value="ANULADA">Anuladas</option>
+        </select>
+        <input type="text" placeholder="Lote" value={filters.lote} onChange={(e) => setFilter('lote', e.target.value)} aria-label="Filtrar por lote" />
         <input
           type="search"
           placeholder="Orden de compra (ej. OC-0001)"
-          value={ordenCompra}
-          onChange={(e) => setOrdenCompra(e.target.value)}
+          value={filters.orden_compra}
+          onChange={(e) => setFilter('orden_compra', e.target.value)}
           aria-label="Filtrar por orden de compra"
         />
+        <input type="text" placeholder="Responsable" value={filters.responsable} onChange={(e) => setFilter('responsable', e.target.value)} aria-label="Filtrar por responsable" />
+        <label>Desde <input type="date" value={filters.desde} onChange={(e) => setFilter('desde', e.target.value)} /></label>
+        <label>Hasta <input type="date" value={filters.hasta} onChange={(e) => setFilter('hasta', e.target.value)} /></label>
+      </div>
+      <div className={styles.filterSummary}>
+        <span>{pageData ? `${pageData.count.toLocaleString('es-CO')} movimiento(s) encontrados` : 'Consultando movimientos…'}</span>
+        {activeCount > 0 && (
+          <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+            Limpiar filtros ({activeCount})
+          </button>
+        )}
       </div>
       {error && <p className={styles.formError}>{error}</p>}
-      {rows && rows.length === 0 && <p className={styles.empty}>Todavía no hay movimientos.</p>}
+      {rows && rows.length === 0 && <p className={styles.empty}>No hay movimientos con ese filtro.</p>}
       {rows && rows.length > 0 && (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -281,6 +345,17 @@ function Kardex({ products, refreshKey, initialOrderCode = '' }) {
             </tbody>
           </table>
         </div>
+      )}
+      {pageData && (
+        <ListPager
+          count={pageData.count}
+          page={pageData.page}
+          pageSize={pageData.page_size}
+          totalPages={pageData.total_pages}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          noun="movimientos"
+        />
       )}
     </>
   )

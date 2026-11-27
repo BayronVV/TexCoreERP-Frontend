@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
+import ListPager from '../ui/ListPager'
 import Modal from '../ui/Modal'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { fieldErrors, formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from '../Finished/Finished.module.css'
@@ -146,40 +148,67 @@ function InvoiceDetail({ invoice, canCancel, meta, onChanged, onClose }) {
   )
 }
 
+const INVOICE_FILTERS = {
+  q: '',
+  cliente: '',
+  vendedor: '',
+  referencia: '',
+  transportadora: '',
+  estado: '',
+  estado_cobro: '',
+  desde: '',
+  hasta: '',
+}
+
 /**
- * Ventas · Facturas, ruta `/ventas/facturas` (`ventas.ver`): las facturas POS internas emitidas, con filtros básicos, detalle, PDF y
+ * Ventas · Facturas, ruta `/ventas/facturas` (`ventas.ver`): las facturas POS internas emitidas, con filtros combinables, paginación, detalle, PDF y
  * anulación (`ventas.anular`). Endpoints: `GET /api/ventas/facturas/` y `GET /api/ventas/metadatos/`.
  */
 export default function InvoicesPage() {
   const { can } = useAuth()
-  const [invoices, setInvoices] = useState(null)
+  const [pageData, setPageData] = useState(null)
   const [meta, setMeta] = useState(null)
-  const [search, setSearch] = useState('')
-  const [state, setState] = useState('')
-  const [collectState, setCollectState] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  const [clients, setClients] = useState([])
+  const [references, setReferences] = useState([])
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_invoices', INVOICE_FILTERS)
   const [loadError, setLoadError] = useState('')
   const [viewing, setViewing] = useState(null)
 
   const load = useCallback(() => {
-    const params = new URLSearchParams({ limit: '200' })
-    if (search.trim()) params.set('q', search.trim())
-    if (state) params.set('estado', state)
-    if (collectState) params.set('estado_cobro', collectState)
-    if (from) params.set('desde', from)
-    if (to) params.set('hasta', to)
-    apiGet(`/api/ventas/facturas/?${params}`).then((data) => (setInvoices(data), setLoadError(''))).catch((error) => setLoadError(error.message))
-  }, [search, state, collectState, from, to])
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.q.trim()) params.set('q', filters.q.trim())
+    if (filters.cliente) params.set('cliente', filters.cliente)
+    if (filters.vendedor) params.set('vendedor', filters.vendedor)
+    if (filters.referencia) params.set('referencia', filters.referencia)
+    if (filters.transportadora) params.set('transportadora', filters.transportadora)
+    if (filters.estado) params.set('estado', filters.estado)
+    if (filters.estado_cobro) params.set('estado_cobro', filters.estado_cobro)
+    if (filters.desde) params.set('desde', filters.desde)
+    if (filters.hasta) params.set('hasta', filters.hasta)
+    apiGet(`/api/ventas/facturas/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+  }, [filters, page, pageSize])
 
   useEffect(() => {
     apiGet('/api/ventas/metadatos/').then(setMeta).catch(() => {})
+    apiGet('/api/ventas/clientes/?limit=200').then(setClients).catch(() => {})
+    apiGet('/api/referencias/?limit=200').then(setReferences).catch(() => {})
   }, [])
 
   useEffect(() => {
     const timer = setTimeout(load, 250)
     return () => clearTimeout(timer)
   }, [load])
+
+  const invoices = pageData?.results ?? null
 
   return (
     <div className={styles.page}>
@@ -191,20 +220,44 @@ export default function InvoicesPage() {
 
       <section className={styles.card}>
         <div className={styles.filters}>
-          <input type="search" placeholder="Buscar por factura, cliente o documento" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar facturas" />
-          <select value={state} onChange={(event) => setState(event.target.value)} aria-label="Filtrar por estado">
+          <input type="search" placeholder="Factura, cliente, documento o guía" value={filters.q} onChange={(event) => setFilter('q', event.target.value)} aria-label="Buscar facturas" />
+          <select value={filters.cliente} onChange={(event) => setFilter('cliente', event.target.value)} aria-label="Filtrar por cliente">
+            <option value="">Todos los clientes</option>
+            {clients.map((client) => <option key={client.id} value={client.id}>{client.nombre}</option>)}
+          </select>
+          <select value={filters.vendedor} onChange={(event) => setFilter('vendedor', event.target.value)} aria-label="Filtrar por vendedor">
+            <option value="">Todos los vendedores</option>
+            {(meta?.vendedores ?? []).map((seller) => <option key={seller.id} value={seller.id}>{seller.nombre}</option>)}
+          </select>
+          <select value={filters.referencia} onChange={(event) => setFilter('referencia', event.target.value)} aria-label="Filtrar por referencia">
+            <option value="">Todas las referencias</option>
+            {references.map((ref) => <option key={ref.id} value={ref.id}>{ref.codigo} · {ref.nombre}</option>)}
+          </select>
+          <select value={filters.transportadora} onChange={(event) => setFilter('transportadora', event.target.value)} aria-label="Filtrar por transportadora">
+            <option value="">Todas las transportadoras</option>
+            {(meta?.transportadoras ?? []).map((carrier) => <option key={carrier.codigo} value={carrier.codigo}>{carrier.nombre}</option>)}
+          </select>
+          <select value={filters.estado} onChange={(event) => setFilter('estado', event.target.value)} aria-label="Filtrar por estado">
             <option value="">Todos los estados</option>
             <option value="EMITIDA">Emitidas</option>
             <option value="ANULADA">Anuladas</option>
           </select>
-          <select value={collectState} onChange={(event) => setCollectState(event.target.value)} aria-label="Filtrar por cobro">
+          <select value={filters.estado_cobro} onChange={(event) => setFilter('estado_cobro', event.target.value)} aria-label="Filtrar por cobro">
             <option value="">Todo recaudo</option>
             <option value="POR_COBRAR">Por cobrar</option>
             <option value="PAGADO">Pagadas</option>
             <option value="DEVOLUCION">Devoluciones</option>
           </select>
-          <label>Desde <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-          <label>Hasta <input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+          <label>Desde <input type="date" value={filters.desde} onChange={(event) => setFilter('desde', event.target.value)} /></label>
+          <label>Hasta <input type="date" value={filters.hasta} onChange={(event) => setFilter('hasta', event.target.value)} /></label>
+        </div>
+        <div className={styles.filterSummary}>
+          <span>{pageData ? `${pageData.count.toLocaleString('es-CO')} factura(s) encontradas` : 'Consultando facturas…'}</span>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
         </div>
         {loadError && <p className={styles.formError}>{loadError}</p>}
         {invoices && invoices.length === 0 && <p className={styles.empty}>No hay facturas con ese filtro.</p>}
@@ -240,6 +293,17 @@ export default function InvoicesPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {pageData && (
+          <ListPager
+            count={pageData.count}
+            page={pageData.page}
+            pageSize={pageData.page_size}
+            totalPages={pageData.total_pages}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            noun="facturas"
+          />
         )}
       </section>
 

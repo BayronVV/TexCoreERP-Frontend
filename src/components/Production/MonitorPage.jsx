@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { fieldErrors } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import boardStyles from './Monitor.module.css'
@@ -17,6 +18,17 @@ const COLUMN_HINT = {
   CANCELADA: 'De órdenes anuladas. Solo consulta.',
 }
 
+const MONITOR_DEFAULTS = {
+  q: '',
+  orden: '',
+  referencia: '',
+  etapa: '',
+  responsable: '',
+  desde: '',
+  hasta: '',
+  canceladas: false,
+}
+
 // Monitor de estado (HU 4.5 / RF15): los lotes en producción en cuatro columnas. El estado de un lote sale de sus etapas, así
 // que mover una tarjeta (arrastrándola o con sus botones) pide al servidor la acción que corresponde: iniciar, pausar, reanudar o
 // terminar la etapa. El servidor valida; si rechaza la acción, el tablero se recarga y la tarjeta vuelve a su sitio.
@@ -25,7 +37,12 @@ export default function MonitorPage() {
   const canManage = can('produccion.gestionar')
   const [board, setBoard] = useState(null)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({ orden: '', referencia: '', canceladas: false })
+  const {
+    filters,
+    activeCount,
+    setFilter: setPersistedFilter,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_monitor', MONITOR_DEFAULTS)
   const [orders, setOrders] = useState([])
   const [reloadKey, setReloadKey] = useState(0)
   const [fetchedAt, setFetchedAt] = useState(0)
@@ -110,7 +127,7 @@ export default function MonitorPage() {
     else if (outcome.reason) setNotice(`${lot.codigo}: ${outcome.reason}`)
   }
 
-  const setFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }))
+  const setFilter = (field) => (event) => setPersistedFilter(field, event.target.value)
 
   return (
     <div className={styles.page}>
@@ -125,6 +142,10 @@ export default function MonitorPage() {
 
       <section className={`${styles.card} ${boardStyles.toolbar}`}>
         <label className={styles.field}>
+          Buscar
+          <input type="search" placeholder="Lote, orden, referencia" value={filters.q} onChange={setFilter('q')} aria-label="Buscar en monitor" />
+        </label>
+        <label className={styles.field}>
           Orden
           <select value={filters.orden} onChange={setFilter('orden')} aria-label="Filtrar por orden">
             <option value="">Todas las órdenes</option>
@@ -138,16 +159,45 @@ export default function MonitorPage() {
             {references.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
           </select>
         </label>
+        <label className={styles.field}>
+          Etapa
+          <select value={filters.etapa} onChange={setFilter('etapa')} aria-label="Filtrar por etapa">
+            <option value="">Todas las etapas</option>
+            <option value="CORTE">Corte</option>
+            <option value="CONFECCION">Confección</option>
+            <option value="TERMINACION">Terminación</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          Responsable
+          <input type="text" placeholder="Responsable" value={filters.responsable} onChange={setFilter('responsable')} aria-label="Filtrar por responsable" />
+        </label>
+        <label className={styles.field}>
+          Desde
+          <input type="date" value={filters.desde} onChange={setFilter('desde')} />
+        </label>
+        <label className={styles.field}>
+          Hasta
+          <input type="date" value={filters.hasta} onChange={setFilter('hasta')} />
+        </label>
         <label className={boardStyles.check}>
           <input
             type="checkbox" checked={filters.canceladas}
-            onChange={(event) => setFilters((current) => ({ ...current, canceladas: event.target.checked }))}
+            onChange={(event) => setPersistedFilter('canceladas', event.target.checked)}
           />
           Ver canceladas
         </label>
         <div className={boardStyles.refresh}>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
           <button type="button" className={styles.secondaryBtn} onClick={reload}>Actualizar</button>
-          <span className={styles.muted}>{refreshLabel(fetchedAt ? new Date(fetchedAt).toISOString() : null, now || fetchedAt)}</span>
+          <span className={styles.muted}>
+            {board ? `${boardTotal(board.columnas)} lote(s) · ` : ''}
+            {refreshLabel(fetchedAt ? new Date(fetchedAt).toISOString() : null, now || fetchedAt)}
+          </span>
         </div>
       </section>
 
