@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
-import { formatDate, todayISO } from '../Inventory/labels'
+import { formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import salesStyles from './Sales.module.css'
-import { dayResume, INVOICE_NOTICE, money } from './sales'
+import { INVOICE_NOTICE, money } from './sales'
 
 /**
  * Ventas · Panel, ruta `/ventas/panel` (`ventas.ver`): el aviso de que la factura es un comprobante interno, el resumen del día y las
@@ -14,20 +14,20 @@ import { dayResume, INVOICE_NOTICE, money } from './sales'
 export default function SalesPanel() {
   const { can } = useAuth()
   const [invoices, setInvoices] = useState(null)
+  const [panel, setPanel] = useState(null)
   const [loadError, setLoadError] = useState('')
   const [noGuide, setNoGuide] = useState(null)
   const canShipping = can('envios.ver')
-  const today = todayISO()
 
   useEffect(() => {
-    apiGet('/api/ventas/facturas/?limit=200').then(setInvoices).catch((error) => setLoadError(error.message))
+    apiGet('/api/ventas/facturas/?limit=10').then(setInvoices).catch((error) => setLoadError(error.message))
+    apiGet('/api/ventas/panel/').then(setPanel).catch((error) => setLoadError(error.message))
   }, [])
 
   useEffect(() => {
     if (canShipping) apiGet('/api/envios/pendientes/').then(setNoGuide).catch(() => {})
   }, [canShipping])
 
-  const resume = dayResume(invoices, today)
 
   return (
     <div className={styles.page}>
@@ -51,10 +51,10 @@ export default function SalesPanel() {
       )}
 
       <div className={salesStyles.kpis}>
-        <div className={salesStyles.kpi}><span>Facturas de hoy</span><strong>{resume.emitidasHoy}</strong></div>
-        <div className={salesStyles.kpi}><span>Vendido hoy</span><strong>{money(resume.vendidoHoy)}</strong></div>
-        <div className={salesStyles.kpi}><span>Por cobrar</span><strong>{money(resume.porCobrar)}</strong></div>
-        <div className={salesStyles.kpi}><span>Anuladas hoy</span><strong>{resume.anuladasHoy}</strong></div>
+        <div className={salesStyles.kpi}><span>Facturas de hoy</span><strong>{panel ? panel.facturas_hoy : '…'}</strong></div>
+        <div className={salesStyles.kpi}><span>Vendido hoy</span><strong>{panel ? money(panel.vendido_hoy) : '…'}</strong></div>
+        <div className={salesStyles.kpi}><span>Por cobrar</span><strong>{panel ? money(panel.por_cobrar) : '…'}</strong></div>
+        <div className={salesStyles.kpi}><span>Anuladas hoy</span><strong>{panel ? panel.anuladas_hoy : '…'}</strong></div>
       </div>
 
       <div className={salesStyles.actions}>

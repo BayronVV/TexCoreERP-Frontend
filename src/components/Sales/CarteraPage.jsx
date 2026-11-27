@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
@@ -7,35 +8,47 @@ import { fieldErrors, formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from '../Finished/Finished.module.css'
 import salesStyles from './Sales.module.css'
-import { canReconcile, carteraResume, filterCartera, INVOICE_NOTICE, money } from './sales'
+import {
+  CARTERA_PAY_NO_GUIDE,
+  CARTERA_RETURN,
+  CARTERA_WAIT,
+  canReconcile,
+  carteraAction,
+  carteraKpis,
+  filterCartera,
+  INVOICE_NOTICE,
+  MIN_NO_GUIDE_NOTE,
+  money,
+} from './sales'
 import { downloadInvoicePdf } from './invoiceFile'
 import GuideBadge from '../Shipping/GuideBadge'
-import { deliveredAwaitingPayment } from '../Shipping/shipping'
 
 /**
- * Modal de acción rápida: confirma el recaudo de una factura (`estado_cobro: PAGADO`) y suma su valor al saldo financiero.
- * Usa `POST /api/ventas/facturas/:id/conciliar/`.
+ * Confirma el recaudo de una factura (HU 7.3 y 7.5): solo con la guía entregada o, si no tiene guía, con una nota que lo justifique.
+ * La nota queda en el movimiento de cartera, no en la factura. Usa `POST /api/ventas/facturas/:id/conciliar/` (`ventas.conciliar`).
  * @param {{invoice: object, onDone: function(object), onClose: function()}} props `onDone` recibe la factura actualizada.
  */
 function ConfirmPayModal({ invoice, onDone, onClose }) {
   const notify = useToast()
-  const [notes, setNotes] = useState('')
+  const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const withoutGuide = carteraAction(invoice) === CARTERA_PAY_NO_GUIDE
 
   const submit = async (event) => {
     event.preventDefault()
+    if (withoutGuide && note.trim().length < MIN_NO_GUIDE_NOTE) {
+      return setError(`La factura no tiene guía: explica cómo se entregó y cobró (mínimo ${MIN_NO_GUIDE_NOTE} caracteres).`)
+    }
     setSaving(true)
     setError('')
     try {
-      const saved = await apiRequest(`/api/ventas/facturas/${invoice.id}/conciliar/`, {
-        method: 'POST',
-        body: { estado_cobro: 'PAGADO', observaciones: notes.trim() },
-      })
-      notify(`Recaudo de ${saved.numero} confirmado. Se sumaron ${money(saved.valor_a_recaudar)} al saldo financiero.`)
+      const saved = await apiRequest(`/api/ventas/facturas/${invoice.id}/conciliar/`, { method: 'POST', body: { nota: note.trim() } })
+      notify(`Recaudo de ${saved.numero} confirmado. Se sumaron ${money(saved.valor_a_recaudar)} a la caja.`)
       onDone(saved)
     } catch (failure) {
-      setError(fieldErrors(failure).estado_cobro ?? fieldErrors(failure).detail ?? failure.message)
+      const errors = fieldErrors(failure)
+      setError(errors.guia ?? errors.nota ?? errors.estado_cobro ?? errors.detail ?? failure.message)
       setSaving(false)
     }
   }
@@ -46,29 +59,32 @@ function ConfirmPayModal({ invoice, onDone, onClose }) {
         <div className={`${salesStyles.reconcileNote} ${salesStyles.reconcileNotePay}`}>
           <strong>¿Confirmar el pago del pedido?</strong>
           <p>
-            Al marcar como <strong>Pagado</strong>, el valor a recaudar de <strong>{money(invoice.valor_a_recaudar)}</strong> se sumará
-            inmediatamente al saldo financiero de la empresa.
+            {withoutGuide
+              ? 'Esta factura no tiene guía (entrega en mano o recogida en bodega): escribe cómo se entregó y cómo se cobró.'
+              : 'La guía figura como entregada.'}{' '}
+            Al confirmar, <strong>{money(invoice.valor_a_recaudar)}</strong> se suman a la caja de la empresa.
           </p>
         </div>
 
         <dl className={finishedStyles.lotInfo}>
           <div><dt>Cliente</dt><dd>{invoice.cliente_nombre}</dd></div>
           <div><dt>Ciudad</dt><dd>{invoice.cliente_ciudad}</dd></div>
-          <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || 'Por definir'}</dd></div>
-          <div><dt>Guía</dt><dd>{invoice.numero_guia || 'Sin asignar'}</dd></div>
+          <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || 'Sin transportadora'}</dd></div>
+          <div><dt>Guía</dt><dd>{invoice.guia ? <GuideBadge color={invoice.guia.color} name={`${invoice.numero_guia} · ${invoice.guia.estado_nombre}`} /> : 'Sin guía'}</dd></div>
           <div><dt>Total a ingresar</dt><dd><strong>{money(invoice.valor_a_recaudar)}</strong></dd></div>
         </dl>
 
         <label className={styles.field}>
-          Observaciones / Referencia del giro (opcional)
+          {withoutGuide ? `Nota que justifica el cobro (obligatoria, mínimo ${MIN_NO_GUIDE_NOTE} caracteres)` : 'Nota / referencia del giro (opcional)'}
           <input
             type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ej: Giro bancario #12345 o consignación recibida"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={withoutGuide ? 'Ej: Recogió en bodega y pagó en efectivo, recibo 0123' : 'Ej: Giro de la transportadora #12345'}
             maxLength={255}
           />
         </label>
+        <p className={styles.hint}>La nota queda en el movimiento de cartera; la factura no se modifica.</p>
 
         {error && <p className={styles.formError}>{error}</p>}
 
@@ -76,80 +92,6 @@ function ConfirmPayModal({ invoice, onDone, onClose }) {
           <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={saving}>Cancelar</button>
           <button type="submit" className={salesStyles.quickBtnPay} style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }} disabled={saving}>
             {saving ? 'Confirmando…' : `Confirmar recaudo (${money(invoice.valor_a_recaudar)})`}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-/**
- * Modal de acción rápida: registra la devolución de una factura (`estado_cobro: DEVOLUCION`, con motivo); las prendas vuelven a producto terminado.
- * Usa `POST /api/ventas/facturas/:id/conciliar/`.
- * @param {{invoice: object, onDone: function(object), onClose: function()}} props `onDone` recibe la factura actualizada.
- */
-function ConfirmReturnModal({ invoice, onDone, onClose }) {
-  const notify = useToast()
-  const [reason, setReason] = useState('')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const submit = async (event) => {
-    event.preventDefault()
-    if (reason.trim().length < 5) {
-      return setError('Escribe el motivo de la devolución (mínimo 5 caracteres).')
-    }
-    setSaving(true)
-    setError('')
-    try {
-      const saved = await apiRequest(`/api/ventas/facturas/${invoice.id}/conciliar/`, {
-        method: 'POST',
-        body: { estado_cobro: 'DEVOLUCION', motivo: reason.trim() },
-      })
-      notify(`Devolución de ${saved.numero} registrada. Las prendas retornaron al inventario de producto terminado.`)
-      onDone(saved)
-    } catch (failure) {
-      setError(fieldErrors(failure).motivo ?? fieldErrors(failure).estado_cobro ?? failure.message)
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Modal title={`Registrar devolución · ${invoice.numero}`} onClose={onClose}>
-      <form className={styles.form} onSubmit={submit} noValidate>
-        <div className={`${salesStyles.reconcileNote} ${salesStyles.reconcileNoteReturn}`}>
-          <strong>¿Registrar devolución de mercancía?</strong>
-          <p>
-            El cliente rechazó o no recibió el paquete. Las unidades de prendas se reingresarán automáticamente al inventario
-            de producto terminado (movimiento de devolución) y <strong>no</strong> se sumará dinero al saldo financiero.
-          </p>
-        </div>
-
-        <dl className={finishedStyles.lotInfo}>
-          <div><dt>Cliente</dt><dd>{invoice.cliente_nombre}</dd></div>
-          <div><dt>Ciudad</dt><dd>{invoice.cliente_ciudad}</dd></div>
-          <div><dt>Prendas</dt><dd>{invoice.unidades} unidades</dd></div>
-          <div><dt>Transportadora</dt><dd>{invoice.transportadora_nombre || '—'} (Guía: {invoice.numero_guia || '—'})</dd></div>
-        </dl>
-
-        <label className={styles.field}>
-          Motivo de la devolución (obligatorio)
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Ej: Cliente ausente en dirección / rechazó el pedido / paquete retornado"
-            rows={3}
-            maxLength={255}
-            required
-          />
-        </label>
-
-        {error && <p className={styles.formError}>{error}</p>}
-
-        <div className={styles.actions}>
-          <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={saving}>Cancelar</button>
-          <button type="submit" className={salesStyles.quickBtnReturn} style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }} disabled={saving}>
-            {saving ? 'Registrando…' : 'Registrar devolución'}
           </button>
         </div>
       </form>
@@ -240,13 +182,15 @@ function QuickInvoiceModal({ invoice, onClose }) {
 }
 
 /**
- * Ventas · Gestión de cartera (HU 7.3 / TE-64), ruta `/ventas/cartera` (`ventas.ver`): tablero de facturas por cobrar, pagadas y devueltas,
- * con filtros y resumen. Confirmar recaudo o registrar devolución exige `ventas.gestionar`.
- * Endpoints: `GET /api/ventas/facturas/` y `GET /api/ventas/cartera/resumen/`; las acciones usan `POST /api/ventas/facturas/:id/conciliar/`.
+ * Ventas · Gestión de cartera (HU 7.3 y 7.5), ruta `/ventas/cartera` (`ventas.ver`): facturas por cobrar, pagadas y devueltas con el estado
+ * de su guía. Cada factura ofrece solo la acción que corresponde: confirmar el pago (`ventas.conciliar`, guía entregada o sin guía con
+ * nota) o ir a Envíos a registrar la devolución (`envios.devolucion`, guía devuelta). El saldo de la caja solo se ve con `ventas.conciliar`.
+ * Endpoints: `GET /api/ventas/facturas/`, `GET /api/ventas/cartera/resumen/` y `POST /api/ventas/facturas/:id/conciliar/`.
  */
 export default function CarteraPage() {
   const { can } = useAuth()
-  const canManage = can('ventas.gestionar')
+  const canConcile = can('ventas.conciliar')
+  const canReturn = can('envios.devolucion')
 
   const [invoices, setInvoices] = useState(null)
   const [summary, setSummary] = useState(null)
@@ -261,7 +205,6 @@ export default function CarteraPage() {
 
   // Modales
   const [payingInvoice, setPayingInvoice] = useState(null)
-  const [returningInvoice, setReturningInvoice] = useState(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
 
   const loadData = useCallback(() => {
@@ -287,15 +230,14 @@ export default function CarteraPage() {
     return () => clearTimeout(timer)
   }, [loadData])
 
-  // Cálculo de KPIs locales o combinados con el servidor
-  const kpis = carteraResume(invoices, summary?.saldo_financiero ?? 0)
+  // Totales calculados en el servidor (no dependen de cuántas facturas cargó la pantalla)
+  const kpis = carteraKpis(summary, invoices)
 
   // Filtrado de filas según los filtros seleccionados
   const displayed = filterCartera(invoices, { tab, search, carrier })
 
   const handleActionDone = () => {
     setPayingInvoice(null)
-    setReturningInvoice(null)
     loadData()
   }
 
@@ -305,8 +247,8 @@ export default function CarteraPage() {
         <p className={styles.eyebrow}>Ventas y despachos</p>
         <h1>Gestión de Cartera</h1>
         <p className={styles.subtitle}>
-          Consulta qué pedidos están pendientes de recaudo por las transportadoras, y utiliza las acciones rápidas para confirmar el pago
-          (actualizando el saldo financiero de la empresa) o registrar devoluciones de mercancía.
+          Consulta qué pedidos están pendientes de recaudo y en qué va su guía. El pago se confirma cuando la guía está entregada; la
+          devolución se registra en Envíos cuando el paquete devuelto llega a la bodega.
         </p>
       </header>
 
@@ -318,11 +260,13 @@ export default function CarteraPage() {
 
       {/* Tarjetas KPI de Cartera y Saldo Financiero */}
       <div className={salesStyles.kpis}>
-        <div className={salesStyles.kpiFinance}>
-          <span>Saldo Financiero de la Empresa</span>
-          <strong>{money(kpis.saldoFinanciero)}</strong>
-          <small style={{ fontSize: '0.75rem', color: '#166534' }}>Recaudos consolidados en caja</small>
-        </div>
+        {kpis.saldoFinanciero != null && (
+          <div className={salesStyles.kpiFinance}>
+            <span>Saldo Financiero de la Empresa</span>
+            <strong>{money(kpis.saldoFinanciero)}</strong>
+            <small style={{ fontSize: '0.75rem', color: '#166534' }}>Recaudos consolidados en caja</small>
+          </div>
+        )}
         <div className={salesStyles.kpi}>
           <span>Pendiente de Recaudo</span>
           <strong>{money(kpis.totalPorCobrar)}</strong>
@@ -422,7 +366,8 @@ export default function CarteraPage() {
                   const isPending = inv.estado_cobro === 'POR_COBRAR'
                   const isPaid = inv.estado_cobro === 'PAGADO'
                   const isReturned = inv.estado_cobro === 'DEVOLUCION'
-                  const reconcilable = canManage && canReconcile(inv)
+                  const action = carteraAction(inv)
+                  const reconcilable = canConcile && canReconcile(inv)
 
                   return (
                     <tr key={inv.id} className={isVoided ? salesStyles.rowVoided : ''}>
@@ -477,34 +422,31 @@ export default function CarteraPage() {
                         {isPending && !isVoided && (inv.guia ? (
                           <div>
                             <GuideBadge color={inv.guia.color} name={inv.guia.estado_nombre} />
-                            {deliveredAwaitingPayment({ estado: inv.guia.estado, estado_cobro: inv.estado_cobro }) && (
-                              <div style={{ color: '#166534', fontWeight: 600, marginTop: '0.2rem' }}>Guía entregada: ya puedes confirmar el pago</div>
-                            )}
+                            <div style={{ color: '#475569', marginTop: '0.2rem' }}>
+                              {action === CARTERA_WAIT && 'El pago se confirma cuando la guía esté entregada'}
+                              {action === CARTERA_RETURN && 'Paquete devuelto: registra la devolución en Envíos'}
+                              {action !== CARTERA_WAIT && action !== CARTERA_RETURN && 'Guía entregada: ya puedes confirmar el pago'}
+                            </div>
                           </div>
-                        ) : <span style={{ color: '#d97706' }}>Esperando reporte de transportadora</span>)}
+                        ) : <span style={{ color: '#d97706' }}>Sin guía: se concilia con una nota</span>)}
                         {isVoided && <span style={{ color: '#94a3b8' }}>Factura anulada</span>}
                       </td>
                       <td>
                         <div className={salesStyles.cellActions}>
                           {reconcilable && (
-                            <>
-                              <button
-                                type="button"
-                                className={salesStyles.quickBtnPay}
-                                title="Marcar como pagado y sumar al saldo financiero"
-                                onClick={() => setPayingInvoice(inv)}
-                              >
-                                Pagado
-                              </button>
-                              <button
-                                type="button"
-                                className={salesStyles.quickBtnReturn}
-                                title="Registrar devolución de mercancía"
-                                onClick={() => setReturningInvoice(inv)}
-                              >
-                                Devolución
-                              </button>
-                            </>
+                            <button
+                              type="button"
+                              className={salesStyles.quickBtnPay}
+                              title="Confirmar el recaudo y sumarlo a la caja"
+                              onClick={() => setPayingInvoice(inv)}
+                            >
+                              Confirmar pago
+                            </button>
+                          )}
+                          {action === CARTERA_RETURN && canReturn && (
+                            <Link to="/envios/guias" className={salesStyles.quickBtnReturn} title="La devolución se registra desde la guía devuelta">
+                              Devolución en Envíos
+                            </Link>
                           )}
                           <button
                             type="button"
@@ -530,14 +472,6 @@ export default function CarteraPage() {
           invoice={payingInvoice}
           onDone={handleActionDone}
           onClose={() => setPayingInvoice(null)}
-        />
-      )}
-
-      {returningInvoice && (
-        <ConfirmReturnModal
-          invoice={returningInvoice}
-          onDone={handleActionDone}
-          onClose={() => setReturningInvoice(null)}
         />
       )}
 
