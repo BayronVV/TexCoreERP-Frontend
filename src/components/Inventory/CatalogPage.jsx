@@ -7,6 +7,7 @@ import AuthImage from './AuthImage'
 import ProductForm from './ProductForm'
 import { fieldErrors, formatQty } from './labels'
 import { useInventoryMeta, unitName } from './meta'
+import { finishedDetailPath } from './orderLines'
 import styles from './Inventory.module.css'
 import catalogStyles from './Catalog.module.css'
 
@@ -16,7 +17,7 @@ const Placeholder = ({ name }) => (
   </div>
 )
 
-function ProductCard({ product, meta, canManage, onEdit, onRemove }) {
+function ProductCard({ product, meta, canManage, canSeeFinished, onEdit, onRemove }) {
   const byMeters = ['m', 'rollo'].includes(product.unidad)
   return (
     <article className={catalogStyles.card}>
@@ -42,6 +43,18 @@ function ProductCard({ product, meta, canManage, onEdit, onRemove }) {
           </span>
         </div>
         <dl className={catalogStyles.facts}>
+          {product.referencia_codigo && (
+            <>
+              <dt>Referencia</dt>
+              <dd>
+                {canSeeFinished ? (
+                  <Link to={finishedDetailPath(product.referencia)} className={styles.textLink}>
+                    {product.referencia_codigo} · Ver tallas y colores →
+                  </Link>
+                ) : product.referencia_codigo}
+              </dd>
+            </>
+          )}
           {product.ancho_util && (<><dt>Ancho útil</dt><dd>{formatQty(product.ancho_util)} m</dd></>)}
           {product.color && (<><dt>Color / tono</dt><dd>{product.color}</dd></>)}
           {product.composicion && (<><dt>Composición</dt><dd>{product.composicion}</dd></>)}
@@ -53,9 +66,11 @@ function ProductCard({ product, meta, canManage, onEdit, onRemove }) {
       {canManage && (
         <div className={catalogStyles.cardActions}>
           <button type="button" className={styles.linkBtn} onClick={() => onEdit(product)}>Editar</button>
-          <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => onRemove(product)}>
-            Eliminar
-          </button>
+          {!product.referencia && (
+            <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => onRemove(product)}>
+              Eliminar
+            </button>
+          )}
         </div>
       )}
     </article>
@@ -67,6 +82,7 @@ export default function CatalogPage() {
   const { can } = useAuth()
   const notify = useToast()
   const canManage = can('inventario.gestionar')
+  const canSeeFinished = can('producto_terminado.ver')
   const { meta, error: metaError } = useInventoryMeta()
   const [products, setProducts] = useState(null)
   const [loadError, setLoadError] = useState('')
@@ -161,7 +177,7 @@ export default function CatalogPage() {
           <div className={catalogStyles.grid}>
             {group.items.map((product) => (
               <ProductCard
-                key={product.id} product={product} meta={meta} canManage={canManage}
+                key={product.id} product={product} meta={meta} canManage={canManage} canSeeFinished={canSeeFinished}
                 onEdit={setEditing} onRemove={remove}
               />
             ))}

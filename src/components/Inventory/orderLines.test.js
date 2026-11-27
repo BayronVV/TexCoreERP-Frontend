@@ -4,7 +4,7 @@ import path from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  buildOrderBody, isPositiveInteger, isShort, orderProblems, stepFor,
+  buildOrderBody, finishedDetailPath, isPositiveInteger, isShort, orderProblems, stepFor, stockRowState,
 } from './orderLines.js'
 
 const PRODUCTS = {
@@ -124,4 +124,55 @@ test('UI de Inventario retira Salida a lavandería e ingreso de producto termina
 
   assert.match(historyTab, /value="LAVANDERIA"/)
   assert.match(historyTab, /order\.tipo !== 'LAVANDERIA'/)
+})
+
+test('finishedDetailPath y stockRowState manejan PT enlazados y estados de referencia (TE-170)', () => {
+  assert.equal(finishedDetailPath(12), '/producto-terminado/existencias?referencia=12')
+  assert.equal(finishedDetailPath(null), '/producto-terminado/existencias')
+
+  assert.deepEqual(
+    stockRowState({ es_terminado_enlazado: true, referencia_estado: 'BORRADOR', bajo_minimo: false, stock_actual: '0.00' }),
+    { kind: 'inactive', label: 'Borrador' },
+  )
+  assert.deepEqual(
+    stockRowState({ es_terminado_enlazado: true, referencia_estado: 'DESCONTINUADA', bajo_minimo: false, stock_actual: '0.00' }),
+    { kind: 'inactive', label: 'Descontinuada' },
+  )
+  assert.deepEqual(
+    stockRowState({ es_terminado_enlazado: true, referencia_estado: 'ACTIVA', bajo_minimo: true, stock_actual: '0.00' }),
+    { kind: 'out', label: 'Agotado' },
+  )
+  assert.deepEqual(
+    stockRowState({ es_terminado_enlazado: true, referencia_estado: 'ACTIVA', bajo_minimo: true, stock_actual: '28.00' }),
+    { kind: 'low', label: 'Bajo el mínimo' },
+  )
+  assert.deepEqual(
+    stockRowState({ es_terminado_enlazado: true, referencia_estado: 'ACTIVA', bajo_minimo: false, stock_actual: '195.00' }),
+    { kind: 'ok', label: 'Normal' },
+  )
+})
+
+test('UI de Inventario, Catálogo, Inicio y Producto Terminado reflejan la unificación TE-170', () => {
+  const dir = import.meta.dirname
+  const stockTab = fs.readFileSync(path.join(dir, 'StockTab.jsx'), 'utf8')
+  const productForm = fs.readFileSync(path.join(dir, 'ProductForm.jsx'), 'utf8')
+  const catalogPage = fs.readFileSync(path.join(dir, 'CatalogPage.jsx'), 'utf8')
+  const entryForm = fs.readFileSync(path.join(dir, 'EntryForm.jsx'), 'utf8')
+  const dashboard = fs.readFileSync(path.join(dir, '..', 'Dashboard', 'Dashboard.jsx'), 'utf8')
+  const finishedStock = fs.readFileSync(path.join(dir, '..', 'Finished', 'StockPage.jsx'), 'utf8')
+
+  assert.match(stockTab, /es_terminado_enlazado/)
+  assert.match(stockTab, /Ver tallas y colores/)
+  assert.match(stockTab, /finishedDetailPath/)
+
+  assert.match(productForm, /creable_manualmente !== false/)
+  assert.match(productForm, /disabled=\{linkedToReference\}/)
+
+  assert.match(catalogPage, /!product\.referencia/)
+  assert.match(catalogPage, /finishedDetailPath/)
+
+  assert.match(entryForm, /\/producto-terminado\/ingreso/)
+  assert.match(dashboard, /alert\.referencia && canSeeFinished/)
+  assert.match(finishedStock, /useSearchParams/)
+  assert.match(finishedStock, /searchParams\.get\('referencia'\)/)
 })

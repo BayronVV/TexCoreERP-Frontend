@@ -134,7 +134,8 @@ export default function EntryForm({ products, onChanged }) {
             </select>
           </div>
           <span className={styles.hint}>
-            ¿No está en la lista? Créalo en el <Link to="/inventario/catalogo" className={styles.textLink}>Catálogo</Link>.
+            ¿No está en la lista? Créalo en el <Link to="/inventario/catalogo" className={styles.textLink}>Catálogo</Link>. El producto terminado se gestiona en{' '}
+            <Link to="/producto-terminado/ingreso" className={styles.textLink}>Producto Terminado</Link>.
           </span>
           {err('producto')}
         </div>
