@@ -350,7 +350,9 @@ const ReportsPage = () => {
           <span className={reportStyles.kpiLabel}>Utilidad bruta estimada</span>
           <strong className={reportStyles.kpiValue}>{money(kpis.utilidad_bruta)}</strong>
           <span className={reportStyles.kpiSub}>
-            Saldo en caja empresa: {money(kpis.saldo_financiero_empresa)}
+            {kpis.saldo_financiero_empresa != null
+              ? `Saldo en caja empresa: ${money(kpis.saldo_financiero_empresa)}`
+              : 'Utilidad estimada sobre base gravable'}
           </span>
         </div>
 
