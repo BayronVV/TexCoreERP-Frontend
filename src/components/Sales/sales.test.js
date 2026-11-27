@@ -6,6 +6,13 @@ import { fileURLToPath } from 'node:url'
 
 import {
   canReconcile,
+  carteraAction,
+  carteraKpis,
+  CARTERA_NONE,
+  CARTERA_PAY,
+  CARTERA_PAY_NO_GUIDE,
+  CARTERA_RETURN,
+  CARTERA_WAIT,
   cartRows,
   cartTotals,
   carteraResume,
@@ -183,12 +190,37 @@ test('filterCartera: filtra por pestaña, búsqueda y transportadora', () => {
   assert.equal(filterCartera(invoices, { tab: 'TODAS', carrier: 'ENVIA' }).length, 2)
 })
 
-test('canReconcile: solo facturas emitidas en estado por cobrar', () => {
-  assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'POR_COBRAR' }), true)
+test('canReconcile: solo facturas por cobrar con guía entregada o sin guía (HU 7.5)', () => {
+  const pending = { estado: 'EMITIDA', estado_cobro: 'POR_COBRAR' }
+  assert.equal(canReconcile({ ...pending, guia: null }), true)
+  assert.equal(canReconcile({ ...pending, guia: { estado: 'ENTREGADA' } }), true)
+  assert.equal(canReconcile({ ...pending, guia: { estado: 'EN_TRANSITO' } }), false)
+  assert.equal(canReconcile({ ...pending, guia: { estado: 'DEVUELTA' } }), false)
   assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'PAGADO' }), false)
-  assert.equal(canReconcile({ estado: 'EMITIDA', estado_cobro: 'DEVOLUCION' }), false)
   assert.equal(canReconcile({ estado: 'ANULADA', estado_cobro: 'POR_COBRAR' }), false)
   assert.equal(canReconcile(null), false)
+})
+
+test('carteraAction: usa la del servidor y, si falta, la deduce de la guía', () => {
+  const pending = { estado: 'EMITIDA', estado_cobro: 'POR_COBRAR' }
+  assert.equal(carteraAction({ ...pending, accion_cartera: CARTERA_WAIT, guia: { estado: 'ENTREGADA' } }), CARTERA_WAIT)
+  assert.equal(carteraAction({ ...pending, guia: null }), CARTERA_PAY_NO_GUIDE)
+  assert.equal(carteraAction({ ...pending, guia: { estado: 'ENTREGADA' } }), CARTERA_PAY)
+  assert.equal(carteraAction({ ...pending, guia: { estado: 'DEVUELTA' } }), CARTERA_RETURN)
+  assert.equal(carteraAction({ ...pending, guia: { estado: 'EN_NOVEDAD' } }), CARTERA_WAIT)
+  assert.equal(carteraAction({ estado: 'EMITIDA', estado_cobro: 'PAGADO' }), CARTERA_NONE)
+})
+
+test('carteraKpis: toma los totales del servidor y no muestra la caja si no llega', () => {
+  const summary = {
+    saldo_financiero: null, total_por_cobrar: 900, conteo_por_cobrar: 250, total_recaudado: 50, conteo_pagadas: 1,
+    total_devoluciones: 0, conteo_devoluciones: 0,
+  }
+  const kpis = carteraKpis(summary, [{ estado: 'EMITIDA', estado_cobro: 'POR_COBRAR', valor_a_recaudar: 10 }])
+  assert.equal(kpis.saldoFinanciero, null)
+  assert.equal(kpis.totalPorCobrar, 900)
+  assert.equal(kpis.facturasPorCobrar, 250)
+  assert.equal(carteraKpis(null, []).saldoFinanciero, null)
 })
 
 test('costDifferenceLabel y priceCostStatus: sugieren, alertan desfase y bloquean si supera mayorista', () => {
