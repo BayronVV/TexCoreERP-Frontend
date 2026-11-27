@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
+import ListPager from '../ui/ListPager'
 import Modal from '../ui/Modal'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { fieldErrors, formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from '../Finished/Finished.module.css'
@@ -15,7 +17,6 @@ import {
   canReconcile,
   carteraAction,
   carteraKpis,
-  filterCartera,
   INVOICE_NOTICE,
   MIN_NO_GUIDE_NOTE,
   money,
@@ -181,10 +182,19 @@ function QuickInvoiceModal({ invoice, onClose }) {
   )
 }
 
+const CARTERA_FILTERS = {
+  tab: 'POR_COBRAR',
+  q: '',
+  transportadora: '',
+  desde: '',
+  hasta: '',
+}
+
 /**
- * Ventas · Gestión de cartera (HU 7.3 y 7.5), ruta `/ventas/cartera` (`ventas.ver`): facturas por cobrar, pagadas y devueltas con el estado
- * de su guía. Cada factura ofrece solo la acción que corresponde: confirmar el pago (`ventas.conciliar`, guía entregada o sin guía con
- * nota) o ir a Envíos a registrar la devolución (`envios.devolucion`, guía devuelta). El saldo de la caja solo se ve con `ventas.conciliar`.
+ * Ventas · Gestión de cartera (HU 7.3, 7.5 y 7.7), ruta `/ventas/cartera` (`ventas.ver`): facturas por cobrar, pagadas y devueltas con el estado
+ * de su guía, filtros combinables persistidos en sesión y paginación en el servidor. Cada factura ofrece solo la acción que corresponde:
+ * confirmar el pago (`ventas.conciliar`, guía entregada o sin guía con nota) o ir a Envíos a registrar la devolución (`envios.devolucion`, guía devuelta).
+ * El saldo de la caja solo se ve con `ventas.conciliar`.
  * Endpoints: `GET /api/ventas/facturas/`, `GET /api/ventas/cartera/resumen/` y `POST /api/ventas/facturas/:id/conciliar/`.
  */
 export default function CarteraPage() {
@@ -192,29 +202,42 @@ export default function CarteraPage() {
   const canConcile = can('ventas.conciliar')
   const canReturn = can('envios.devolucion')
 
-  const [invoices, setInvoices] = useState(null)
+  const [pageData, setPageData] = useState(null)
   const [summary, setSummary] = useState(null)
   const [loadError, setLoadError] = useState('')
 
-  // Filtros
-  const [tab, setTab] = useState('POR_COBRAR') // Por defecto se muestran los pendientes de recaudo
-  const [search, setSearch] = useState('')
-  const [carrier, setCarrier] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_cartera', CARTERA_FILTERS)
 
   // Modales
   const [payingInvoice, setPayingInvoice] = useState(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
 
   const loadData = useCallback(() => {
-    // 1. Cargar facturas
-    const params = new URLSearchParams({ limit: '200' })
-    if (from) params.set('desde', from)
-    if (to) params.set('hasta', to)
+    // 1. Cargar facturas paginadas y filtradas en el servidor
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.tab === 'POR_COBRAR') {
+      params.set('estado', 'EMITIDA')
+      params.set('estado_cobro', 'POR_COBRAR')
+    } else if (filters.tab === 'PAGADO' || filters.tab === 'DEVOLUCION') {
+      params.set('estado_cobro', filters.tab)
+    }
+    if (filters.transportadora) params.set('transportadora', filters.transportadora)
+    if (filters.q.trim()) params.set('q', filters.q.trim())
+    if (filters.desde) params.set('desde', filters.desde)
+    if (filters.hasta) params.set('hasta', filters.hasta)
+
     apiGet(`/api/ventas/facturas/?${params}`)
       .then((data) => {
-        setInvoices(data)
+        setPageData(data)
         setLoadError('')
       })
       .catch((err) => setLoadError(err.message))
@@ -223,18 +246,17 @@ export default function CarteraPage() {
     apiGet('/api/ventas/cartera/resumen/')
       .then(setSummary)
       .catch(() => {})
-  }, [from, to])
+  }, [filters, page, pageSize])
 
   useEffect(() => {
     const timer = setTimeout(loadData, 200)
     return () => clearTimeout(timer)
   }, [loadData])
 
+  const displayed = pageData?.results ?? null
   // Totales calculados en el servidor (no dependen de cuántas facturas cargó la pantalla)
-  const kpis = carteraKpis(summary, invoices)
-
-  // Filtrado de filas según los filtros seleccionados
-  const displayed = filterCartera(invoices, { tab, search, carrier })
+  const kpis = carteraKpis(summary, displayed)
+  const totalTodas = kpis.facturasPorCobrar + kpis.facturasPagadas + kpis.facturasDevueltas
 
   const handleActionDone = () => {
     setPayingInvoice(null)
@@ -289,57 +311,65 @@ export default function CarteraPage() {
         <div className={salesStyles.tabGroup}>
           <button
             type="button"
-            className={`${salesStyles.tabBtn} ${tab === 'POR_COBRAR' ? salesStyles.tabBtnActive : ''}`}
-            onClick={() => setTab('POR_COBRAR')}
+            className={`${salesStyles.tabBtn} ${filters.tab === 'POR_COBRAR' ? salesStyles.tabBtnActive : ''}`}
+            onClick={() => setFilter('tab', 'POR_COBRAR')}
           >
             ⏳ Pendientes de recaudo ({kpis.facturasPorCobrar})
           </button>
           <button
             type="button"
-            className={`${salesStyles.tabBtn} ${tab === 'TODAS' ? salesStyles.tabBtnActive : ''}`}
-            onClick={() => setTab('TODAS')}
+            className={`${salesStyles.tabBtn} ${filters.tab === 'TODAS' ? salesStyles.tabBtnActive : ''}`}
+            onClick={() => setFilter('tab', 'TODAS')}
           >
-            Todas las facturas ({invoices?.length ?? 0})
+            Todas las facturas ({totalTodas})
           </button>
           <button
             type="button"
-            className={`${salesStyles.tabBtn} ${tab === 'PAGADO' ? salesStyles.tabBtnActive : ''}`}
-            onClick={() => setTab('PAGADO')}
+            className={`${salesStyles.tabBtn} ${filters.tab === 'PAGADO' ? salesStyles.tabBtnActive : ''}`}
+            onClick={() => setFilter('tab', 'PAGADO')}
           >
             ✅ Pagadas ({kpis.facturasPagadas})
           </button>
           <button
             type="button"
-            className={`${salesStyles.tabBtn} ${tab === 'DEVOLUCION' ? salesStyles.tabBtnActive : ''}`}
-            onClick={() => setTab('DEVOLUCION')}
+            className={`${salesStyles.tabBtn} ${filters.tab === 'DEVOLUCION' ? salesStyles.tabBtnActive : ''}`}
+            onClick={() => setFilter('tab', 'DEVOLUCION')}
           >
             ↩️ Devoluciones ({kpis.facturasDevueltas})
           </button>
         </div>
 
-        {/* Filtros secundarios */}
+        {/* Filtros combinables en servidor */}
         <div className={styles.filters}>
           <input
             type="search"
             placeholder="Buscar por factura, cliente, documento o guía…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={filters.q}
+            onChange={(e) => setFilter('q', e.target.value)}
             aria-label="Buscar en cartera"
           />
-          <select value={carrier} onChange={(e) => setCarrier(e.target.value)} aria-label="Filtrar por transportadora">
+          <select value={filters.transportadora} onChange={(e) => setFilter('transportadora', e.target.value)} aria-label="Filtrar por transportadora">
             <option value="">Todas las transportadoras</option>
             <option value="INTERRAPIDISIMO">Interrapidísimo</option>
             <option value="ENVIA">Envía</option>
             <option value="OTRA">Otra</option>
           </select>
-          <label>Desde <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-          <label>Hasta <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+          <label>Desde <input type="date" value={filters.desde} onChange={(e) => setFilter('desde', e.target.value)} /></label>
+          <label>Hasta <input type="date" value={filters.hasta} onChange={(e) => setFilter('hasta', e.target.value)} /></label>
+        </div>
+        <div className={styles.filterSummary}>
+          <span>{pageData ? `${pageData.count.toLocaleString('es-CO')} factura(s) encontradas` : 'Consultando cartera…'}</span>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
         </div>
 
         {/* Tabla de Cartera */}
         {displayed && displayed.length === 0 && (
           <p className={styles.empty}>
-            {tab === 'POR_COBRAR'
+            {filters.tab === 'POR_COBRAR'
               ? 'No hay pedidos pendientes de recaudo con los filtros actuales.'
               : 'No se encontraron registros en cartera con los filtros indicados.'}
           </p>
@@ -444,7 +474,11 @@ export default function CarteraPage() {
                             </button>
                           )}
                           {action === CARTERA_RETURN && canReturn && (
-                            <Link to="/envios/guias" className={salesStyles.quickBtnReturn} title="La devolución se registra desde la guía devuelta">
+                            <Link
+                              to={`/envios/guias?estado=DEVUELTA&q=${encodeURIComponent(inv.numero)}`}
+                              className={salesStyles.quickBtnReturn}
+                              title="La devolución se registra desde la guía devuelta"
+                            >
                               Devolución en Envíos
                             </Link>
                           )}
@@ -463,6 +497,17 @@ export default function CarteraPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {pageData && (
+          <ListPager
+            count={pageData.count}
+            page={pageData.page}
+            pageSize={pageData.page_size}
+            totalPages={pageData.total_pages}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            noun="facturas"
+          />
         )}
       </section>
 
