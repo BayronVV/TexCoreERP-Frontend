@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiGet } from '../../api/client';
 import { useAuth } from '../../auth/session';
 import { todayISO } from '../Inventory/labels';
+import { finishedDetailPath } from '../Inventory/orderLines';
 import { recentEntries } from '../Finished/finished';
 import styles from './Dashboard.module.css';
 
@@ -106,6 +107,9 @@ const Dashboard = () => {
                   <p>{alert.message}</p>
                   <span>
                     Stock: {Number(alert.stock).toLocaleString('es-CO')} {alert.unit} · Mínimo: {Number(alert.threshold).toLocaleString('es-CO')} {alert.unit}
+                    {alert.referencia && canSeeFinished && (
+                      <> · <Link to={finishedDetailPath(alert.referencia)}>Ver tallas y colores →</Link></>
+                    )}
                   </span>
                 </div>
               </div>
