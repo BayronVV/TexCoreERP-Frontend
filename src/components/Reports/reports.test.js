@@ -4,15 +4,37 @@ import {
   activeFilterCount,
   buildExportMatrix,
   buildReportQueryParams,
+  colombiaTodayISO,
   EXPORT_SCHEMAS,
   filterReferencesByJeanType,
   getActiveTabRows,
   matrixToCsvString,
   money,
+  quickRangeDates,
+  shiftIsoDays,
 } from './reports.js'
 
-describe('Lógica de reportes gerenciales y exportación Excel/CSV', () => {
-  it('buildReportQueryParams arma solo los filtros con valor no vacío', () => {
+describe('Lógica de reportes gerenciales, devoluciones y zona horaria Colombia (TE-177)', () => {
+  it('colombiaTodayISO y quickRangeDates usan hora de Colombia sin adelantarse después de las 7 p. m.', () => {
+    // 2026-11-27 01:30 UTC corresponde al 2026-11-26 20:30 en Colombia (UTC-5)
+    const lateNightColombia = new Date('2026-11-27T01:30:00Z')
+    assert.equal(colombiaTodayISO(lateNightColombia), '2026-11-26')
+    assert.deepEqual(quickRangeDates(7, lateNightColombia), {
+      desde: '2026-11-19',
+      hasta: '2026-11-26',
+    })
+    assert.deepEqual(quickRangeDates('month', lateNightColombia), {
+      desde: '2026-11-01',
+      hasta: '2026-11-26',
+    })
+    assert.deepEqual(quickRangeDates(null, lateNightColombia), {
+      desde: '',
+      hasta: '',
+    })
+    assert.equal(shiftIsoDays('2026-03-01', -1), '2026-02-28')
+  })
+
+  it('buildReportQueryParams arma solo los filtros con valor no vacío incluyendo vendedor y transportadora', () => {
     assert.equal(buildReportQueryParams({}), '')
     assert.equal(
       buildReportQueryParams({
@@ -21,8 +43,10 @@ describe('Lógica de reportes gerenciales y exportación Excel/CSV', () => {
         tipo_jean: 'SKINNY',
         estado_orden: '',
         referencia: '4',
+        vendedor: '9',
+        transportadora: 'INTERRAPIDISIMO',
       }),
-      '?desde=2026-10-01&hasta=2026-10-31&tipo_jean=SKINNY&referencia=4',
+      '?desde=2026-10-01&hasta=2026-10-31&tipo_jean=SKINNY&referencia=4&vendedor=9&transportadora=INTERRAPIDISIMO',
     )
   })
 
@@ -33,9 +57,11 @@ describe('Lógica de reportes gerenciales y exportación Excel/CSV', () => {
         desde: '2026-01-01',
         tipo_jean: 'MOM',
         estado_orden: 'COMPLETADA',
+        vendedor: '3',
+        transportadora: 'ENVIA',
         estado_cobro: '   ',
       }),
-      3,
+      5,
     )
   })
 
@@ -52,18 +78,37 @@ describe('Lógica de reportes gerenciales y exportación Excel/CSV', () => {
     )
   })
 
-  it('getActiveTabRows retorna el arreglo correspondiente a la pestaña seleccionada', () => {
+  it('getActiveTabRows incluye la pestaña devoluciones por vendedor', () => {
     const sample = {
       consolidado_tipo_jean: [{ tipo_jean: 'SKINNY' }],
       ordenes_produccion: [{ codigo: 'OP-0001' }, { codigo: 'OP-0002' }],
       ventas_por_referencia: [{ referencia_codigo: 'REF-0001' }],
       ventas_detalle: [{ numero_factura: 'FV-0001' }],
+      devoluciones_por_vendedor: [{ vendedor_id: 5, vendedor_nombre: 'Ana', guias_devueltas: 2, flete_vendedor: 21000 }],
     }
     assert.equal(getActiveTabRows(sample, 'consolidado').length, 1)
     assert.equal(getActiveTabRows(sample, 'produccion').length, 2)
     assert.equal(getActiveTabRows(sample, 'ventas_ref').length, 1)
     assert.equal(getActiveTabRows(sample, 'ventas_det').length, 1)
-    assert.deepEqual(getActiveTabRows(null, 'produccion'), [])
+    assert.equal(getActiveTabRows(sample, 'devoluciones').length, 1)
+    assert.deepEqual(getActiveTabRows(null, 'devoluciones'), [])
+  })
+
+  it('buildExportMatrix arma la matriz de devoluciones por vendedor para Excel y CSV', () => {
+    const rows = [
+      {
+        vendedor_nombre: 'Carlos Ruiz',
+        guias_devueltas: 2,
+        flete_vendedor: 21000,
+      },
+    ]
+    const matrix = buildExportMatrix(rows, EXPORT_SCHEMAS.devoluciones.columns)
+    assert.deepEqual(matrix, [
+      ['Vendedor', 'Guías Devueltas', 'Flete a Cargo ($)'],
+      ['Carlos Ruiz', 2, 21000],
+    ])
+    const csv = matrixToCsvString(matrix)
+    assert.ok(csv.includes('Carlos Ruiz,2,21000'))
   })
 
   it('buildExportMatrix construye encabezados y filas de datos para SheetJS / CSV', () => {
@@ -105,4 +150,3 @@ describe('Lógica de reportes gerenciales y exportación Excel/CSV', () => {
     assert.ok(money(150000).startsWith('$'))
   })
 })
-

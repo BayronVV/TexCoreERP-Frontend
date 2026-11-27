@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
+import ListPager from '../ui/ListPager'
 import Modal from '../ui/Modal'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import qualityStyles from './Quality.module.css'
@@ -49,16 +51,36 @@ function InspectionDetail({ inspection, onClose }) {
   )
 }
 
+const INSPECTION_FILTERS = {
+  q: '',
+  referencia: '',
+  lote: '',
+  orden: '',
+  responsable: '',
+  estado: '',
+  desde: '',
+  hasta: '',
+}
+
 /**
- * Control de calidad · Inspecciones (TE-59), ruta `/calidad/inspecciones` (`calidad.ver`): los lotes que volvieron de lavandería se inspeccionan una sola vez
- * (aptas y marras por defecto) y el historial queda de solo lectura. Registrar exige `calidad.gestionar`. Endpoints: `GET /api/calidad/pendientes/` y `/api/calidad/inspecciones/`.
+ * Control de calidad · Inspecciones (TE-59 / TE-177), ruta `/calidad/inspecciones` (`calidad.ver`): lotes por inspeccionar e historial paginado con filtros combinables.
  */
 export default function InspectionsPage() {
   const { can } = useAuth()
   const canManage = can('calidad.gestionar')
   const [pending, setPending] = useState(null)
-  const [history, setHistory] = useState(null)
-  const [search, setSearch] = useState('')
+  const [references, setReferences] = useState([])
+  const [historyPage, setHistoryPage] = useState(null)
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_inspections', INSPECTION_FILTERS)
   const [loadError, setLoadError] = useState('')
   const [inspecting, setInspecting] = useState(null)
   const [viewing, setViewing] = useState(null)
@@ -68,10 +90,19 @@ export default function InspectionsPage() {
   }, [])
 
   const loadHistory = useCallback(() => {
-    const params = new URLSearchParams({ limit: '200' })
-    if (search.trim()) params.set('q', search.trim())
-    apiGet(`/api/calidad/inspecciones/?${params}`).then(setHistory).catch((error) => setLoadError(error.message))
-  }, [search])
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.q.trim()) params.set('q', filters.q.trim())
+    if (filters.referencia) params.set('referencia', filters.referencia)
+    if (filters.lote.trim()) params.set('lote_codigo', filters.lote.trim())
+    if (filters.orden.trim()) params.set('orden_codigo', filters.orden.trim())
+    if (filters.responsable.trim()) params.set('responsable', filters.responsable.trim())
+    if (filters.estado) params.set('estado', filters.estado)
+    if (filters.desde) params.set('desde', filters.desde)
+    if (filters.hasta) params.set('hasta', filters.hasta)
+    apiGet(`/api/calidad/inspecciones/?${params}`)
+      .then((data) => (setHistoryPage(data), setLoadError('')))
+      .catch((error) => setLoadError(error.message))
+  }, [filters, page, pageSize])
 
   useEffect(() => {
     const timer = setTimeout(loadHistory, 250)
@@ -80,7 +111,10 @@ export default function InspectionsPage() {
 
   useEffect(() => {
     loadPending()
+    apiGet('/api/referencias/?limit=200').then(setReferences).catch(() => {})
   }, [loadPending])
+
+  const history = historyPage?.results ?? null
 
   return (
     <div className={styles.page}>
@@ -129,9 +163,31 @@ export default function InspectionsPage() {
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Inspecciones registradas</h2>
         <div className={styles.filters}>
-          <input type="search" placeholder="Buscar por inspección, lote u orden" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar inspecciones" />
+          <input type="search" placeholder="Inspección, lote, orden o referencia" value={filters.q} onChange={(event) => setFilter('q', event.target.value)} aria-label="Buscar inspecciones" />
+          <select value={filters.referencia} onChange={(event) => setFilter('referencia', event.target.value)} aria-label="Filtrar por referencia">
+            <option value="">Todas las referencias</option>
+            {references.map((ref) => <option key={ref.id} value={ref.id}>{ref.codigo} · {ref.nombre}</option>)}
+          </select>
+          <select value={filters.estado} onChange={(event) => setFilter('estado', event.target.value)} aria-label="Filtrar por resultado">
+            <option value="">Con y sin marras</option>
+            <option value="CON_MARRAS">Con marras</option>
+            <option value="SIN_MARRAS">Sin marras (100% aptas)</option>
+          </select>
+          <input type="text" placeholder="Código de lote" value={filters.lote} onChange={(event) => setFilter('lote', event.target.value)} aria-label="Filtrar por lote" />
+          <input type="text" placeholder="Código de orden" value={filters.orden} onChange={(event) => setFilter('orden', event.target.value)} aria-label="Filtrar por orden" />
+          <input type="text" placeholder="Inspector / responsable" value={filters.responsable} onChange={(event) => setFilter('responsable', event.target.value)} aria-label="Filtrar por inspector" />
+          <label>Desde <input type="date" value={filters.desde} onChange={(event) => setFilter('desde', event.target.value)} /></label>
+          <label>Hasta <input type="date" value={filters.hasta} onChange={(event) => setFilter('hasta', event.target.value)} /></label>
         </div>
-        {history && history.length === 0 && <p className={styles.empty}>{search ? 'Ninguna inspección coincide con la búsqueda.' : 'Todavía no hay inspecciones registradas.'}</p>}
+        <div className={styles.filterSummary}>
+          <span>{historyPage ? `${historyPage.count.toLocaleString('es-CO')} inspección(es) encontradas` : 'Consultando inspecciones…'}</span>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
+        </div>
+        {history && history.length === 0 && <p className={styles.empty}>{activeCount > 0 ? 'Ninguna inspección coincide con los filtros.' : 'Todavía no hay inspecciones registradas.'}</p>}
         {history && history.length > 0 && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -159,6 +215,17 @@ export default function InspectionsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {historyPage && (
+          <ListPager
+            count={historyPage.count}
+            page={historyPage.page}
+            pageSize={historyPage.page_size}
+            totalPages={historyPage.total_pages}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            noun="inspecciones"
+          />
         )}
       </section>
 

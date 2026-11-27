@@ -6,6 +6,20 @@ export const REPORT_TABS = [
   { id: 'produccion', label: 'Órdenes de Producción' },
   { id: 'ventas_ref', label: 'Ventas por Referencia' },
   { id: 'ventas_det', label: 'Detalle de Ventas' },
+  { id: 'devoluciones', label: 'Devoluciones por vendedor' },
+]
+
+/** Claves de los filtros soportados por `GET /api/reportes/gerencial/`. */
+export const REPORT_FILTER_KEYS = [
+  'desde',
+  'hasta',
+  'tipo_jean',
+  'referencia',
+  'estado_orden',
+  'estado_cobro',
+  'tipo_cliente',
+  'vendedor',
+  'transportadora',
 ]
 
 /** Filtros avanzados vacíos del tablero; las claves son los parámetros de `GET /api/reportes/gerencial/`. */
@@ -17,6 +31,8 @@ export const INITIAL_FILTERS = {
   estado_orden: '',
   estado_cobro: '',
   tipo_cliente: '',
+  vendedor: '',
+  transportadora: '',
 }
 
 /**
@@ -34,12 +50,52 @@ export const money = (value) => `$${Number(value || 0).toLocaleString('es-CO')}`
 export const number = (value) => Number(value || 0).toLocaleString('es-CO')
 
 /**
+ * Fecha calendario actual (`YYYY-MM-DD`) en zona horaria de Colombia (`America/Bogota`, UTC-5).
+ * Evita que después de las 7:00 p. m. COT se adelante un día al usar `toISOString()`.
+ */
+export function colombiaTodayISO(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${map.year}-${map.month}-${map.day}`
+}
+
+/**
+ * Suma o resta días calendario sobre una fecha ISO `YYYY-MM-DD` sin verse afectado por huso local o DST.
+ */
+export function shiftIsoDays(isoDate, deltaDays) {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + Number(deltaDays || 0)))
+  const year = dt.getUTCFullYear()
+  const month = String(dt.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(dt.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Calcula los rangos rápidos del tablero (`7`, `30`, `'month'`, o `null`) usando la hora de Colombia.
+ */
+export function quickRangeDates(preset, now = new Date()) {
+  if (preset === null || preset === undefined || preset === '') {
+    return { desde: '', hasta: '' }
+  }
+  const end = colombiaTodayISO(now)
+  if (preset === 'month') {
+    return { desde: `${end.slice(0, 7)}-01`, hasta: end }
+  }
+  return { desde: shiftIsoDays(end, -Number(preset)), hasta: end }
+}
+
+/**
  * Construye el query string limpio a partir del estado de filtros avanzados.
  */
 export function buildReportQueryParams(filters = {}) {
   const params = new URLSearchParams()
-  const keys = ['desde', 'hasta', 'tipo_jean', 'referencia', 'estado_orden', 'estado_cobro', 'tipo_cliente']
-  for (const key of keys) {
+  for (const key of REPORT_FILTER_KEYS) {
     const val = String(filters[key] ?? '').trim()
     if (val) {
       params.set(key, val)
@@ -53,7 +109,7 @@ export function buildReportQueryParams(filters = {}) {
  * Cuenta cuántos filtros avanzados están activos.
  */
 export function activeFilterCount(filters = {}) {
-  return ['desde', 'hasta', 'tipo_jean', 'referencia', 'estado_orden', 'estado_cobro', 'tipo_cliente'].filter(
+  return REPORT_FILTER_KEYS.filter(
     (key) => String(filters[key] ?? '').trim() !== '',
   ).length
 }
@@ -130,6 +186,8 @@ export const EXPORT_SCHEMAS = {
       { header: 'Fecha', get: (r) => r.fecha },
       { header: 'Cliente', get: (r) => r.cliente_nombre },
       { header: 'Tipo Cliente', get: (r) => r.cliente_tipo_nombre || r.cliente_tipo },
+      { header: 'Vendedor', get: (r) => r.vendedor_nombre || '' },
+      { header: 'Transportadora', get: (r) => r.transportadora || '' },
       { header: 'Estado Cobro', get: (r) => r.estado_cobro_nombre || r.estado_cobro },
       { header: 'Referencia', get: (r) => `${r.referencia_codigo} · ${r.referencia_nombre}` },
       { header: 'Tipo de Jean', get: (r) => r.tipo_jean_nombre || r.tipo_jean },
@@ -139,6 +197,15 @@ export const EXPORT_SCHEMAS = {
       { header: 'Base Gravable ($)', get: (r) => Number(r.base_gravable || 0) },
       { header: 'IVA ($)', get: (r) => Number(r.iva || 0) },
       { header: 'Total ($)', get: (r) => Number(r.total || 0) },
+    ],
+  },
+  devoluciones: {
+    sheetName: 'Devoluciones Vendedor',
+    filePrefix: 'reporte_devoluciones_vendedor',
+    columns: [
+      { header: 'Vendedor', get: (r) => r.vendedor_nombre || 'Sin vendedor' },
+      { header: 'Guías Devueltas', get: (r) => Number(r.guias_devueltas || 0) },
+      { header: 'Flete a Cargo ($)', get: (r) => Number(r.flete_vendedor || 0) },
     ],
   },
 }
@@ -157,6 +224,8 @@ export function getActiveTabRows(reportData, activeTab) {
       return reportData.ventas_por_referencia || []
     case 'ventas_det':
       return reportData.ventas_detalle || []
+    case 'devoluciones':
+      return reportData.devoluciones_por_vendedor || []
     default:
       return []
   }
@@ -242,4 +311,3 @@ export function exportReportToExcel(reportData, activeTab = 'consolidado', dateS
   const suffix = dateStamp ? `_${dateStamp}` : ''
   XLSX.writeFile(workbook, `${activeSchema.filePrefix}${suffix}.xlsx`)
 }
-

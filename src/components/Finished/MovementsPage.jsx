@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet } from '../../api/client'
+import ListPager from '../ui/ListPager'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 import { signed } from './finished'
@@ -12,30 +14,66 @@ const TYPES = [
   { value: 'DEVOLUCION_VENTA', label: 'Reingreso por anulación de venta' },
 ]
 
+const FINISHED_FILTERS = {
+  q: '',
+  tipo: '',
+  referencia: '',
+  lote: '',
+  cliente: '',
+  vendedor: '',
+  responsable: '',
+  desde: '',
+  hasta: '',
+}
+
 const formatMoment = (value) => new Date(value).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 
 /**
- * Producto terminado · Movimientos, ruta `/producto-terminado/movimientos` (`producto_terminado.ver`): el libro del inventario, de solo lectura. Cada fila
- * muestra de cuánto a cuánto pasó el saldo de una talla y por qué. Lee `GET /api/terminado/movimientos/`.
+ * Producto terminado · Movimientos, ruta `/producto-terminado/movimientos` (`producto_terminado.ver`): libro del inventario final con filtros combinables, persistentes y paginación.
  */
 export default function MovementsPage() {
-  const [rows, setRows] = useState(null)
-  const [type, setType] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  const [pageData, setPageData] = useState(null)
+  const [references, setReferences] = useState([])
+  const [clients, setClients] = useState([])
+  const [sellers, setSellers] = useState([])
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_finished_movements', FINISHED_FILTERS)
   const [loadError, setLoadError] = useState('')
 
+  useEffect(() => {
+    apiGet('/api/referencias/?limit=200').then(setReferences).catch(() => {})
+    apiGet('/api/ventas/clientes/?limit=200').then(setClients).catch(() => {})
+    apiGet('/api/ventas/metadatos/').then((m) => setSellers(m.vendedores ?? [])).catch(() => {})
+  }, [])
+
   const load = useCallback(() => {
-    const params = new URLSearchParams({ limit: '200' })
-    if (type) params.set('tipo', type)
-    if (from) params.set('desde', from)
-    if (to) params.set('hasta', to)
-    apiGet(`/api/terminado/movimientos/?${params}`).then((data) => (setRows(data), setLoadError(''))).catch((error) => setLoadError(error.message))
-  }, [type, from, to])
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.q.trim()) params.set('q', filters.q.trim())
+    if (filters.tipo) params.set('tipo', filters.tipo)
+    if (filters.referencia) params.set('referencia', filters.referencia)
+    if (filters.lote.trim()) params.set('lote', filters.lote.trim())
+    if (filters.cliente) params.set('cliente', filters.cliente)
+    if (filters.vendedor) params.set('vendedor', filters.vendedor)
+    if (filters.responsable.trim()) params.set('responsable', filters.responsable.trim())
+    if (filters.desde) params.set('desde', filters.desde)
+    if (filters.hasta) params.set('hasta', filters.hasta)
+    apiGet(`/api/terminado/movimientos/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+  }, [filters, page, pageSize])
 
   useEffect(() => {
-    load()
+    const timer = setTimeout(load, 200)
+    return () => clearTimeout(timer)
   }, [load])
+
+  const rows = pageData?.results ?? null
 
   return (
     <div className={styles.page}>
@@ -47,11 +85,34 @@ export default function MovementsPage() {
 
       <section className={styles.card}>
         <div className={styles.filters}>
-          <select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filtrar por tipo">
+          <input type="search" placeholder="Referencia, lote, factura o nota" value={filters.q} onChange={(e) => setFilter('q', e.target.value)} aria-label="Buscar movimientos de terminado" />
+          <select value={filters.tipo} onChange={(event) => setFilter('tipo', event.target.value)} aria-label="Filtrar por tipo">
             {TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          <label>Desde <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-          <label>Hasta <input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+          <select value={filters.referencia} onChange={(e) => setFilter('referencia', e.target.value)} aria-label="Filtrar por referencia">
+            <option value="">Todas las referencias</option>
+            {references.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>)}
+          </select>
+          <select value={filters.cliente} onChange={(e) => setFilter('cliente', e.target.value)} aria-label="Filtrar por cliente">
+            <option value="">Todos los clientes</option>
+            {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          <select value={filters.vendedor} onChange={(e) => setFilter('vendedor', e.target.value)} aria-label="Filtrar por vendedor">
+            <option value="">Todos los vendedores</option>
+            {sellers.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+          <input type="text" placeholder="Lote" value={filters.lote} onChange={(e) => setFilter('lote', e.target.value)} aria-label="Filtrar por lote" />
+          <input type="text" placeholder="Responsable" value={filters.responsable} onChange={(e) => setFilter('responsable', e.target.value)} aria-label="Filtrar por responsable" />
+          <label>Desde <input type="date" value={filters.desde} onChange={(event) => setFilter('desde', event.target.value)} /></label>
+          <label>Hasta <input type="date" value={filters.hasta} onChange={(event) => setFilter('hasta', event.target.value)} /></label>
+        </div>
+        <div className={styles.filterSummary}>
+          <span>{pageData ? `${pageData.count.toLocaleString('es-CO')} movimiento(s) encontrados` : 'Consultando movimientos…'}</span>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
         </div>
         {loadError && <p className={styles.formError}>{loadError}</p>}
         {rows && rows.length === 0 && <p className={styles.empty}>No hay movimientos con ese filtro.</p>}
@@ -81,6 +142,17 @@ export default function MovementsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {pageData && (
+          <ListPager
+            count={pageData.count}
+            page={pageData.page}
+            pageSize={pageData.page_size}
+            totalPages={pageData.total_pages}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            noun="movimientos"
+          />
         )}
       </section>
     </div>

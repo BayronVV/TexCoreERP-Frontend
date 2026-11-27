@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { useToast } from '../ui/toastContext'
-import { formatDate, todayISO } from '../Inventory/labels'
+import { formatDate } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import reportStyles from './Reports.module.css'
 import {
-  activeFilterCount,
   buildReportQueryParams,
+  colombiaTodayISO,
   exportReportToExcel,
   exportTabToCsv,
   filterReferencesByJeanType,
@@ -15,6 +16,7 @@ import {
   INITIAL_FILTERS,
   money,
   number,
+  quickRangeDates,
   REPORT_TABS,
 } from './reports'
 
@@ -41,9 +43,16 @@ const ReportsPage = () => {
     estados_orden: [],
     estados_cobro: [],
     tipos_cliente: [],
+    vendedores: [],
+    transportadoras: [],
     referencias: [],
   })
-  const [filters, setFilters] = useState(INITIAL_FILTERS)
+  const {
+    filters,
+    activeCount: filterCount,
+    updateFilters,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_reports', INITIAL_FILTERS)
   const [activeTab, setActiveTab] = useState('consolidado')
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -80,7 +89,7 @@ const ReportsPage = () => {
   )
 
   const handleFilterChange = (field, value) => {
-    setFilters((prev) => {
+    updateFilters((prev) => {
       const next = { ...prev, [field]: value }
       if (field === 'tipo_jean' && value) {
         const currentRef = meta.referencias.find((r) => String(r.id) === String(prev.referencia))
@@ -93,23 +102,8 @@ const ReportsPage = () => {
   }
 
   const applyQuickRange = (days) => {
-    if (days === null) {
-      setFilters((prev) => ({ ...prev, desde: '', hasta: '' }))
-      return
-    }
-    const end = new Date()
-    const start = new Date()
-    if (days === 'month') {
-      start.setDate(1)
-    } else {
-      start.setDate(end.getDate() - days)
-    }
-    const toIso = (d) => d.toISOString().slice(0, 10)
-    setFilters((prev) => ({ ...prev, desde: toIso(start), hasta: toIso(end) }))
-  }
-
-  const clearFilters = () => {
-    setFilters(INITIAL_FILTERS)
+    const range = quickRangeDates(days)
+    updateFilters((prev) => ({ ...prev, ...range }))
   }
 
   const handleRefreshViews = async () => {
@@ -127,19 +121,18 @@ const ReportsPage = () => {
 
   const handleExportExcel = () => {
     if (!report) return
-    exportReportToExcel(report, activeTab, todayISO())
+    exportReportToExcel(report, activeTab, colombiaTodayISO())
     notify('Archivo Excel (.xlsx) generado y descargado.')
   }
 
   const handleExportCsv = () => {
     if (!report) return
-    exportTabToCsv(report, activeTab, todayISO())
+    exportTabToCsv(report, activeTab, colombiaTodayISO())
     notify('Archivo CSV (.csv) de la vista actual descargado.')
   }
 
   const kpis = report?.kpis || {}
   const activeRows = getActiveTabRows(report, activeTab)
-  const filterCount = activeFilterCount(filters)
 
   return (
     <div className={styles.page}>
@@ -306,6 +299,38 @@ const ReportsPage = () => {
               ))}
             </select>
           </label>
+
+          <label className={styles.field}>
+            Vendedor
+            <select
+              value={filters.vendedor}
+              onChange={(e) => handleFilterChange('vendedor', e.target.value)}
+              aria-label="Filtrar por vendedor"
+            >
+              <option value="">Todos los vendedores</option>
+              {(meta.vendedores ?? []).map((seller) => (
+                <option key={seller.id} value={seller.id}>
+                  {seller.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            Transportadora
+            <select
+              value={filters.transportadora}
+              onChange={(e) => handleFilterChange('transportadora', e.target.value)}
+              aria-label="Filtrar por transportadora"
+            >
+              <option value="">Todas las transportadoras</option>
+              {(meta.transportadoras ?? []).map((carrier) => (
+                <option key={carrier.codigo} value={carrier.codigo}>
+                  {carrier.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
@@ -342,6 +367,14 @@ const ReportsPage = () => {
           <strong className={reportStyles.kpiValue}>{number(kpis.prendas_aptas)} aptas</strong>
           <span className={reportStyles.kpiSub}>
             {number(kpis.total_ordenes)} orden(es) · {number(kpis.prendas_marras)} marra(s) ({kpis.tasa_calidad_pct ?? 100}% calidad)
+          </span>
+        </div>
+
+        <div className={reportStyles.kpiCard}>
+          <span className={reportStyles.kpiLabel}>Devoluciones por vendedor</span>
+          <strong className={reportStyles.kpiValue}>{money(kpis.flete_devoluciones_total)}</strong>
+          <span className={reportStyles.kpiSub}>
+            {number(kpis.devoluciones_guias)} guía(s) devuelta(s) · Solo informativo
           </span>
         </div>
       </section>
@@ -572,6 +605,41 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {activeTab === 'devoluciones' && (
+              <>
+                <p className={styles.muted} style={{ marginBottom: '0.75rem' }}>
+                  Reporte informativo de devoluciones por vendedor y fletes a su cargo; el sistema no realiza descuentos automáticos.
+                </p>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Vendedor</th>
+                        <th className={styles.numCol}>Guías Devueltas</th>
+                        <th className={styles.numCol}>Flete a Cargo del Vendedor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeRows.map((row) => (
+                        <tr key={row.vendedor_id ?? row.vendedor_nombre}>
+                          <td><strong>{row.vendedor_nombre}</strong></td>
+                          <td className={styles.numCol}>{number(row.guias_devueltas)}</td>
+                          <td className={styles.numCol}><strong>{money(row.flete_vendedor)}</strong></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th>Total</th>
+                        <th className={styles.numCol}>{number(kpis.devoluciones_guias)}</th>
+                        <th className={styles.numCol}>{money(kpis.flete_devoluciones_total)}</th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
             )}
 
             <div className={reportStyles.summaryFooter}>

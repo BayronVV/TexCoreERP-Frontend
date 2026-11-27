@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { draftFromShortages } from '../Purchasing/purchasing'
+import ListPager from '../ui/ListPager'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { fieldErrors, formatDate, formatQty } from '../Inventory/labels'
 import { isPositiveInteger } from '../Inventory/orderLines'
 import styles from '../Inventory/Inventory.module.css'
@@ -15,6 +17,28 @@ import {
 } from './lotSizes'
 
 const NO_PLAN = { data: null, loading: false, error: '' }
+
+const ORDER_LIST_FILTERS = {
+  q: '',
+  referencia: '',
+  estado: '',
+  lote: '',
+  etapa: '',
+  responsable: '',
+  desde: '',
+  hasta: '',
+}
+
+const LOT_LIST_FILTERS = {
+  q: '',
+  referencia: '',
+  lote: '',
+  estado: '',
+  etapa: '',
+  responsable: '',
+  desde: '',
+  hasta: '',
+}
 
 // Generación de órdenes y lotes (HU 4.2 / RF11 y RF12): se crea la orden de producción de una referencia, se divide en lotes
 // con identificador único y, si se quiere, se reparten las tallas de cada lote. Al crearla, el servidor descuenta del
@@ -44,35 +68,87 @@ export default function LotsMasterPage() {
   const [errors, setErrors] = useState({})
   const [shortages, setShortages] = useState([])
   const [created, setCreated] = useState(null)
-  const [orders, setOrders] = useState(null)
+  const [listView, setListView] = useState('ordenes')
+  const [ordersPage, setOrdersPage] = useState(null)
+  const [lotsPageData, setLotsPageData] = useState(null)
   const [fetchedAt, setFetchedAt] = useState(0) // cuándo llegaron los tiempos que se muestran
   const [openOrder, setOpenOrder] = useState(null) // orden con el seguimiento abierto
   const [cancelling, setCancelling] = useState(null) // { id, motivo }
   const [cancelError, setCancelError] = useState('')
+  const [allReferences, setAllReferences] = useState([])
 
-  const loadOrders = () =>
-    apiGet('/api/produccion/ordenes/?limit=15')
-      .then((data) => (setOrders(data), setFetchedAt(Date.now())))
+  const orderList = usePersistedFilters('texcore_filters_prod_orders', ORDER_LIST_FILTERS)
+  const lotList = usePersistedFilters('texcore_filters_prod_lots', LOT_LIST_FILTERS)
+
+  const loadOrders = useCallback(() => {
+    const p = new URLSearchParams({ page: String(orderList.page), page_size: String(orderList.pageSize) })
+    const f = orderList.filters
+    if (f.q.trim()) p.set('q', f.q.trim())
+    if (f.referencia) p.set('referencia', f.referencia)
+    if (f.estado) p.set('estado', f.estado)
+    if (f.lote.trim()) p.set('lote', f.lote.trim())
+    if (f.etapa) p.set('etapa', f.etapa)
+    if (f.responsable.trim()) p.set('responsable', f.responsable.trim())
+    if (f.desde) p.set('desde', f.desde)
+    if (f.hasta) p.set('hasta', f.hasta)
+    return apiGet(`/api/produccion/ordenes/?${p}`)
+      .then((data) => (setOrdersPage(data), setFetchedAt(Date.now()), setLoadError('')))
       .catch((error) => setLoadError(error.message))
+  }, [orderList.filters, orderList.page, orderList.pageSize])
+
+  const loadLots = useCallback(() => {
+    const p = new URLSearchParams({ page: String(lotList.page), page_size: String(lotList.pageSize) })
+    const f = lotList.filters
+    if (f.q.trim()) p.set('q', f.q.trim())
+    if (f.referencia) p.set('referencia', f.referencia)
+    if (f.lote.trim()) p.set('lote', f.lote.trim())
+    if (f.estado) p.set('estado', f.estado)
+    if (f.etapa) p.set('etapa', f.etapa)
+    if (f.responsable.trim()) p.set('responsable', f.responsable.trim())
+    if (f.desde) p.set('desde', f.desde)
+    if (f.hasta) p.set('hasta', f.hasta)
+    return apiGet(`/api/produccion/lotes/?${p}`)
+      .then((data) => (setLotsPageData(data), setLoadError('')))
+      .catch((error) => setLoadError(error.message))
+  }, [lotList.filters, lotList.page, lotList.pageSize])
 
   // Tras una acción sobre un lote, el servidor devuelve el lote ya actualizado: se muestra al instante y luego se refresca
   // la lista para que el estado de la orden (planeada, en proceso, en pausa, terminada) también quede al día.
   const updateLot = (orderId, lot) => {
-    setOrders((current) => current.map((order) => (order.id === orderId ? replaceLot(order, lot) : order)))
+    setOrdersPage((current) =>
+      current
+        ? { ...current, results: current.results.map((order) => (order.id === orderId ? replaceLot(order, lot) : order)) }
+        : current,
+    )
     setFetchedAt(Date.now())
     loadOrders()
+    loadLots()
   }
 
   useEffect(() => {
-    Promise.all([apiGet('/api/inventario/fichas-tecnicas/'), apiGet('/api/inventario/productos/')])
-      .then(([refs, prods]) => {
+    Promise.all([
+      apiGet('/api/inventario/fichas-tecnicas/'),
+      apiGet('/api/inventario/productos/'),
+      apiGet('/api/referencias/?limit=200').catch(() => []),
+    ])
+      .then(([refs, prods, refCatalog]) => {
         setReferences(refs)
         setProducts(prods)
+        setAllReferences(refCatalog)
       })
       .catch((error) => setLoadError(error.message))
-    loadOrders()
   }, [])
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (listView === 'ordenes') loadOrders()
+      else loadLots()
+    }, 200)
+    return () => clearTimeout(t)
+  }, [listView, loadOrders, loadLots])
+
+  const orders = ordersPage?.results ?? null
+  const lotsRows = lotsPageData?.results ?? null
   const reference = references?.find((r) => String(r.id) === referencia)
   const tracked = orders?.find((order) => order.id === openOrder) ?? null
   const generics = (products ?? []).filter((p) => p.tipo === 'GENERICO')
@@ -534,45 +610,187 @@ export default function LotsMasterPage() {
       )}
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Órdenes recientes</h2>
-        {orders === null ? (
-          <p className={styles.muted}>Cargando…</p>
-        ) : orders.length === 0 ? (
-          <p className={styles.muted}>Todavía no hay órdenes de producción.</p>
-        ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Orden</th><th>Referencia</th><th className={styles.num}>Prendas</th><th>Lotes</th><th>Fecha</th><th>Estado</th><th>Tiempo neto</th><th />
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id} className={openOrder === order.id ? planStyles.rowOpen : ''}>
-                    <td>{order.codigo}</td>
-                    <td>{order.referencia_codigo} · {order.referencia_nombre}</td>
-                    <td className={styles.num}>{order.cantidad}</td>
-                    <td>{order.lotes.map((lot) => `${lot.codigo.split('-L')[1] ? `L${lot.codigo.split('-L')[1]}` : lot.codigo}: ${lot.cantidad}`).join(' · ')}</td>
-                    <td>{formatDate(order.fecha_salida)}</td>
-                    <td><StateBadge state={order.estado_produccion} name={order.estado_produccion_nombre} /></td>
-                    <td>{formatDuration(order.tiempo_neto_segundos)}</td>
-                    <td>
-                      <button type="button" className={styles.linkBtn} aria-expanded={openOrder === order.id}
-                        onClick={() => setOpenOrder(openOrder === order.id ? null : order.id)}>
-                        {openOrder === order.id ? 'Ocultar seguimiento' : 'Seguimiento'}
-                      </button>
-                      {canManage && order.estado === 'EN_PROCESO' && (
-                        <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => setCancelling({ id: order.id, motivo: '' })}>
-                          Anular
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className={styles.cardHead}>
+          <h2 className={styles.cardTitle}>{listView === 'ordenes' ? 'Órdenes de producción' : 'Lotes de producción'}</h2>
+          <div className={styles.tabs} style={{ marginBottom: 0 }}>
+            <button
+              type="button"
+              onClick={() => setListView('ordenes')}
+              className={`${styles.tab} ${listView === 'ordenes' ? styles.tabActive : ''}`}
+            >
+              Órdenes
+            </button>
+            <button
+              type="button"
+              onClick={() => setListView('lotes')}
+              className={`${styles.tab} ${listView === 'lotes' ? styles.tabActive : ''}`}
+            >
+              Lotes
+            </button>
           </div>
+        </div>
+
+        {listView === 'ordenes' ? (
+          <>
+            <div className={styles.filters}>
+              <input type="search" placeholder="Orden, referencia o responsable" value={orderList.filters.q} onChange={(e) => orderList.setFilter('q', e.target.value)} aria-label="Buscar órdenes" />
+              <select value={orderList.filters.referencia} onChange={(e) => orderList.setFilter('referencia', e.target.value)} aria-label="Filtrar órdenes por referencia">
+                <option value="">Todas las referencias</option>
+                {allReferences.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>)}
+              </select>
+              <select value={orderList.filters.estado} onChange={(e) => orderList.setFilter('estado', e.target.value)} aria-label="Filtrar órdenes por estado">
+                <option value="">Todos los estados</option>
+                <option value="EN_PROCESO">En proceso</option>
+                <option value="COMPLETADA">Completadas</option>
+                <option value="ANULADA">Anuladas</option>
+              </select>
+              <select value={orderList.filters.etapa} onChange={(e) => orderList.setFilter('etapa', e.target.value)} aria-label="Filtrar órdenes por etapa">
+                <option value="">Todas las etapas</option>
+                <option value="CORTE">Corte</option>
+                <option value="CONFECCION">Confección</option>
+                <option value="TERMINACION">Terminación</option>
+              </select>
+              <input type="text" placeholder="Lote (ej. L01)" value={orderList.filters.lote} onChange={(e) => orderList.setFilter('lote', e.target.value)} aria-label="Filtrar por lote" />
+              <input type="text" placeholder="Responsable" value={orderList.filters.responsable} onChange={(e) => orderList.setFilter('responsable', e.target.value)} aria-label="Filtrar por responsable" />
+              <label>Desde <input type="date" value={orderList.filters.desde} onChange={(e) => orderList.setFilter('desde', e.target.value)} /></label>
+              <label>Hasta <input type="date" value={orderList.filters.hasta} onChange={(e) => orderList.setFilter('hasta', e.target.value)} /></label>
+            </div>
+            <div className={styles.filterSummary}>
+              <span>{ordersPage ? `${ordersPage.count.toLocaleString('es-CO')} orden(es) encontradas` : 'Consultando órdenes…'}</span>
+              {orderList.activeCount > 0 && (
+                <button type="button" className={styles.secondaryBtn} onClick={orderList.clearFilters}>
+                  Limpiar filtros ({orderList.activeCount})
+                </button>
+              )}
+            </div>
+            {orders === null ? (
+              <p className={styles.muted}>Cargando…</p>
+            ) : orders.length === 0 ? (
+              <p className={styles.muted}>No hay órdenes de producción con ese filtro.</p>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Orden</th><th>Referencia</th><th className={styles.num}>Prendas</th><th>Lotes</th><th>Fecha</th><th>Estado</th><th>Tiempo neto</th><th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.id} className={openOrder === order.id ? planStyles.rowOpen : ''}>
+                        <td>{order.codigo}</td>
+                        <td>{order.referencia_codigo} · {order.referencia_nombre}</td>
+                        <td className={styles.num}>{order.cantidad}</td>
+                        <td>{order.lotes.map((lot) => `${lot.codigo.split('-L')[1] ? `L${lot.codigo.split('-L')[1]}` : lot.codigo}: ${lot.cantidad}`).join(' · ')}</td>
+                        <td>{formatDate(order.fecha_salida)}</td>
+                        <td><StateBadge state={order.estado_produccion} name={order.estado_produccion_nombre} /></td>
+                        <td>{formatDuration(order.tiempo_neto_segundos)}</td>
+                        <td>
+                          <button type="button" className={styles.linkBtn} aria-expanded={openOrder === order.id}
+                            onClick={() => setOpenOrder(openOrder === order.id ? null : order.id)}>
+                            {openOrder === order.id ? 'Ocultar seguimiento' : 'Seguimiento'}
+                          </button>
+                          {canManage && order.estado === 'EN_PROCESO' && (
+                            <button type="button" className={`${styles.linkBtn} ${styles.dangerText}`} onClick={() => setCancelling({ id: order.id, motivo: '' })}>
+                              Anular
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {ordersPage && (
+              <ListPager
+                count={ordersPage.count}
+                page={ordersPage.page}
+                pageSize={ordersPage.page_size}
+                totalPages={ordersPage.total_pages}
+                onPageChange={orderList.setPage}
+                onPageSizeChange={orderList.setPageSize}
+                noun="órdenes"
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <div className={styles.filters}>
+              <input type="search" placeholder="Código de lote, orden o referencia" value={lotList.filters.q} onChange={(e) => lotList.setFilter('q', e.target.value)} aria-label="Buscar lotes" />
+              <select value={lotList.filters.referencia} onChange={(e) => lotList.setFilter('referencia', e.target.value)} aria-label="Filtrar lotes por referencia">
+                <option value="">Todas las referencias</option>
+                {allReferences.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>)}
+              </select>
+              <select value={lotList.filters.estado} onChange={(e) => lotList.setFilter('estado', e.target.value)} aria-label="Filtrar lotes por estado">
+                <option value="">Todos los estados</option>
+                <option value="PLANEADA">Planeada</option>
+                <option value="EN_PROCESO">En proceso</option>
+                <option value="EN_PAUSA">En pausa</option>
+                <option value="TERMINADA">Terminada</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+              <select value={lotList.filters.etapa} onChange={(e) => lotList.setFilter('etapa', e.target.value)} aria-label="Filtrar lotes por etapa">
+                <option value="">Todas las etapas</option>
+                <option value="CORTE">Corte</option>
+                <option value="CONFECCION">Confección</option>
+                <option value="TERMINACION">Terminación</option>
+              </select>
+              <input type="text" placeholder="Lote" value={lotList.filters.lote} onChange={(e) => lotList.setFilter('lote', e.target.value)} aria-label="Filtrar código de lote" />
+              <input type="text" placeholder="Responsable" value={lotList.filters.responsable} onChange={(e) => lotList.setFilter('responsable', e.target.value)} aria-label="Filtrar lotes por responsable" />
+              <label>Desde <input type="date" value={lotList.filters.desde} onChange={(e) => lotList.setFilter('desde', e.target.value)} /></label>
+              <label>Hasta <input type="date" value={lotList.filters.hasta} onChange={(e) => lotList.setFilter('hasta', e.target.value)} /></label>
+            </div>
+            <div className={styles.filterSummary}>
+              <span>{lotsPageData ? `${lotsPageData.count.toLocaleString('es-CO')} lote(s) encontrados` : 'Consultando lotes…'}</span>
+              {lotList.activeCount > 0 && (
+                <button type="button" className={styles.secondaryBtn} onClick={lotList.clearFilters}>
+                  Limpiar filtros ({lotList.activeCount})
+                </button>
+              )}
+            </div>
+            {lotsRows === null ? (
+              <p className={styles.muted}>Cargando…</p>
+            ) : lotsRows.length === 0 ? (
+              <p className={styles.muted}>No hay lotes con ese filtro.</p>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Lote</th><th>Orden</th><th>Referencia</th><th className={styles.num}>Prendas</th><th>Etapa actual</th><th>Responsable</th><th>Fecha</th><th>Estado</th><th>Tiempo neto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lotsRows.map((lot) => (
+                      <tr key={lot.id}>
+                        <td><strong>{lot.codigo}</strong></td>
+                        <td>{lot.orden_codigo}</td>
+                        <td>{lot.referencia_codigo} · {lot.referencia_nombre}</td>
+                        <td className={styles.num}>{lot.cantidad}</td>
+                        <td>{lot.etapa_actual_nombre || 'Finalizado'}</td>
+                        <td>{lot.etapa_responsable || lot.responsable || '—'}</td>
+                        <td>{formatDate(lot.fecha_salida)}</td>
+                        <td><StateBadge state={lot.estado} name={lot.estado_nombre} /></td>
+                        <td>{formatDuration(lot.tiempo_neto_segundos)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {lotsPageData && (
+              <ListPager
+                count={lotsPageData.count}
+                page={lotsPageData.page}
+                pageSize={lotsPageData.page_size}
+                totalPages={lotsPageData.total_pages}
+                onPageChange={lotList.setPage}
+                onPageSizeChange={lotList.setPageSize}
+                noun="lotes"
+              />
+            )}
+          </>
         )}
 
         {tracked && (
