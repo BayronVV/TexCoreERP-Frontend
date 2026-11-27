@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { apiGet } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import styles from '../Inventory/Inventory.module.css'
@@ -8,14 +8,23 @@ import finishedStyles from './Finished.module.css'
 /**
  * Producto terminado · Existencias, ruta `/producto-terminado/existencias` (`producto_terminado.ver`): la matriz referencia × color × talla de las
  * prendas de primera calidad; las celdas en cero se resaltan y el saldo lo calcula el servidor. Con `producto_terminado.ajustar` enlaza a «Ajustar».
- * Lee `GET /api/terminado/existencias/`.
+ * Lee `GET /api/terminado/existencias/`. Acepta `?referencia=<id>` desde Inventario (TE-170).
  */
 export default function StockPage() {
   const { can } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [matrix, setMatrix] = useState(null)
-  const [reference, setReference] = useState('')
+  const [reference, setReference] = useState(() => searchParams.get('referencia') ?? '')
   const [search, setSearch] = useState('')
   const [loadError, setLoadError] = useState('')
+
+  const pickReference = (nextRef) => {
+    setReference(nextRef)
+    const params = new URLSearchParams(searchParams)
+    if (nextRef) params.set('referencia', nextRef)
+    else params.delete('referencia')
+    setSearchParams(params, { replace: true })
+  }
 
   const load = useCallback(() => {
     const params = new URLSearchParams()
@@ -45,7 +54,7 @@ export default function StockPage() {
       <section className={styles.card}>
         <div className={styles.filters}>
           <input type="search" placeholder="Buscar referencia" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar referencia" />
-          <select value={reference} onChange={(event) => setReference(event.target.value)} aria-label="Filtrar por referencia">
+          <select value={reference} onChange={(event) => pickReference(event.target.value)} aria-label="Filtrar por referencia">
             <option value="">Todas las referencias</option>
             {(matrix ?? []).map((item) => <option key={item.referencia} value={item.referencia}>{item.codigo} · {item.nombre}</option>)}
           </select>

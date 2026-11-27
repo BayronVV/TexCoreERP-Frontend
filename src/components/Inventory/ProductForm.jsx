@@ -35,6 +35,7 @@ export default function ProductForm({ product, meta, onSaved, onClose }) {
   useEffect(() => () => previewRef.current && URL.revokeObjectURL(previewRef.current), [])
 
   const category = categoryOf(meta, form.categoria)
+  const linkedToReference = Boolean(product?.referencia)
   const set = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
 
   const pickCategory = (event) => {
@@ -129,13 +130,21 @@ export default function ProductForm({ product, meta, onSaved, onClose }) {
                 ))}
               </optgroup>
               <optgroup label="Pantalones">
-                {meta.categorias.filter((c) => !c.compra).map((c) => (
-                  <option key={c.codigo} value={c.codigo}>{c.nombre}</option>
-                ))}
+                {meta.categorias
+                  .filter((c) => !c.compra && (editing || c.creable_manualmente !== false))
+                  .map((c) => (
+                    <option key={c.codigo} value={c.codigo}>{c.nombre}</option>
+                  ))}
               </optgroup>
             </select>
-            {editing && product.categoria && (
-              <span className={styles.hint}>La categoría y la unidad no se cambian; si te equivocaste, elimina el producto y créalo de nuevo.</span>
+            {editing && product.categoria ? (
+              <span className={styles.hint}>
+                {linkedToReference
+                  ? `Enlazado a ${product.referencia_codigo}. Solo puedes ajustar mínimo y descripción.`
+                  : 'La categoría y la unidad no se cambian; si te equivocaste, elimina el producto y créalo de nuevo.'}
+              </span>
+            ) : (
+              <span className={styles.hint}>Los productos terminados nacen al crear una referencia en Referencias.</span>
             )}
             {err('categoria')}
           </label>
@@ -153,7 +162,14 @@ export default function ProductForm({ product, meta, onSaved, onClose }) {
 
           <label className={`${styles.field} ${styles.full}`}>
             Nombre
-            <input value={form.nombre} onChange={set('nombre')} maxLength={150} required placeholder="Ej. Denim rígido 14 oz índigo intenso" />
+            <input
+              value={form.nombre}
+              onChange={set('nombre')}
+              maxLength={150}
+              required
+              disabled={linkedToReference}
+              placeholder="Ej. Denim rígido 14 oz índigo intenso"
+            />
             {err('nombre')}
           </label>
 

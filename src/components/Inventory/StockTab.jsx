@@ -1,18 +1,27 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../auth/session'
 import { PRODUCT_TYPES, formatQty } from './labels'
 import { formatMoney } from './money'
+import { finishedDetailPath, stockRowState } from './orderLines'
 import styles from './Inventory.module.css'
 
-function stateOf(product) {
-  const stock = Number(product.stock_actual)
-  if (Number(product.stock_minimo) > 0 && stock <= 0) return { label: 'Agotado', badge: styles.badgeDanger, row: styles.rowOut }
-  if (product.bajo_minimo) return { label: 'Bajo el mínimo', badge: styles.badgeWarn, row: styles.rowLow }
-  return { label: 'Normal', badge: styles.badgeOk, row: '' }
+const BADGE_BY_KIND = {
+  out: { badge: styles.badgeDanger, row: styles.rowOut },
+  low: { badge: styles.badgeWarn, row: styles.rowLow },
+  inactive: { badge: styles.badgeOff, row: '' },
+  ok: { badge: styles.badgeOk, row: '' },
 }
 
-/** Existencias por producto con su estado (en orden, bajo el mínimo, agotado) y su costo promedio ponderado. Solo lectura. */
+function stateOf(product) {
+  const { kind, label } = stockRowState(product)
+  return { label, ...BADGE_BY_KIND[kind] }
+}
+
+/** Existencias por producto con su estado y enlaces de producto terminado hacia `/producto-terminado/existencias` (TE-170). Solo lectura. */
 export default function StockTab({ products, canManage }) {
+  const { can } = useAuth()
+  const canSeeFinished = can('producto_terminado.ver')
   const [kind, setKind] = useState('')
   const [search, setSearch] = useState('')
 
@@ -81,7 +90,20 @@ export default function StockTab({ products, canManage }) {
                   return (
                     <tr key={product.id} className={state.row}>
                       <td>{product.codigo}</td>
-                      <td>{product.nombre}</td>
+                      <td>
+                        <div>{product.nombre}</div>
+                        {product.es_terminado_enlazado && (
+                          <div className={styles.hint}>
+                            {canSeeFinished ? (
+                              <Link to={finishedDetailPath(product.referencia)} className={styles.textLink}>
+                                Ver tallas y colores →
+                              </Link>
+                            ) : (
+                              'Saldo calculado desde Producto Terminado'
+                            )}
+                          </div>
+                        )}
+                      </td>
                       <td>{product.categoria_nombre}</td>
                       <td className={styles.num}>{formatQty(product.stock_actual, product.unidad)}</td>
                       <td className={styles.num}>{Number(product.costo_promedio) > 0 ? formatMoney(product.costo_promedio) : '—'}</td>

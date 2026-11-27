@@ -52,3 +52,23 @@ export function orderProblems({ tipo, form, basket, productOf, reference }) {
   if (basket.some((line) => isShort(line, productOf(line.producto)))) problems.push('Falta stock de algún material.')
   return problems
 }
+
+/** Ruta al desglose de Producto Terminado, opcionalmente filtrada por referencia (HU 6.5 / TE-170). */
+export function finishedDetailPath(referenceId) {
+  return referenceId ? `/producto-terminado/existencias?referencia=${referenceId}` : '/producto-terminado/existencias'
+}
+
+/** Estado visual de una fila de existencias considerando referencias borrador/descontinuadas en PT enlazados. */
+export function stockRowState(product) {
+  if (!product) return { kind: 'ok', label: 'Normal' }
+  if (product.es_terminado_enlazado && product.referencia_estado && product.referencia_estado !== 'ACTIVA') {
+    return {
+      kind: 'inactive',
+      label: product.referencia_estado === 'BORRADOR' ? 'Borrador' : 'Descontinuada',
+    }
+  }
+  const stock = Number(product.stock_actual)
+  if (product.bajo_minimo && stock <= 0) return { kind: 'out', label: 'Agotado' }
+  if (product.bajo_minimo) return { kind: 'low', label: 'Bajo el mínimo' }
+  return { kind: 'ok', label: 'Normal' }
+}
