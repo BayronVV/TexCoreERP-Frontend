@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
 import { useToast } from '../ui/toastContext'
+import ListPager from '../ui/ListPager'
 import Modal from '../ui/Modal'
+import { usePersistedFilters } from '../ui/usePersistedFilters'
 import { fieldErrors } from '../Inventory/labels'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from '../Finished/Finished.module.css'
@@ -288,42 +289,66 @@ function GuideDetail({ guideId, meta, onChanged, onClose }) {
   )
 }
 
+const GUIDE_FILTERS = {
+  q: '',
+  estado: '',
+  transportadora: '',
+  cliente: '',
+  vendedor: '',
+  referencia: '',
+  desde: '',
+  hasta: '',
+  todas: false,
+}
+
 /**
- * Envíos · Guías, ruta `/envios/guias` (`envios.ver`): todas las guías con su semáforo, filtros y el detalle de cada una.
+ * Envíos · Guías, ruta `/envios/guias` (`envios.ver`): todas las guías con su semáforo, filtros combinables, paginación y detalle de cada una.
  * Endpoints: `GET /api/envios/guias/` y `GET /api/envios/metadatos/`.
  */
 export default function GuidesPage() {
-  const [params] = useSearchParams()
   const [meta, setMeta] = useState(null)
-  const [guides, setGuides] = useState(null)
-  const [state, setState] = useState(params.get('estado') ?? '')
-  const [carrier, setCarrier] = useState('')
-  const [search, setSearch] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [all, setAll] = useState(false)
+  const [clients, setClients] = useState([])
+  const [references, setReferences] = useState([])
+  const [pageData, setPageData] = useState(null)
+  const {
+    filters,
+    page,
+    pageSize,
+    activeCount,
+    setFilter,
+    setPage,
+    setPageSize,
+    clearFilters,
+  } = usePersistedFilters('texcore_filters_guides', GUIDE_FILTERS)
   const [loadError, setLoadError] = useState('')
   const [viewing, setViewing] = useState(null)
 
   useEffect(() => {
     apiGet('/api/envios/metadatos/').then(setMeta).catch((error) => setLoadError(error.message))
+    apiGet('/api/ventas/clientes/?limit=200').then(setClients).catch(() => {})
+    apiGet('/api/referencias/?limit=200').then(setReferences).catch(() => {})
   }, [])
 
   const load = useCallback(() => {
-    const query = new URLSearchParams({ limit: '200' })
-    if (state) query.set('estado', state)
-    if (carrier) query.set('transportadora', carrier)
-    if (search.trim()) query.set('q', search.trim())
-    if (from) query.set('desde', from)
-    if (to) query.set('hasta', to)
-    if (all) query.set('todas', '1')
-    apiGet(`/api/envios/guias/?${query}`).then((data) => (setGuides(data), setLoadError(''))).catch((error) => setLoadError(error.message))
-  }, [state, carrier, search, from, to, all])
+    const query = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (filters.estado) query.set('estado', filters.estado)
+    if (filters.transportadora) query.set('transportadora', filters.transportadora)
+    if (filters.cliente) query.set('cliente', filters.cliente)
+    if (filters.vendedor) query.set('vendedor', filters.vendedor)
+    if (filters.referencia) query.set('referencia', filters.referencia)
+    if (filters.q.trim()) query.set('q', filters.q.trim())
+    if (filters.desde) query.set('desde', filters.desde)
+    if (filters.hasta) query.set('hasta', filters.hasta)
+    if (filters.todas) query.set('todas', '1')
+    apiGet(`/api/envios/guias/?${query}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+  }, [filters, page, pageSize])
 
   useEffect(() => {
     const timer = setTimeout(load, 250)
     return () => clearTimeout(timer)
   }, [load])
+
+  const guides = pageData?.results ?? null
 
   return (
     <div className={styles.page}>
@@ -335,18 +360,38 @@ export default function GuidesPage() {
 
       <section className={styles.card}>
         <div className={styles.filters}>
-          <input type="search" placeholder="Buscar por factura, cliente o guía" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Buscar guías" />
-          <select value={state} onChange={(event) => setState(event.target.value)} aria-label="Filtrar por estado">
+          <input type="search" placeholder="Factura, cliente, guía o novedad" value={filters.q} onChange={(event) => setFilter('q', event.target.value)} aria-label="Buscar guías" />
+          <select value={filters.estado} onChange={(event) => setFilter('estado', event.target.value)} aria-label="Filtrar por estado">
             <option value="">Todos los estados</option>
             {(meta?.estados ?? []).map((item) => <option key={item.codigo} value={item.codigo}>{item.nombre}</option>)}
           </select>
-          <select value={carrier} onChange={(event) => setCarrier(event.target.value)} aria-label="Filtrar por transportadora">
+          <select value={filters.transportadora} onChange={(event) => setFilter('transportadora', event.target.value)} aria-label="Filtrar por transportadora">
             <option value="">Todas las transportadoras</option>
             {(meta?.transportadoras ?? []).map((item) => <option key={item.codigo} value={item.codigo}>{item.nombre}</option>)}
           </select>
-          <label>Desde <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-          <label>Hasta <input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-          <label><input type="checkbox" checked={all} onChange={(event) => setAll(event.target.checked)} /> Incluir guías reemplazadas</label>
+          <select value={filters.cliente} onChange={(event) => setFilter('cliente', event.target.value)} aria-label="Filtrar por cliente">
+            <option value="">Todos los clientes</option>
+            {clients.map((client) => <option key={client.id} value={client.id}>{client.nombre}</option>)}
+          </select>
+          <select value={filters.vendedor} onChange={(event) => setFilter('vendedor', event.target.value)} aria-label="Filtrar por vendedor">
+            <option value="">Todos los vendedores</option>
+            {(meta?.vendedores ?? []).map((seller) => <option key={seller.id} value={seller.id}>{seller.nombre}</option>)}
+          </select>
+          <select value={filters.referencia} onChange={(event) => setFilter('referencia', event.target.value)} aria-label="Filtrar por referencia">
+            <option value="">Todas las referencias</option>
+            {references.map((ref) => <option key={ref.id} value={ref.id}>{ref.codigo} · {ref.nombre}</option>)}
+          </select>
+          <label>Desde <input type="date" value={filters.desde} onChange={(event) => setFilter('desde', event.target.value)} /></label>
+          <label>Hasta <input type="date" value={filters.hasta} onChange={(event) => setFilter('hasta', event.target.value)} /></label>
+          <label><input type="checkbox" checked={filters.todas} onChange={(event) => setFilter('todas', event.target.checked)} /> Incluir guías reemplazadas</label>
+        </div>
+        <div className={styles.filterSummary}>
+          <span>{pageData ? `${pageData.count.toLocaleString('es-CO')} guía(s) encontradas` : 'Consultando guías…'}</span>
+          {activeCount > 0 && (
+            <button type="button" className={styles.secondaryBtn} onClick={clearFilters}>
+              Limpiar filtros ({activeCount})
+            </button>
+          )}
         </div>
         {loadError && <p className={styles.formError}>{loadError}</p>}
         {guides && guides.length === 0 && <p className={styles.empty}>No hay guías con ese filtro.</p>}
@@ -374,6 +419,17 @@ export default function GuidesPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {pageData && (
+          <ListPager
+            count={pageData.count}
+            page={pageData.page}
+            pageSize={pageData.page_size}
+            totalPages={pageData.total_pages}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            noun="guías"
+          />
         )}
       </section>
 

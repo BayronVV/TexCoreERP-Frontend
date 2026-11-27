@@ -90,10 +90,25 @@ export const hiddenCount = (column) => Math.max(0, column.total - column.lotes.l
 export const boardTotal = (columns) => columns.reduce((sum, column) => sum + column.total, 0)
 
 /** Parámetros de la consulta del tablero: solo los filtros elegidos. */
-export function boardQuery({ orden = '', referencia = '', limite = '', canceladas = false } = {}) {
+export function boardQuery({
+  orden = '',
+  referencia = '',
+  etapa = '',
+  responsable = '',
+  desde = '',
+  hasta = '',
+  q = '',
+  limite = '',
+  canceladas = false,
+} = {}) {
   const params = new URLSearchParams()
   if (orden) params.set('orden', orden)
   if (referencia) params.set('referencia', referencia)
+  if (etapa) params.set('etapa', etapa)
+  if (responsable && String(responsable).trim()) params.set('responsable', String(responsable).trim())
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  if (q && String(q).trim()) params.set('q', String(q).trim())
   if (limite) params.set('limite', limite)
   if (canceladas) params.set('canceladas', '1')
   const text = params.toString()
