@@ -17,7 +17,7 @@ export default function ShippingPanel() {
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    apiGet('/api/envios/resumen/').then(setSummary).catch((error) => setLoadError(error.message))
+    apiGet('/api/envios/resumen/').then(setSummary).catch((error) => { setSummary(null); setLoadError(error.message) })
   }, [])
 
   const noGuide = summary?.sin_guia

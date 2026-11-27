@@ -194,7 +194,7 @@ export default function InvoicesPage() {
     if (filters.estado_cobro) params.set('estado_cobro', filters.estado_cobro)
     if (filters.desde) params.set('desde', filters.desde)
     if (filters.hasta) params.set('hasta', filters.hasta)
-    apiGet(`/api/ventas/facturas/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/ventas/facturas/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => { setPageData(null); setLoadError(error.message) })
   }, [filters, page, pageSize])
 
   useEffect(() => {

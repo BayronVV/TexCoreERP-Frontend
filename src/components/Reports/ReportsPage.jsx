@@ -73,6 +73,7 @@ const ReportsPage = () => {
       const data = await apiGet(`/api/reportes/gerencial/${qs}`)
       setReport(data)
     } catch (failure) {
+      setReport(null)
       setError(failure.message || 'No se pudo cargar el tablero de reportes gerenciales.')
     } finally {
       setLoading(false)

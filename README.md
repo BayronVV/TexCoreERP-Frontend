@@ -10,7 +10,7 @@ El manual de usuario explica cada pantalla; este archivo es la guía para quien 
 > **El frontend no publica GitHub Pages.** La documentación del sistema vive únicamente en el sitio del repositorio del backend
 > (enlace de arriba). Aquí solo está esta guía y los comentarios JSDoc de los componentes.
 
-**Estado:** Sprint 3 (lavandería, calidad, producto terminado, ventas, envíos, cartera y reportes). La aplicación en producción
+**Estado:** Sprint 4 en cierre (Sprints 1–3 completos + compras, lavandería confiable, unificación de producto terminado, costo de fábrica, coherencia guías-cartera, filtros combinables/paginación/devoluciones en reportes, seguridad y pruebas E2E). La aplicación en producción
 está en <https://texcore-web.onrender.com> y su API en <https://texcore-api.onrender.com>.
 
 ## Estructura
@@ -73,8 +73,8 @@ Abre http://localhost:5173.
 | `npm run dev`     | Servidor de desarrollo con recarga en caliente. |
 | `npm run build`   | Genera la versión de producción en `dist/`. |
 | `npm run preview` | Sirve `dist/` para probar el build. |
-| `npm run lint`    | Revisa `src/` con oxlint. Hoy deja 9 avisos (`react/set-state-in-effect`, anteriores al Sprint 3) y ningún error. |
-| `npm test`        | Pruebas de la lógica pura con el ejecutor de Node (`node --test`): 221 pruebas, sin navegador ni backend. |
+| `npm run lint`    | Revisa `src/` con oxlint (sin errores bloqueantes; avisos heredados de `react/set-state-in-effect`). |
+| `npm test`        | Pruebas de la lógica pura y contratos UI con el ejecutor de Node (`node --test`): 267 pruebas, sin navegador ni backend. |
 
 ## Permisos en el frontend (HU 1.4)
 
@@ -107,9 +107,11 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/recuperar-contrasena` | público | Pedir el enlace de recuperación (HU 1.3) |
 | `/restablecer-contrasena?token=` | público | Definir la nueva contraseña o activar una cuenta invitada |
 | `/dashboard` | sesión | Inicio: solicitudes pendientes, nuevo stock de producto terminado (`producto_terminado.ver`) y alertas de stock |
-| `/seguridad/usuarios` | `seguridad.ver` | Usuarios: aprobar solicitudes, roles, activar/desactivar, invitar |
+| `/seguridad/usuarios` | `seguridad.ver` | Usuarios: aprobar solicitudes, roles, activar/desactivar, desbloquear, invitar |
 | `/seguridad/roles` | `seguridad.ver` | Roles y matriz de permisos por módulo |
-| `/inventario` | `inventario.ver` | Movimientos: existencias (con costo promedio), ingreso, salida a lavandería e historial |
+| `/seguridad/accesos` | `seguridad.accesos` | Registro de inicios de sesión y bloqueos temporales (TE-175) |
+| `/seguridad/auditoria` | `seguridad.auditoria` | Libro de auditoría de operaciones críticas (TE-175) |
+| `/inventario` | `inventario.ver` | Movimientos paginados: existencias (con CPP y enlace a PT), ingreso e historial (filtros combinables) |
 | `/inventario/catalogo` | `inventario.ver` | Catálogo de telas e insumos por categoría, con imagen de referencia (sin existencias) |
 | `/inventario/proveedores` | `inventario.ver` | Directorio de proveedores (NIT único, clasificación, archivados) |
 | `/compras/ordenes` | `compras.ver` | Órdenes de compra: crear, editar el borrador, aprobar, cancelar y cerrar |
@@ -129,15 +131,15 @@ contraseña cambió, se cierra la sesión y vuelve al login.
 | `/lavanderia/recepcion` | `lavanderia.ver` | Recepción de lavandería: cotejo de lo enviado y lo recibido, mermas, daños y pérdidas |
 | `/ventas/panel` | `ventas.ver` | Resumen del día y últimas facturas |
 | `/ventas/nueva` | `ventas.gestionar` | Nueva venta (punto de venta): cliente, matriz talla × color, descuentos y totales |
-| `/ventas/cartera` | `ventas.ver` | Gestión de cartera: por cobrar, pagadas y devueltas (confirmar recaudo o devolución exige `ventas.gestionar`) |
-| `/ventas/facturas` | `ventas.ver` | Facturas POS internas: filtros, detalle, PDF y anulación (`ventas.anular`) |
+| `/ventas/cartera` | `ventas.ver` | Gestión de cartera paginada: por cobrar, pagadas y devueltas (`confirmar pago` exige `ventas.conciliar`; saldo de caja solo con `ventas.conciliar`) |
+| `/ventas/facturas` | `ventas.ver` | Facturas POS internas: filtros combinables, paginación, detalle, PDF y anulación (`ventas.anular`) |
 | `/ventas/clientes` | `ventas.ver` | Clientes (crear y modificar exige `ventas.gestionar`) |
-| `/ventas/precios` | `ventas.ver` | Costo de fábrica y precios por referencia (modificar exige `ventas.precios`) |
-| `/envios/panel` | `envios.ver` | Semáforo de guías, facturas sin guía, novedades y devoluciones |
-| `/envios/guias` | `envios.ver` | Guías con filtros y detalle (estado, flete y rastreo exigen `envios.gestionar`) |
+| `/ventas/precios` | `ventas.ver` | Costo de fábrica (sugerido desde producción + historial con `ventas.precios`) y precios por referencia |
+| `/envios/panel` | `envios.ver` | Semáforo de guías, facturas sin guía, novedades y devoluciones por vendedor |
+| `/envios/guias` | `envios.ver` | Guías con filtros combinables, paginación y detalle (estado, flete, devolución y rastreo) |
 | `/envios/pendientes` | `envios.ver` | Facturas por despachar sin guía (anotar la guía exige `envios.anotar`) |
 | `/envios/relaciones` | `envios.ver` | Relaciones de despacho con PDF (crear exige `envios.gestionar`) |
-| `/reportes` | `reportes.ver` | Tablero gerencial con filtros avanzados y exportación a Excel/CSV |
+| `/reportes` | `reportes.ver` | Tablero gerencial con filtros combinables persistidos, devoluciones por vendedor, refresco (`reportes.gestionar`) y exportación a Excel/CSV |
 | `/produccion/planificar` | — | Redirige a `/produccion/ordenes` (la planificación se unió a esa pantalla) |
 | cualquier otra | — | Redirige a `/dashboard` |
 

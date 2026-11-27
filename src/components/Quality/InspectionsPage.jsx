@@ -86,7 +86,7 @@ export default function InspectionsPage() {
   const [viewing, setViewing] = useState(null)
 
   const loadPending = useCallback(() => {
-    apiGet('/api/calidad/pendientes/?limit=200').then((data) => (setPending(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet('/api/calidad/pendientes/?limit=200').then((data) => (setPending(data), setLoadError(''))).catch((error) => { setPending(null); setLoadError(error.message) })
   }, [])
 
   const loadHistory = useCallback(() => {
@@ -101,7 +101,7 @@ export default function InspectionsPage() {
     if (filters.hasta) params.set('hasta', filters.hasta)
     apiGet(`/api/calidad/inspecciones/?${params}`)
       .then((data) => (setHistoryPage(data), setLoadError('')))
-      .catch((error) => setLoadError(error.message))
+      .catch((error) => { setHistoryPage(null); setLoadError(error.message) })
   }, [filters, page, pageSize])
 
   useEffect(() => {
