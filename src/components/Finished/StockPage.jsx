@@ -29,7 +29,7 @@ export default function StockPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams()
     if (reference) params.set('referencia', reference)
-    apiGet(`/api/terminado/existencias/?${params}`).then((data) => (setMatrix(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/terminado/existencias/?${params}`).then((data) => (setMatrix(data), setLoadError(''))).catch((error) => { setMatrix(null); setLoadError(error.message) })
   }, [reference])
 
   useEffect(() => {

@@ -340,7 +340,7 @@ export default function GuidesPage() {
     if (filters.desde) query.set('desde', filters.desde)
     if (filters.hasta) query.set('hasta', filters.hasta)
     if (filters.todas) query.set('todas', '1')
-    apiGet(`/api/envios/guias/?${query}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/envios/guias/?${query}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => { setPageData(null); setLoadError(error.message) })
   }, [filters, page, pageSize])
 
   useEffect(() => {

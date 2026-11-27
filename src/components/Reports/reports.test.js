@@ -149,4 +149,33 @@ describe('Lógica de reportes gerenciales, devoluciones y zona horaria Colombia 
   it('money formatea valores numéricos en pesos colombianos', () => {
     assert.ok(money(150000).startsWith('$'))
   })
+
+  it('TE-187: totales exportados en Excel/CSV coinciden con KPIs antes y después de pago/devolución', () => {
+    const report = {
+      kpis: {
+        ingresos_totales: 428400,
+        recaudado_periodo: 214200,
+        pendiente_recaudo_periodo: 0,
+        devoluciones_guias: 1,
+        flete_devoluciones_total: 14000,
+      },
+      ventas_detalle: [
+        { numero_factura: 'FV-0001', fecha: '2026-11-27', cliente_nombre: 'A', cliente_tipo_nombre: 'Mayorista', vendedor_nombre: 'Ana', transportadora: 'ENVIA', estado_cobro_nombre: 'Pagado', referencia_codigo: 'REF-1', referencia_nombre: 'Jean 1', tipo_jean_nombre: 'Recto', talla: '30', color: 'Azul', unidades: 2, subtotal: 200000, descuento: 20000, base_gravable: 180000, iva: 34200, total: 214200 },
+        { numero_factura: 'FV-0002', fecha: '2026-11-27', cliente_nombre: 'B', cliente_tipo_nombre: 'Mayorista', vendedor_nombre: 'Ana', transportadora: 'ENVIA', estado_cobro_nombre: 'Devolución', referencia_codigo: 'REF-1', referencia_nombre: 'Jean 1', tipo_jean_nombre: 'Recto', talla: '32', color: 'Azul', unidades: 2, subtotal: 200000, descuento: 20000, base_gravable: 180000, iva: 34200, total: 214200 },
+      ],
+      devoluciones_por_vendedor: [
+        { vendedor_id: 7, vendedor_nombre: 'Ana', guias_devueltas: 1, flete_vendedor: 14000 },
+      ],
+    }
+    const detMatrix = buildExportMatrix(getActiveTabRows(report, 'ventas_det'), EXPORT_SCHEMAS.ventas_det.columns)
+    const devMatrix = buildExportMatrix(getActiveTabRows(report, 'devoluciones'), EXPORT_SCHEMAS.devoluciones.columns)
+    const totalCol = detMatrix[0].indexOf('Total ($)')
+    const exportedSalesTotal = detMatrix.slice(1).reduce((acc, row) => acc + row[totalCol], 0)
+    const exportedDevCount = devMatrix.slice(1).reduce((acc, row) => acc + row[1], 0)
+    const exportedDevFreight = devMatrix.slice(1).reduce((acc, row) => acc + row[2], 0)
+
+    assert.equal(exportedSalesTotal, report.kpis.ingresos_totales)
+    assert.equal(exportedDevCount, report.kpis.devoluciones_guias)
+    assert.equal(exportedDevFreight, report.kpis.flete_devoluciones_total)
+  })
 })
