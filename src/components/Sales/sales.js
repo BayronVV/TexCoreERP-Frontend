@@ -181,7 +181,45 @@ export function filterCartera(invoices, { tab = 'POR_COBRAR', search = '', carri
 
 /** Determina si una factura está en condición de ser conciliada (por cobrar y emitida). */
 export function canReconcile(invoice) {
-  return Boolean(invoice && invoice.estado === 'EMITIDA' && invoice.estado_cobro === 'POR_COBRAR')
+  const action = carteraAction(invoice)
+  return action === CARTERA_PAY || action === CARTERA_PAY_NO_GUIDE
+}
+
+/** Acciones de cartera según la guía (HU 7.5), iguales a `accion_cartera` del servidor. */
+export const CARTERA_PAY = 'CONFIRMAR_PAGO'
+export const CARTERA_PAY_NO_GUIDE = 'CONFIRMAR_SIN_GUIA'
+export const CARTERA_RETURN = 'REGISTRAR_DEVOLUCION'
+export const CARTERA_WAIT = 'ESPERAR_GUIA'
+export const CARTERA_NONE = 'NINGUNA'
+export const MIN_NO_GUIDE_NOTE = 10
+
+/**
+ * Qué admite una factura en cartera: confirmar el pago (guía entregada, o sin guía con nota), registrar la devolución (guía devuelta,
+ * desde Envíos), esperar (guía aún en camino) o nada. Usa `accion_cartera` del servidor y, si falta, lo deduce igual que él.
+ */
+export function carteraAction(invoice) {
+  if (!invoice) return CARTERA_NONE
+  if (invoice.accion_cartera) return invoice.accion_cartera
+  if (invoice.estado !== 'EMITIDA' || invoice.estado_cobro !== 'POR_COBRAR') return CARTERA_NONE
+  if (!invoice.guia) return CARTERA_PAY_NO_GUIDE
+  if (invoice.guia.estado === 'ENTREGADA') return CARTERA_PAY
+  if (invoice.guia.estado === 'DEVUELTA') return CARTERA_RETURN
+  return CARTERA_WAIT
+}
+
+/** KPI de cartera: los totales del servidor (no dependen de cuántas facturas cargó la pantalla); el saldo solo si llega. */
+export function carteraKpis(summary, invoices) {
+  const local = carteraResume(invoices, 0)
+  if (!summary) return { ...local, saldoFinanciero: null }
+  return {
+    saldoFinanciero: summary.saldo_financiero ?? null,
+    totalPorCobrar: summary.total_por_cobrar,
+    facturasPorCobrar: summary.conteo_por_cobrar,
+    totalRecaudado: summary.total_recaudado,
+    facturasPagadas: summary.conteo_pagadas,
+    totalDevoluciones: summary.total_devoluciones,
+    facturasDevueltas: summary.conteo_devoluciones,
+  }
 }
 
 /** Diferencia con signo entre el costo calculado desde producción y el costo de fábrica vigente. */
