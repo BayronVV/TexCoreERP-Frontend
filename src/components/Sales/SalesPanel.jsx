@@ -20,8 +20,8 @@ export default function SalesPanel() {
   const canShipping = can('envios.ver')
 
   useEffect(() => {
-    apiGet('/api/ventas/facturas/?limit=10').then(setInvoices).catch((error) => setLoadError(error.message))
-    apiGet('/api/ventas/panel/').then(setPanel).catch((error) => setLoadError(error.message))
+    apiGet('/api/ventas/facturas/?limit=10').then(setInvoices).catch((error) => { setInvoices(null); setLoadError(error.message) })
+    apiGet('/api/ventas/panel/').then(setPanel).catch((error) => { setPanel(null); setLoadError(error.message) })
   }, [])
 
   useEffect(() => {

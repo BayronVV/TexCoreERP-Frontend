@@ -65,7 +65,7 @@ export default function MovementsPage() {
     if (filters.responsable.trim()) params.set('responsable', filters.responsable.trim())
     if (filters.desde) params.set('desde', filters.desde)
     if (filters.hasta) params.set('hasta', filters.hasta)
-    apiGet(`/api/terminado/movimientos/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/terminado/movimientos/?${params}`).then((data) => (setPageData(data), setLoadError(''))).catch((error) => { setPageData(null); setLoadError(error.message) })
   }, [filters, page, pageSize])
 
   useEffect(() => {

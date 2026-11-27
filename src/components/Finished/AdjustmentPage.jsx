@@ -211,14 +211,14 @@ export default function AdjustmentPage() {
   const [viewing, setViewing] = useState(null)
 
   const loadStock = useCallback(() => {
-    apiGet('/api/terminado/existencias/').then(setReferences).catch((error) => setLoadError(error.message))
+    apiGet('/api/terminado/existencias/').then(setReferences).catch((error) => { setReferences([]); setLoadError(error.message) })
   }, [])
 
   const loadHistory = useCallback(() => {
     const query = new URLSearchParams({ limit: '200' })
     if (search.trim()) query.set('q', search.trim())
     if (reason) query.set('motivo', reason)
-    apiGet(`/api/terminado/ajustes/?${query}`).then((data) => (setHistory(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/terminado/ajustes/?${query}`).then((data) => (setHistory(data), setLoadError(''))).catch((error) => { setHistory(null); setLoadError(error.message) })
   }, [search, reason])
 
   useEffect(() => {

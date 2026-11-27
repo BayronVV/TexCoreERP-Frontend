@@ -240,12 +240,18 @@ export default function CarteraPage() {
         setPageData(data)
         setLoadError('')
       })
-      .catch((err) => setLoadError(err.message))
+      .catch((err) => {
+        setPageData(null)
+        setLoadError(err.message)
+      })
 
     // 2. Cargar resumen y saldo financiero
     apiGet('/api/ventas/cartera/resumen/')
       .then(setSummary)
-      .catch(() => {})
+      .catch((err) => {
+        setSummary(null)
+        setLoadError((prev) => prev || err.message)
+      })
   }, [filters, page, pageSize])
 
   useEffect(() => {

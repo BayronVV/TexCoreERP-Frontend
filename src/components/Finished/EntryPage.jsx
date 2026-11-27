@@ -59,13 +59,13 @@ export default function EntryPage() {
   const [viewing, setViewing] = useState(null)
 
   const loadPending = useCallback(() => {
-    apiGet('/api/terminado/pendientes/?limit=200').then((data) => (setPending(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet('/api/terminado/pendientes/?limit=200').then((data) => (setPending(data), setLoadError(''))).catch((error) => { setPending(null); setLoadError(error.message) })
   }, [])
 
   const loadHistory = useCallback(() => {
     const params = new URLSearchParams({ limit: '200' })
     if (search.trim()) params.set('q', search.trim())
-    apiGet(`/api/terminado/ingresos/?${params}`).then(setHistory).catch((error) => setLoadError(error.message))
+    apiGet(`/api/terminado/ingresos/?${params}`).then(setHistory).catch((error) => { setHistory(null); setLoadError(error.message) })
   }, [search])
 
   useEffect(() => {

@@ -268,7 +268,7 @@ export default function PricesPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams()
     if (search.trim()) params.set('q', search.trim())
-    apiGet(`/api/ventas/precios/?${params}`).then((data) => (setRows(data), setLoadError(''))).catch((error) => setLoadError(error.message))
+    apiGet(`/api/ventas/precios/?${params}`).then((data) => (setRows(data), setLoadError(''))).catch((error) => { setRows(null); setLoadError(error.message) })
   }, [search])
 
   useEffect(() => {
