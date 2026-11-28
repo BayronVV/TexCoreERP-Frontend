@@ -9,6 +9,7 @@ import styles from '../Inventory/Inventory.module.css'
 import qualityStyles from './Quality.module.css'
 import InspectionForm from './InspectionForm'
 import { flawedPercent } from './quality'
+import TraceLink from '../Traceability/TraceLink'
 
 /**
  * Detalle de una inspección registrada: resumen y marras por defecto (solo lectura: no se edita ni se borra).
@@ -18,7 +19,7 @@ function InspectionDetail({ inspection, onClose }) {
   return (
     <Modal title={`Inspección ${inspection.codigo}`} onClose={onClose} wide>
       <dl className={qualityStyles.lotInfo}>
-        <div><dt>Lote</dt><dd>{inspection.lote_codigo}</dd></div>
+        <div><dt>Lote</dt><dd>{inspection.lote_codigo} · <TraceLink tipo="lote" codigo={inspection.lote_codigo} /></dd></div>
         <div><dt>Orden</dt><dd>{inspection.orden_codigo} · {inspection.referencia_nombre}</dd></div>
         <div><dt>Lavandería</dt><dd>{inspection.lavanderia_nombre}</dd></div>
         <div><dt>Fecha</dt><dd>{formatDate(inspection.fecha)}</dd></div>
@@ -201,7 +202,7 @@ export default function InspectionsPage() {
                 {history.map((item) => (
                   <tr key={item.id}>
                     <td><strong>{item.codigo}</strong></td>
-                    <td>{item.lote_codigo}</td>
+                    <td>{item.lote_codigo}<div><TraceLink tipo="lote" codigo={item.lote_codigo}>Trazabilidad</TraceLink></div></td>
                     <td>{item.referencia_nombre}</td>
                     <td>{formatDate(item.fecha)}</td>
                     <td className={styles.num}>{item.cantidad_recibida}</td>

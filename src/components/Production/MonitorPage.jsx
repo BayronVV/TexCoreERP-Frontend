@@ -1,3 +1,4 @@
+import TraceLink from '../Traceability/TraceLink'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
@@ -250,6 +251,7 @@ export default function MonitorPage() {
                     <span className={styles.muted}>{lot.cantidad} prendas</span>
                   </div>
                   <span className={styles.muted}>{lot.referencia_codigo} · {lot.referencia_nombre}</span>
+                  <TraceLink tipo="lote" codigo={lot.codigo} />
                   {lot.estado === 'CANCELADA' ? (
                     <span className={styles.muted}>Orden anulada</span>
                   ) : lot.estado === 'TERMINADA' ? (

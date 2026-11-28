@@ -1,0 +1,272 @@
+/* Trazabilidad (HU 7.6). Reutiliza Inventory.module.css para la página, las tarjetas y las tablas; aquí la búsqueda,
+   la franja de conciliación y la línea de tiempo. */
+
+.search {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.search input {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.searchResult {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.searchResult p {
+  margin: 0 0 0.35rem;
+}
+
+.options {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.facts dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.facts dd {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Franja de conciliación ---- */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.stripStep {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.stripLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.stripValue {
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.stripNote {
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.strip-ok {
+  background: #e6f6f4;
+  border-color: #b9e4dd;
+}
+
+.strip-alerta {
+  background: #fff4e0;
+  border-color: #f3d39b;
+}
+
+.strip-alerta .stripNote {
+  color: #9a5b00;
+  font-weight: 600;
+}
+
+.strip-pendiente .stripValue,
+.strip-sin-acceso .stripValue {
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+/* ---- Línea de tiempo ---- */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.step:last-child::before {
+  display: none;
+}
+
+.dot {
+  flex: 0 0 18px;
+  height: 18px;
+  margin-top: 1.25rem;
+  border-radius: 50%;
+  border: 3px solid #cbd5e1;
+  background: white;
+  z-index: 1;
+}
+
+.step-ok .dot {
+  border-color: #0f766e;
+  background: #0f766e;
+}
+
+.step-pendiente .dot {
+  border-color: #94a3b8;
+}
+
+.step-sin-acceso .dot {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+}
+
+.stepBody {
+  flex: 1;
+  min-width: 0;
+  background: white;
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.step-sin-acceso .stepBody {
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.stepHead h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0a1038;
+}
+
+.status {
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.status-ok {
+  background: #e6f6f4;
+  color: #0f766e;
+}
+
+.status-pendiente {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-sin-acceso {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.status-alerta {
+  background: #fff4e0;
+  color: #9a5b00;
+}
+
+.stepHead a {
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.group + .group {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.group p {
+  margin: 0 0 0.4rem;
+}
+
+.subhead {
+  margin: 1rem 0 0.25rem;
+  font-size: 0.9rem;
+  color: #0a1038;
+}
+
+.compact {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 760px) {
+  .strip {
+    grid-template-columns: 1fr;
+  }
+
+  .stripStep {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .stripNote {
+    flex-basis: 100%;
+  }
+
+  .stepBody {
+    padding: 0.85rem;
+  }
+
+  .stepHead a {
+    margin-left: 0;
+  }
+}
