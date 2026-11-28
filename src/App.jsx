@@ -38,6 +38,8 @@ import AuditPage from './components/Security/AuditPage'
 import LaundryRemissionPage from './components/Laundry/LaundryRemissionPage'
 import LaundryReceptionPage from './components/Laundry/LaundryReceptionPage'
 import ReportsPage from './components/Reports/ReportsPage'
+import TracePage from './components/Traceability/TracePage'
+import { TRACE_PERMISSIONS } from './components/Traceability/trace'
 import RequirePermission from './components/ui/RequirePermission'
 
 /**
@@ -310,6 +312,30 @@ function App() {
             element={
               <RequirePermission code="lavanderia.ver">
                 <LaundryReceptionPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/trazabilidad"
+            element={
+              <RequirePermission code={TRACE_PERMISSIONS}>
+                <TracePage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/trazabilidad/lote/:codigo"
+            element={
+              <RequirePermission code={TRACE_PERMISSIONS}>
+                <TracePage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/trazabilidad/factura/:numero"
+            element={
+              <RequirePermission code={TRACE_PERMISSIONS}>
+                <TracePage />
               </RequirePermission>
             }
           />

@@ -13,11 +13,13 @@ function extractRoutes(source) {
   const blockRegex = /<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g
   for (const match of source.matchAll(blockRegex)) {
     const [, routePath, elementBody] = match
-    const permMatch = elementBody.match(/<RequirePermission\s+code=(?:"([^"]+)"|\{\[([^\]]+)\]\})/)
+    const permMatch = elementBody.match(/<RequirePermission\s+code=(?:"([^"]+)"|\{\[([^\]]+)\]\}|\{([A-Z_]+)\})/)
     const codes = permMatch
       ? permMatch[1]
         ? [permMatch[1]]
-        : [...permMatch[2].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1])
+        : permMatch[3]
+          ? [`@${permMatch[3]}`]
+          : [...permMatch[2].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1])
       : []
     routes.set(routePath, codes)
   }
@@ -43,6 +45,10 @@ test('todas las rutas declaradas en el menú lateral (MODULES) existen en App.js
         codes.length > 0,
         `La ruta "${item.path}" en App.jsx debe estar protegida con <RequirePermission>`,
       )
+      if (mod.anyOf) {
+        assert.deepEqual(codes, ['@TRACE_PERMISSIONS'], `La ruta "${item.path}" debe exigir la misma lista que el menú`)
+        continue
+      }
       assert.ok(
         codes.some((code) => code.startsWith(`${mod.id}.`)),
         `La ruta "${item.path}" exige ${codes.join(', ')}, que no pertenece al módulo "${mod.id}"`,
@@ -57,6 +63,16 @@ test('Sidebar filtra módulos con `<module.id>.ver` (o el permiso de una de sus 
   assert.equal(isVisible(security, (code) => code === 'seguridad.ver'), true)
   assert.equal(isVisible(security, (code) => code === 'seguridad.auditoria'), true)
   assert.equal(isVisible(security, (code) => code === 'inventario.ver'), false)
+  const trace = MODULES.find((m) => m.id === 'trazabilidad')
+  assert.equal(isVisible(trace, (code) => code === 'ventas.ver'), true)
+  assert.equal(isVisible(trace, (code) => code === 'seguridad.ver'), false)
+})
+
+test('las tres rutas de trazabilidad exigen la lista de permisos de consulta', () => {
+  const routes = extractRoutes(appSource)
+  for (const route of ['/trazabilidad', '/trazabilidad/lote/:codigo', '/trazabilidad/factura/:numero']) {
+    assert.deepEqual(routes.get(route), ['@TRACE_PERMISSIONS'], route)
+  }
 })
 
 test('las opciones con `permission` exigen en App.jsx ese mismo permiso', () => {

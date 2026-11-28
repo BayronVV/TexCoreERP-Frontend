@@ -5,6 +5,7 @@ import { usePersistedFilters } from '../ui/usePersistedFilters'
 import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 import { signed } from './finished'
+import TraceLink from '../Traceability/TraceLink'
 
 const TYPES = [
   { value: '', label: 'Todos los tipos' },
@@ -135,7 +136,12 @@ export default function MovementsPage() {
                     <td className={`${styles.num} ${row.cantidad > 0 ? finishedStyles.up : finishedStyles.down}`}>{signed(row.cantidad)}</td>
                     <td className={styles.num}>{row.saldo_antes}</td>
                     <td className={styles.num}>{row.saldo_despues}</td>
-                    <td>{[row.ingreso_codigo, row.ajuste_codigo, row.factura_numero, row.lote_codigo].filter(Boolean).join(' · ') || '—'}</td>
+                    <td>
+                      {[row.ingreso_codigo, row.ajuste_codigo, row.factura_numero, row.lote_codigo].filter(Boolean).join(' · ') || '—'}
+                      {(row.factura_numero || row.lote_codigo) && (
+                        <div><TraceLink tipo={row.factura_numero ? 'factura' : 'lote'} codigo={row.factura_numero || row.lote_codigo}>Trazabilidad</TraceLink></div>
+                      )}
+                    </td>
                     <td>{row.usuario_nombre || '—'}</td>
                   </tr>
                 ))}

@@ -1,3 +1,4 @@
+import TraceLink from '../Traceability/TraceLink'
 import { useCallback, useEffect, useState } from 'react'
 import { apiGet, apiRequest } from '../../api/client'
 import { useAuth } from '../../auth/session'
@@ -170,7 +171,7 @@ function GuideDetail({ guideId, meta, onChanged, onClose }) {
         <div><dt>Cliente</dt><dd>{guide.cliente_nombre} · {guide.cliente_ciudad}</dd></div>
         <div><dt>Vendedor</dt><dd>{guide.vendedor_nombre || '—'}</dd></div>
         <div><dt>Transportadora</dt><dd>{guide.transportadora_nombre}</dd></div>
-        <div><dt>Factura</dt><dd>{guide.factura_numero} · {money(guide.factura_total)}</dd></div>
+        <div><dt>Factura</dt><dd>{guide.factura_numero} · {money(guide.factura_total)} · <TraceLink tipo="factura" codigo={guide.factura_numero} /></dd></div>
         <div><dt>Flete</dt><dd>{guide.valor_flete ? money(guide.valor_flete) : 'Sin registrar'}</dd></div>
         <div><dt>Relación de despacho</dt><dd>{guide.relacion_codigo || '—'}</dd></div>
         <div><dt>Despachada</dt><dd>{formatMoment(guide.despachada_en)}</dd></div>
@@ -405,7 +406,7 @@ export default function GuidesPage() {
                 {guides.map((guide) => (
                   <tr key={guide.id}>
                     <td><GuideBadge color={guide.color} name={guide.estado_nombre} /></td>
-                    <td><strong>{guide.factura_numero}</strong><div className={styles.muted}>{money(guide.factura_total)}</div></td>
+                    <td><strong>{guide.factura_numero}</strong><div className={styles.muted}>{money(guide.factura_total)}</div><TraceLink tipo="factura" codigo={guide.factura_numero}>Trazabilidad</TraceLink></td>
                     <td>{guide.cliente_nombre}<div className={styles.muted}>{guide.cliente_ciudad}</div></td>
                     <td>
                       {guide.transportadora_nombre}
