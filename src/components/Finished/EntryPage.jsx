@@ -7,6 +7,7 @@ import styles from '../Inventory/Inventory.module.css'
 import finishedStyles from './Finished.module.css'
 import EntryForm from './EntryForm'
 import { differenceLabel, variantLabel } from './finished'
+import TraceLink from '../Traceability/TraceLink'
 
 /**
  * Detalle de un ingreso registrado: reparto por talla frente a lo planificado (solo lectura: no se edita ni se borra).
@@ -17,7 +18,7 @@ function EntryDetail({ entry, onClose }) {
     <Modal title={`Ingreso ${entry.codigo}`} onClose={onClose} wide>
       <dl className={finishedStyles.lotInfo}>
         <div><dt>Inspección</dt><dd>{entry.inspeccion_codigo}</dd></div>
-        <div><dt>Lote</dt><dd>{entry.lote_codigo} · {entry.orden_codigo}</dd></div>
+        <div><dt>Lote</dt><dd>{entry.lote_codigo} · {entry.orden_codigo} · <TraceLink tipo="lote" codigo={entry.lote_codigo} /></dd></div>
         <div><dt>Referencia</dt><dd>{entry.referencia_nombre}</dd></div>
         <div><dt>Fecha</dt><dd>{formatDate(entry.fecha)}</dd></div>
         <div><dt>Ingresó</dt><dd>{entry.recibido_por_nombre || '—'}</dd></div>
@@ -138,7 +139,7 @@ export default function EntryPage() {
                 {history.map((item) => (
                   <tr key={item.id}>
                     <td><strong>{item.codigo}</strong></td>
-                    <td>{item.lote_codigo}</td>
+                    <td>{item.lote_codigo}<div><TraceLink tipo="lote" codigo={item.lote_codigo}>Trazabilidad</TraceLink></div></td>
                     <td>{item.referencia_nombre}</td>
                     <td>{formatDate(item.fecha)}</td>
                     <td className={styles.num}>{item.aptas}</td>

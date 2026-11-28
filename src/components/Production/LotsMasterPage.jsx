@@ -1,3 +1,4 @@
+import TraceLink from '../Traceability/TraceLink'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiGet, apiRequest } from '../../api/client'
@@ -678,7 +679,7 @@ export default function LotsMasterPage() {
                   <tbody>
                     {orders.map((order) => (
                       <tr key={order.id} className={openOrder === order.id ? planStyles.rowOpen : ''}>
-                        <td>{order.codigo}</td>
+                        <td>{order.codigo}<div><TraceLink tipo="orden" codigo={order.codigo}>Trazabilidad</TraceLink></div></td>
                         <td>{order.referencia_codigo} · {order.referencia_nombre}</td>
                         <td className={styles.num}>{order.cantidad}</td>
                         <td>{order.lotes.map((lot) => `${lot.codigo.split('-L')[1] ? `L${lot.codigo.split('-L')[1]}` : lot.codigo}: ${lot.cantidad}`).join(' · ')}</td>
@@ -764,7 +765,7 @@ export default function LotsMasterPage() {
                   <tbody>
                     {lotsRows.map((lot) => (
                       <tr key={lot.id}>
-                        <td><strong>{lot.codigo}</strong></td>
+                        <td><strong>{lot.codigo}</strong><div><TraceLink tipo="lote" codigo={lot.codigo}>Trazabilidad</TraceLink></div></td>
                         <td>{lot.orden_codigo}</td>
                         <td>{lot.referencia_codigo} · {lot.referencia_nombre}</td>
                         <td className={styles.num}>{lot.cantidad}</td>

@@ -1,6 +1,9 @@
 // Módulos del menú lateral: solo etiquetas y rutas. Qué ve cada rol lo decide
 // el backend; un módulo se muestra si el usuario tiene el permiso "<id>.ver".
+// `anyOf`: módulo sin permisos propios que se muestra con cualquiera de esos permisos (Trazabilidad, HU 7.6).
 // `hidden`: el módulo no aparece en el menú, pero sigue existiendo para sus permisos (la pantalla de roles los agrupa por él).
+
+import { TRACE_PERMISSIONS } from '../components/Traceability/trace.js'
 
 export const MODULES = [
   {
@@ -101,15 +104,18 @@ export const MODULES = [
     label: 'Reportes',
     children: [{ label: 'Tablero gerencial', path: '/reportes' }],
   },
+  // Sin permiso propio: el servidor muestra a cada rol solo los bloques de los módulos que puede consultar.
+  { id: 'trazabilidad', label: 'Trazabilidad', path: '/trazabilidad', anyOf: TRACE_PERMISSIONS },
 ]
 
 /**
  * ¿El menú muestra este módulo? Con `<id>.ver`, o porque el rol tiene el permiso de alguna de sus opciones
  * (p. ej. el Gerente consulta la auditoría sin poder ver usuarios).
  *
- * @param {{id: string, children?: Array<{permission?: string}>}} module
+ * @param {{id: string, anyOf?: string[], children?: Array<{permission?: string}>}} module
  * @param {(code: string) => boolean} can
  */
 export function isVisible(module, can) {
+  if (module.anyOf) return module.anyOf.some((code) => can(code))
   return can(`${module.id}.ver`) || Boolean(module.children?.some((child) => child.permission && can(child.permission)))
 }

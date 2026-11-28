@@ -12,6 +12,7 @@ import salesStyles from './Sales.module.css'
 import { downloadInvoicePdf } from './invoiceFile'
 import GuideBadge from '../Shipping/GuideBadge'
 import { INVOICE_NOTICE, money } from './sales'
+import TraceLink from '../Traceability/TraceLink'
 
 /**
  * Formulario de anulación con motivo: las unidades vuelven al inventario y el número de la factura no se reutiliza.
@@ -270,7 +271,7 @@ export default function InvoicesPage() {
               <tbody>
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className={invoice.estado === 'ANULADA' ? salesStyles.rowVoided : ''}>
-                    <td><strong>{invoice.numero}</strong></td>
+                    <td><strong>{invoice.numero}</strong><div><TraceLink tipo="factura" codigo={invoice.numero}>Trazabilidad</TraceLink></div></td>
                     <td>{formatDate(invoice.fecha)}</td>
                     <td>{invoice.cliente_nombre}</td>
                     <td>{invoice.cliente_ciudad}</td>
